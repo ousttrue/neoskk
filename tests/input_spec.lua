@@ -7,12 +7,13 @@ describe("Tests for input.lua", function()
   end)
 
   it("single char", function()
-    local kana, state = kanaconv.to_kana "k"
+    local kana, feed = kanaconv.to_kana "k"
     assert.are.equal("", kana)
-    assert.are.equal("k", state.feed)
+    assert.are.equal("k", feed)
 
-    kana, state = kanaconv.to_kana("a", state)
+    kana, feed = kanaconv.to_kana(feed .. "a")
     assert.are.equal("か", kana)
+    assert.are.equal("", feed)
   end)
 
   it("multiple chars (don't use tmpResult)", function()

@@ -328,42 +328,4 @@ local kanaRules = {
   { input = "whe", output = "うぇ", next = "" },
   { input = "who", output = "うぉ", next = "" },
 }
-
----@class KanaTable
----@field rules KanaRule[]
-local KanaTable = {
-  rules = kanaRules,
-}
-
----@return KanaTable
-function KanaTable.new()
-  return setmetatable({}, { __index = KanaTable })
-end
-
--- ---inputとの前方一致で絞り込む
--- ---@param pre string
--- ---@return KanaRule[]
--- function KanaTable:filter(pre)
---   return vim.tbl_filter(function(rule)
---     return vim.startswith(rule.input, pre)
---   end, self.rules)
--- end
-
-local function string_startswith(self, start)
-  return self:sub(1, #start) == start
-end
-
----inputとの前方一致で絞り込む
----@param pre string
----@return KanaRule[]
-function KanaTable:filter(pre)
-  local items = {}
-  for i, item in ipairs(KanaTable.rules) do
-    if string_startswith(item.input, pre) then
-      table.insert(items, item)
-    end
-  end
-  return items
-end
-
-return KanaTable
+return kanaRules

@@ -35,16 +35,32 @@ LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/
 
 [Neovim Lua のための LuaLS セットアップ](https://zenn.dev/uga_rosa/articles/afe384341fc2e1)
 
-- [ ] ロジックを関数型っぽくしてテストしやすくする
+- [x] ロジックを関数型っぽくしてテストしやすくする
+
+```lua
+---@param src string キー入力
+---@return string 確定変換済み
+---@return string 未使用のキー入力
+function M.to_kana(src)
+  local kakutei = ""
+  local feed = ""
+  local tmpResult = nil
+  for key in src:gmatch "." do
+    -- 一文字ずつ処理する
+    kakutei, feed, tmpResult = kanaInput(key, kakutei, feed, tmpResult)
+  end
+  return kakutei, feed and feed or ""
+end
+```
 
 - [ ] nvim で動く
 
 ## 参考
 
 - https://github.com/uga-rosa/skk-learning.nvim
+
   - [SKK実装入門 (1) ローマ字 -> ひらがな変換](https://zenn.dev/uga_rosa/articles/ec5281d5a95a57)
   - [SKK実装入門 (2) ひらがな入力](https://zenn.dev/uga_rosa/articles/e4c532a59de7d6)
 
 - [SKK Openlab - トップ](http://openlab.ring.gr.jp/skk/index-j.html)
 - [SKK (Simple Kana to Kanji conversion program) Manual &mdash; ddskk 17.1 ドキュメント](https://ddskk.readthedocs.io/ja/latest/)
-
