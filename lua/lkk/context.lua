@@ -1,10 +1,9 @@
 local KanaTable = require "lkk.kana.kana_table"
-local PreEdit = require "lkk.preedit"
 local InputState = require("lkk.state").InputState
 
 ---@class Context
 ---@field kanaTable KanaTable 全ての変換ルール
----@field preEdit PreEdit
+---@field kakutei string
 ---@field state State
 ---@field tmpResult? KanaRule feedに完全一致する変換ルール
 local Context = {}
@@ -12,18 +11,16 @@ local Context = {}
 function Context.new()
   local self = setmetatable({}, { __index = Context })
   self.kanaTable = KanaTable.new()
-  self.preEdit = PreEdit.new()
+  self.kakutei = ""
   self.state = InputState.new()
   return self
 end
 
 ---@param result KanaRule
 function Context.acceptResult(self, result)
-  local preEdit = self.preEdit
   local state = self.state
   local kana, feed = result.output, result.next
-
-  preEdit:doKakutei(kana)
+  self.kakutei = self.kakutei .. kana
   state.feed = feed
 end
 

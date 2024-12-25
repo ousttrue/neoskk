@@ -1,20 +1,15 @@
 local Context = require "lkk.context"
 
 ---@param context Context
----@param keys string
-local function dispatch(context, keys)
-  for key in keys:gmatch "." do
-    -- print(key)
-    context:kanaInput( key)
-  end
-end
-
----@param context Context
 ---@param input string
 ---@return string
 local function test(context, input)
-  dispatch(context, input)
-  return context.preEdit:output ""
+  -- dispatch(context, input)
+  for key in input:gmatch "." do
+    -- print(key)
+    context:kanaInput(key)
+  end
+  return context.kakutei
 end
 
 describe("Tests for input.lua", function()
