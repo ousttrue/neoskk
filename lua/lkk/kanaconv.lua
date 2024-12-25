@@ -19,46 +19,29 @@ local function filter(pre)
   return items
 end
 
----@param feed string
----@param candidates KanaRule[]
----@return KanaRule?
-local function updateTmpResult(feed, candidates)
+---@param input string
+---@return string|KanaRule|nil 確定|未確定
+---@return string 未使用
+local function kanaInput(input)
+  local candidates = filter(input)
+  if #candidates == 0 then
+    return nil, input
+  end
+
+  if #candidates == 1 and candidates[1].input == input then
+    -- 1 候補が一つかつ完全一致。確定
+    return candidates[1].output, candidates[1].next
+  end
+
   for _, candidate in ipairs(candidates) do
-    if candidate.input == feed then
-      return candidate
+    if candidate.input == input then
+      -- 2 未確定
+      return candidate, input
     end
   end
-end
 
----@param char string
----@param kakutei string?
----@param feed string?
----@param tmpResult KanaRule?
----@return string
----@return string
----@return KanaRule?
-local function kanaInput(char, kakutei, feed, tmpResult)
-  local input = (feed and feed or "") .. char
-  local candidates = filter(input)
-  if #candidates == 1 and candidates[1].input == input then
-    -- 候補が一つかつ完全一致。確定
-    kakutei = kakutei .. candidates[1].output
-    feed = candidates[1].next
-    return kakutei, feed, tmpResult
-  elseif #candidates > 0 then
-    -- 未確定
-    feed = input
-    tmpResult = updateTmpResult(feed, candidates)
-    return kakutei and kakutei or "", feed, tmpResult
-  elseif tmpResult then
-    -- 新しい入力によりtmpResultで確定
-    kakutei = kakutei .. tmpResult.output
-    feed = tmpResult.next
-    return kanaInput(char, kakutei, feed, tmpResult)
-  else
-    -- 入力ミス。self.tmpResultは既にnil
-    return kanaInput(char, kakutei, "", tmpResult)
-  end
+  -- 3 入力を先送り
+  return "", input
 end
 
 ---@param src string キー入力
@@ -68,10 +51,47 @@ function M.to_kana(src)
   local kakutei = ""
   local feed = ""
   local tmpResult = nil
+
   for key in src:gmatch "." do
     -- 一文字ずつ処理する
-    kakutei, feed, tmpResult = kanaInput(key, kakutei, feed, tmpResult)
+    local result, new_feed = kanaInput(feed .. key)
+    if type(result) == "string" then
+      -- 1 / 3
+      kakutei = kakutei .. result
+    elseif type(result) == "table" then
+      -- 2
+      tmpResult = result
+    else
+      if tmpResult then
+        kakutei = kakutei .. tmpResult.output
+      end
+      -- １文字すてる
+      -- TODO: tmpResult が消費した分を削る
+      new_feed = new_feed:sub(2)
+    end
+    feed = new_feed
   end
+
+  if feed then
+    -- 入力の残り
+    local result, new_feed = kanaInput(feed)
+    if type(result) == "string" then
+      -- 1 / 3
+      kakutei = kakutei .. result
+    elseif type(result) == "table" then
+      -- 2
+      tmpResult = result
+    else
+      if tmpResult then
+        kakutei = kakutei .. tmpResult.output
+      end
+      -- １文字すてる
+      -- TODO: tmpResult が消費した分を削る
+      new_feed = new_feed:sub(2)
+    end
+    feed = new_feed
+  end
+
   return kakutei, feed and feed or ""
 end
 

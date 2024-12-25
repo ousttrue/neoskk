@@ -5,4 +5,13 @@
         "${3rd}/busted/library",
     ],
     "Lua.workspace.checkThirdParty": false,
+    "busted-test-explorer.executable": "${workspaceFolder}/local/bin/busted.bat",
+    "busted-test-explorer.cwd": "${workspaceFolder}",
+    "busted-test-explorer.args": [
+        "--helper=./tests/testhelper.lua"
+    ],
+    "busted-tests.execution.program": "${workspaceFolder}/local/bin/busted.bat",
+    "busted-tests.pattern.prefix": "${workspaceFolder}/tests/**",
+    "busted-tests.pattern.suffix": "_spec.lua",
+    "busted-tests.execution.mode": "sequential",
 }
