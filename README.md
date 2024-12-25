@@ -35,6 +35,8 @@ LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/
 
 [Neovim Lua のための LuaLS セットアップ](https://zenn.dev/uga_rosa/articles/afe384341fc2e1)
 
+- [ ] ロジックを関数型っぽくしてテストしやすくする
+
 - [ ] nvim で動く
 
 ## 参考

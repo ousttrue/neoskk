@@ -1,48 +1,40 @@
 local Context = require "lkk.context"
 
----@type Context
-local context
-
-local input = require "lkk.input"
-
 ---@param context Context
 ---@param keys string
 local function dispatch(context, keys)
   for key in keys:gmatch "." do
     -- print(key)
-    input.kanaInput(context, key)
+    context:kanaInput( key)
   end
 end
 
+---@param context Context
 ---@param input string
----@param expect string
-local function test(input, expect)
+---@return string
+local function test(context, input)
   dispatch(context, input)
-  assert.are.equal(expect, context.preEdit:output "")
+  return context.preEdit:output ""
 end
 
 describe("Tests for input.lua", function()
-  before_each(function()
-    context = Context.new()
-  end)
-
   it("single char", function()
-    test("ka", "か")
+    assert.are.equal("か", test(Context.new(), "ka"))
   end)
 
   it("multiple chars (don't use tmpResult)", function()
-    test("ohayou", "おはよう")
+    assert.are.equal("おはよう", test(Context.new(), "ohayou"))
   end)
 
   it("multiple chars (use tmpResult)", function()
-    test("amenbo", "あめんぼ")
+    assert.are.equal("あめんぼ", test(Context.new(), "amenbo"))
   end)
 
   it("multiple chars (use tmpResult and its next)", function()
-    test("uwwwa", "うwっわ")
+    assert.are.equal("うwっわ", test(Context.new(), "uwwwa"))
   end)
 
   it("mistaken input", function()
-    test("rkakyra", "から")
+    assert.are.equal("から", test(Context.new(), "rkakyra"))
   end)
 end)
