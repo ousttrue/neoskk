@@ -1,35 +1,37 @@
-local Context = require "lkk.context"
-
----@param context Context
----@param input string
----@return string
-local function test(context, input)
-  -- dispatch(context, input)
-  for key in input:gmatch "." do
-    -- print(key)
-    context:kanaInput(key)
-  end
-  return context.kakutei
-end
+local kanaconv = require "lkk.kanaconv"
 
 describe("Tests for input.lua", function()
   it("single char", function()
-    assert.are.equal("か", test(Context.new(), "ka"))
+    local kana = kanaconv.to_kana "ka"
+    assert.are.equal("か", kana)
+  end)
+
+  it("single char", function()
+    local kana, state = kanaconv.to_kana "k"
+    assert.are.equal("", kana)
+    assert.are.equal("k", state.feed)
+
+    kana, state = kanaconv.to_kana("a", state)
+    assert.are.equal("か", kana)
   end)
 
   it("multiple chars (don't use tmpResult)", function()
-    assert.are.equal("おはよう", test(Context.new(), "ohayou"))
+    local kana = kanaconv.to_kana "ohayou"
+    assert.are.equal("おはよう", kana)
   end)
 
   it("multiple chars (use tmpResult)", function()
-    assert.are.equal("あめんぼ", test(Context.new(), "amenbo"))
+    local kana = kanaconv.to_kana "amenbo"
+    assert.are.equal("あめんぼ", kana)
   end)
 
   it("multiple chars (use tmpResult and its next)", function()
-    assert.are.equal("うwっわ", test(Context.new(), "uwwwa"))
+    local kana = kanaconv.to_kana "uwwwa"
+    assert.are.equal("うwっわ", kana)
   end)
 
   it("mistaken input", function()
-    assert.are.equal("から", test(Context.new(), "rkakyra"))
+    local kana = kanaconv.to_kana "rkakyra"
+    assert.are.equal("から", kana)
   end)
 end)
