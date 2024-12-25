@@ -24,13 +24,18 @@ LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/
 ## TODO
 
 - [x] 素の busted でテストが動く
-- [ ] nvim で動く
 
 ```sh
 > busted ./tests --helper=./tests/testhelper.lua
 ●●●●●●●
 7 successes / 0 failures / 0 errors / 0 pending : 0.0 seconds
 ```
+
+- [x] lua-language-server
+
+[Neovim Lua のための LuaLS セットアップ](https://zenn.dev/uga_rosa/articles/afe384341fc2e1)
+
+- [ ] nvim で動く
 
 ## 参考
 

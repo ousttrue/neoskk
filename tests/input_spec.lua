@@ -18,7 +18,7 @@ end
 ---@param expect string
 local function test(input, expect)
   dispatch(context, input)
-  assert.are.equals(expect, context.preEdit:output "")
+  assert.are.equal(expect, context.preEdit:output "")
 end
 
 describe("Tests for input.lua", function()
