@@ -15,6 +15,9 @@ end
 
 -- local hl_groups = { "DiffAdd", "DiffChange", "DiffDelete" }
 function Highlighter.highlight(self)
+  if #self.feed == 0 then
+    return
+  end
   local col = vim.fn.col "." - 1
   local row = vim.fn.line "." - 1
   vim.api.nvim_buf_set_extmark(self.bufnr, self.ns, row, col, {
@@ -58,6 +61,10 @@ function M.PreEdit.new(namespace)
   return self
 end
 
+function M.PreEdit.delete(self)
+  -- vim.api.nvim_buf_clear_namespace
+end
+
 function M.PreEdit.highlight(self, feed)
   local bufnr = vim.api.nvim_get_current_buf()
   local highlighter = self.bufmap[bufnr]
@@ -65,10 +72,9 @@ function M.PreEdit.highlight(self, feed)
     highlighter = Highlighter.new(bufnr, self.ns)
     self.bufmap[bufnr] = highlighter
   end
-  -- local row = vim.fn.line "."
   highlighter.feed = feed
   vim.defer_fn(function()
-    vim.fn.winrestview { topline = 0, leftcol = 0 }
+    vim.fn.winrestview(vim.fn.winsaveview())
   end, 0)
 end
 

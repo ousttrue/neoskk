@@ -52,9 +52,10 @@ function M.to_kana(src, _feed)
   "ousttrue/lkk",
   config = function()
     require("lkk").setup {
+      jisyo = vim.fn.expand "~/.skk/SKK-JISYO.L",
     }
     vim.keymap.set("i", "<C-j>", function()
-      return require("lkk").get_or_create():toggle()
+      return require("lkk").toggle()
     end, {
       remap = false,
       expr = true,
@@ -65,7 +66,43 @@ function M.to_kana(src, _feed)
 
 - [x] extmark で 未確定を表示する
 
-- [ ] comprefunc
+- [x] comprefunc
+
+https://github.com/char101/vim-nearest-complete-lua/blob/master/plugin/nearest-complete.vim
+
+- [x] SKK-JISYO.L
+
+  - [x] euc to utf-8 `vim.iconv`
+
+- [x] 大文字でのモード変更
+- [x] 変換モード
+- [ ] q: カタカナ・ひらがなスイッチ
+- [ ] 送り仮名
+
+```
+from https://github.com/uobikiemukot/yaskk
+
+                      +--------------------------------+
+                      |         ひら or カタ           |
+                      +--------------------------------+
+                upper | ^ Ctrl+J (途中経過が確定)      ^ l (確定後にASCIIモードへ)
+                      | | Ctrl+H (▽を消す)             | q (確定後にひら・カタのトグル)
+                      | | ESC or Ctrl+G (途中経過消失) | Ctrl+J or その他の文字 (確定後に元のモードに戻る)
+                      | |                              | Ctrl+H (確定後，1文字消える)
+                      | |                              |
+                      v |         ESC or Ctrl+G        |
+                   +--------+ <------------------ +--------+
+q (ひら・カタ変換) |  変換  |                     |  選択  | Ctrl+P or x: 前候補
+                   +--------+ ------------------> +--------+ Ctrl+N or SPACE: 次候補
+                            |        SPACE        ^
+                      upper |                     | 送り仮名が確定すると自動で遷移
+                            v                     | (促音では遷移しない)
+                            +---------------------+
+                            |  送り仮名確定待ち   |
+                            +---------------------+
+                              Ctrl+J: ひら or カタ モードへ戻る
+                              ESC: 変換モードへ戻る
+```
 
 - [ ] backspace preedit
 
@@ -78,3 +115,34 @@ function M.to_kana(src, _feed)
 
 - [SKK Openlab - トップ](http://openlab.ring.gr.jp/skk/index-j.html)
 - [SKK (Simple Kana to Kanji conversion program) Manual &mdash; ddskk 17.1 ドキュメント](https://ddskk.readthedocs.io/ja/latest/)
+
+### 辞書
+
+- http://openlab.ring.gr.jp/skk/wiki/wiki.cgi?page=SKK%BC%AD%BD%F1
+- https://github.com/skk-dict/jisyo
+
+## 各種SKK実装
+
+### uim-fep
+
+https://github.com/uim/uim/blob/master/fep/README.ja
+
+`c, scheme, pty`
+
+escape sequence(DECSTBM) で一番の下の行をステータスラインとして確保する。
+
+### skkfep(いにしえ)
+
+`c, pty`
+
+http://ftp.nara.wide.ad.jp/pub/Linux/gentoo-portage/app-i18n/skkfep/skkfep-0.87-r1.ebuild
+
+escape sequence で一番の下の行をステータスラインとして確保する。
+
+### yaskk
+
+`c`
+
+https://github.com/uobikiemukot/yaskk
+
+READMEの状態遷移図も参考になる。
