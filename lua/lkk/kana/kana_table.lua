@@ -1,8 +1,3 @@
----@class KanaRule
----@field input string
----@field output string
----@field next string
-
 ---@type KanaRule[]
 local kanaRules = {
   { input = "-", output = "ー", next = "" },
