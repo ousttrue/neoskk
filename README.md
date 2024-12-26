@@ -6,7 +6,10 @@ skk は名前空間が混んでいるのでちょっと違う名前にした。
 skk => Simple Kana to Kanji => Lua Kana to Kanji => lkk
 ```
 
-## 開発環境
+## 実装ノート
+
+- [x] 素の busted でテストが動く
+      (Windows だからなのか vusted うまくいかなかった)
 
 `Windows11`
 
@@ -20,10 +23,6 @@ LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/
 > .\local\bin\busted.bat --version
 2.2.0
 ```
-
-## TODO
-
-- [x] 素の busted でテストが動く
 
 ```sh
 > busted ./tests --helper=./tests/testhelper.lua
@@ -63,6 +62,12 @@ function M.to_kana(src, _feed)
   end,
 },
 ```
+
+- [x] extmark で 未確定を表示する
+
+- [ ] comprefunc
+
+- [ ] backspace preedit
 
 ## 参考
 

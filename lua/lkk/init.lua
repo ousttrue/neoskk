@@ -4,11 +4,13 @@
 local MODULE_NAME = "lkk"
 local KEYS = vim.split("abcdefghijklmnopqrstuvwxyz", "")
 local kanaconv = require "lkk.kanaconv"
+local PreEdit = require("lkk.preedit").PreEdit
 
 local M = {}
 
 ---@class Lkk
 ---@field feed string
+---@field preedit PreEdit
 M.Lkk = {}
 
 ---@param opts any
@@ -16,6 +18,7 @@ M.Lkk = {}
 function M.Lkk.new(opts)
   local self = setmetatable({
     feed = "",
+    preedit = PreEdit.new(MODULE_NAME),
   }, {
     __index = M.Lkk,
   })
@@ -43,7 +46,7 @@ function M.Lkk.new(opts)
     return nil
   end, function(content)
     -- reload
-    require(MODULE_NAME).Skk.new()
+    require(MODULE_NAME).Lkk.new()
   end)
 
   return self
@@ -59,6 +62,7 @@ function M.Lkk.map(self)
     vim.keymap.set("l", lhs, function()
       local out, feed = kanaconv.to_kana(lhs, self.feed)
       self.feed = feed
+      self.preedit:highlight(self.feed)
       return out
     end, {
       -- buffer = true,
@@ -94,6 +98,7 @@ end
 ---@return string
 function M.Lkk.disable(self)
   self.feed = ""
+  self.preedit:highlight(self.feed)
 
   if vim.bo.iminsert ~= 1 then
     return ""
