@@ -30,6 +30,7 @@ local OKURI = 2
 ---@field kana_feed string かな入力の未確定(ascii)
 ---@field conv_feed string 漢字変換の未確定(かな)
 ---@field conv_col integer 漢字変換を開始した col
+---@field okuri_feed string 送り仮名
 ---@field preedit PreEdit
 ---@field map_keys string[]
 ---@field mode MODE
@@ -43,6 +44,7 @@ function M.Lkk.new(opts)
     kana_feed = "",
     conv_feed = "",
     conv_col = 0,
+    okuri_feed = "",
     preedit = PreEdit.new(MODULE_NAME),
     map_keys = {},
     mode = RAW,
@@ -86,6 +88,14 @@ function M.Lkk.delete(self)
   self:unmap()
 end
 
+local function copy_item(src)
+  local dst = {}
+  for k, v in pairs(src) do
+    dst[k] = v
+  end
+  return dst
+end
+
 ---@param lhs string
 ---@param is_upper boolean
 ---@return string
@@ -96,6 +106,7 @@ function M.Lkk.input(self, lhs, is_upper)
       self.conv_col = vim.fn.col "."
     elseif self.mode == CONV then
       self.mode = OKURI
+      self.okuri_feed = lhs
     elseif self.mode == OKURI then
       --
     end
@@ -131,8 +142,31 @@ function M.Lkk.input(self, lhs, is_upper)
       self.preedit:highlight(self.conv_feed .. self.kana_feed)
       return ""
     elseif self.mode == OKURI then
-      -- TODO
-      return ""
+      if #out > 0 then
+        -- trigger
+        local conv_feed = self.conv_feed
+        self.conv_feed = ""
+        vim.defer_fn(function()
+          local items = {}
+          local key = conv_feed .. self.okuri_feed
+          for k, v in pairs(M.jisyo) do
+            if k == key then
+              for _, item in ipairs(v) do
+                local copy = copy_item(item)
+                copy.word = copy.word .. out
+                table.insert(items, copy)
+              end
+            end
+          end
+          vim.fn.complete(self.conv_col, items)
+        end, 0)
+        self.preedit:highlight ""
+        self.mode = RAW
+        return conv_feed .. out
+      else
+        self.preedit:highlight(self.conv_feed .. self.kana_feed)
+        return ""
+      end
     end
   end
 end

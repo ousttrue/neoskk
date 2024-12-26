@@ -6,7 +6,50 @@ skk は名前空間が混んでいるのでちょっと違う名前にした。
 skk => Simple Kana to Kanji => Lua Kana to Kanji => lkk
 ```
 
+```lua
+-- lazy
+{
+  "ousttrue/lkk",
+  config = function()
+    require("lkk").setup {
+      jisyo = vim.fn.expand "~/.skk/SKK-JISYO.L",
+    }
+    vim.keymap.set("i", "<C-j>", function()
+      return require("lkk").toggle()
+    end, {
+      remap = false,
+      expr = true,
+    })
+  end,
+},
+```
+
 ## 実装ノート
+
+```
+from https://github.com/uobikiemukot/yaskk
+
+                      +--------------------------------+
+                      |         ひら or カタ           |
+                      +--------------------------------+
+                upper | ^ Ctrl+J (途中経過が確定)      ^ l (確定後にASCIIモードへ)
+                      | | Ctrl+H (▽を消す)             | q (確定後にひら・カタのトグル)
+                      | | ESC or Ctrl+G (途中経過消失) | Ctrl+J or その他の文字 (確定後に元のモードに戻る)
+                      | |                              | Ctrl+H (確定後，1文字消える)
+                      | |                              |
+                      v |         ESC or Ctrl+G        |
+                   +--------+ <------------------ +--------+
+q (ひら・カタ変換) |  変換  |                     |  選択  | Ctrl+P or x: 前候補
+                   +--------+ ------------------> +--------+ Ctrl+N or SPACE: 次候補
+                            |        SPACE        ^
+                      upper |                     | 送り仮名が確定すると自動で遷移
+                            v                     | (促音では遷移しない)
+                            +---------------------+
+                            |  送り仮名確定待ち   |
+                            +---------------------+
+                              Ctrl+J: ひら or カタ モードへ戻る
+                              ESC: 変換モードへ戻る
+```
 
 - [x] 素の busted でテストが動く
       (Windows だからなのか vusted うまくいかなかった)
@@ -45,66 +88,22 @@ function M.to_kana(src, _feed)
 ```
 
 - [x] nvim で動く
-
-```lua
--- lazy
-{
-  "ousttrue/lkk",
-  config = function()
-    require("lkk").setup {
-      jisyo = vim.fn.expand "~/.skk/SKK-JISYO.L",
-    }
-    vim.keymap.set("i", "<C-j>", function()
-      return require("lkk").toggle()
-    end, {
-      remap = false,
-      expr = true,
-    })
-  end,
-},
-```
-
 - [x] extmark で 未確定を表示する
-
-- [x] comprefunc
-
-https://github.com/char101/vim-nearest-complete-lua/blob/master/plugin/nearest-complete.vim
-
 - [x] SKK-JISYO.L
-
   - [x] euc to utf-8 `vim.iconv`
-
 - [x] 大文字でのモード変更
-- [x] 変換モード
+- [x] 変換モード(RAW, CONV, OKURI)
 - [ ] q: カタカナ・ひらがなスイッチ
-- [ ] 送り仮名
-
-```
-from https://github.com/uobikiemukot/yaskk
-
-                      +--------------------------------+
-                      |         ひら or カタ           |
-                      +--------------------------------+
-                upper | ^ Ctrl+J (途中経過が確定)      ^ l (確定後にASCIIモードへ)
-                      | | Ctrl+H (▽を消す)             | q (確定後にひら・カタのトグル)
-                      | | ESC or Ctrl+G (途中経過消失) | Ctrl+J or その他の文字 (確定後に元のモードに戻る)
-                      | |                              | Ctrl+H (確定後，1文字消える)
-                      | |                              |
-                      v |         ESC or Ctrl+G        |
-                   +--------+ <------------------ +--------+
-q (ひら・カタ変換) |  変換  |                     |  選択  | Ctrl+P or x: 前候補
-                   +--------+ ------------------> +--------+ Ctrl+N or SPACE: 次候補
-                            |        SPACE        ^
-                      upper |                     | 送り仮名が確定すると自動で遷移
-                            v                     | (促音では遷移しない)
-                            +---------------------+
-                            |  送り仮名確定待ち   |
-                            +---------------------+
-                              Ctrl+J: ひら or カタ モードへ戻る
-                              ESC: 変換モードへ戻る
-```
-
+- [x] 送り仮名
 - [ ] backspace preedit
+- [ ] floating でカーソル近くにモード表示
+
+- [ ] 絵文字 https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
+- Unihan_DictionaryLikeData.txt
+  - [ ] 四角号碼
+  - [ ] 音読み
+  - [ ] pinyin => 注音符号 => 漢字
+- [ ] 広韻の反切から歴史的仮名遣いを生成する
 
 ## 参考
 
