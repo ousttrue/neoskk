@@ -1,11 +1,11 @@
 ---
 --- vim の状態管理
 ---
-local MODULE_NAME = "lkk"
+local MODULE_NAME = "neoskk"
 local KEYS = vim.split("abcdefghijklmnopqrstuvwxyz", "")
-local kanaconv = require "lkk.kanaconv"
-local PreEdit = require("lkk.preedit").PreEdit
-local dict = require "lkk.dict"
+local kanaconv = require "neoskk.kanaconv"
+local PreEdit = require("neoskk.preedit").PreEdit
+local dict = require "neoskk.dict"
 
 ---@class JisyoItem
 ---@field word string
@@ -26,7 +26,7 @@ local OKURI = 2
 
 ---@alias MODE `RAW` | `CONV` | `OKURI`
 
----@class Lkk
+---@class NeoSkk
 ---@field kana_feed string かな入力の未確定(ascii)
 ---@field conv_feed string 漢字変換の未確定(かな)
 ---@field conv_col integer 漢字変換を開始した col
@@ -34,11 +34,11 @@ local OKURI = 2
 ---@field preedit PreEdit
 ---@field map_keys string[]
 ---@field mode MODE
-M.Lkk = {}
+M.NeoSkk = {}
 
 ---@param opts Opts?
----@return Lkk
-function M.Lkk.new(opts)
+---@return NeoSkk
+function M.NeoSkk.new(opts)
   local self = setmetatable({
     opts = opts and opts or {},
     kana_feed = "",
@@ -49,7 +49,7 @@ function M.Lkk.new(opts)
     map_keys = {},
     mode = RAW,
   }, {
-    __index = M.Lkk,
+    __index = M.NeoSkk,
   })
   self:map()
 
@@ -76,7 +76,7 @@ function M.Lkk.new(opts)
   end, function(old)
     -- reload
     local new_module = require(MODULE_NAME)
-    new_module.Lkk.new(old.opts)
+    new_module.NeoSkk.new(old.opts)
     new_module.jisyo = old.jisyo
   end)
 
@@ -84,7 +84,7 @@ function M.Lkk.new(opts)
   return self
 end
 
-function M.Lkk.delete(self)
+function M.NeoSkk.delete(self)
   self:unmap()
 end
 
@@ -99,7 +99,7 @@ end
 ---@param lhs string
 ---@param is_upper boolean
 ---@return string
-function M.Lkk.input(self, lhs, is_upper)
+function M.NeoSkk.input(self, lhs, is_upper)
   if is_upper then
     if self.mode == RAW then
       self.mode = CONV
@@ -172,7 +172,7 @@ function M.Lkk.input(self, lhs, is_upper)
 end
 
 --- language-mapping
-function M.Lkk.map(self)
+function M.NeoSkk.map(self)
   for _, lhs in ipairs(KEYS) do
     vim.keymap.set("l", lhs, function()
       return self:input(lhs, false)
@@ -206,7 +206,7 @@ function M.Lkk.map(self)
   end
 end
 
-function M.Lkk.unmap(self)
+function M.NeoSkk.unmap(self)
   -- language-mapping
   for _, lhs in ipairs(self.map_keys) do
     -- vim.api.nvim_buf_del_keymap(0, "l", lhs)
@@ -215,7 +215,7 @@ function M.Lkk.unmap(self)
 end
 
 ---@return string
-function M.Lkk.enable(self)
+function M.NeoSkk.enable(self)
   if vim.bo.iminsert == 1 then
     return ""
   end
@@ -230,7 +230,7 @@ function M.Lkk.enable(self)
 end
 
 ---@return string
-function M.Lkk.disable(self)
+function M.NeoSkk.disable(self)
   self.kana_feed = ""
   self.mode = RAW
   self.preedit:highlight ""
@@ -244,7 +244,7 @@ function M.Lkk.disable(self)
 end
 
 ---@return string
-function M.Lkk.toggle(self)
+function M.NeoSkk.toggle(self)
   if vim.bo.iminsert == 1 then
     return self:disable()
   else
@@ -258,7 +258,7 @@ function M.setup(opts)
     M.jisyo = dict.load(opts.jisyo)
   end
 
-  M.Lkk.new(opts)
+  M.NeoSkk.new(opts)
 end
 
 function M.toggle()

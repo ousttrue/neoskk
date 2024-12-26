@@ -1,4 +1,4 @@
-local kanaconv = require "lkk.kanaconv"
+local kanaconv = require "neoskk.kanaconv"
 
 -- local kana, new_state = kanaconv.to_kana("k")
 -- print(kana, new_state)

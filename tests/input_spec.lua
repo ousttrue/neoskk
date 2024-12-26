@@ -1,4 +1,4 @@
-local kanaconv = require "lkk.kanaconv"
+local kanaconv = require "neoskk.kanaconv"
 
 describe("Tests for input.lua", function()
   it("single char", function()

@@ -1,21 +1,17 @@
-# lkk
+# neoskk
 
-skk は名前空間が混んでいるのでちょっと違う名前にした。
-
-```
-skk => Simple Kana to Kanji => Lua Kana to Kanji => lkk
-```
+やっぱ neoskk にしよう。
 
 ```lua
 -- lazy
 {
-  "ousttrue/lkk",
+  "ousttrue/neoskk",
   config = function()
-    require("lkk").setup {
+    require("neoskk").setup {
       jisyo = vim.fn.expand "~/.skk/SKK-JISYO.L",
     }
     vim.keymap.set("i", "<C-j>", function()
-      return require("lkk").toggle()
+      return require("neoskk").toggle()
     end, {
       remap = false,
       expr = true,
