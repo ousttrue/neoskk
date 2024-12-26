@@ -4,13 +4,14 @@ local KanaTable = require "lkk.kana.kana_table"
 local MatchedKanaRule = require("lkk.kana.kanarule").MatchedKanaRule
 
 ---@param src string キー入力
+---@param _feed string?
 ---@return string 確定変換済み
 ---@return string 未使用のキー入力
-function M.to_kana(src)
+function M.to_kana(src, _feed)
   -- 出力文字列
   local output = ""
   -- 未使用のキー入力
-  local feed = ""
+  local feed = _feed and _feed or ""
   -- 部分一致が複数在って後続を見るまで確定できない
   ---@type MatchedKanaRule?
   local candidate = nil

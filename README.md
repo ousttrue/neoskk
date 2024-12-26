@@ -39,21 +39,30 @@ LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/
 
 ```lua
 ---@param src string キー入力
+---@param _feed string?
 ---@return string 確定変換済み
 ---@return string 未使用のキー入力
-function M.to_kana(src)
-  local kakutei = ""
-  local feed = ""
-  local tmpResult = nil
-  for key in src:gmatch "." do
-    -- 一文字ずつ処理する
-    kakutei, feed, tmpResult = kanaInput(key, kakutei, feed, tmpResult)
-  end
-  return kakutei, feed and feed or ""
-end
+function M.to_kana(src, _feed)
 ```
 
-- [ ] nvim で動く
+- [x] nvim で動く
+
+```lua
+-- lazy
+{
+  "ousttrue/lkk",
+  config = function()
+    require("lkk").setup {
+    }
+    vim.keymap.set("i", "<C-j>", function()
+      return require("lkk").get_or_create():toggle()
+    end, {
+      remap = false,
+      expr = true,
+    })
+  end,
+},
+```
 
 ## 参考
 
