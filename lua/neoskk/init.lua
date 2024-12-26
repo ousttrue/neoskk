@@ -69,7 +69,7 @@ function M.NeoSkk.new(opts)
   --
   -- reload
   --
-  require("tools.reload").autocmd(group, MODULE_NAME, function()
+  require("neoskk.reload").autocmd(group, MODULE_NAME, function()
     -- shutdown
     self:delete()
     return self
@@ -219,13 +219,6 @@ function M.NeoSkk.enable(self)
   if vim.bo.iminsert == 1 then
     return ""
   end
-
-  -- vim.defer_fn(function()
-  local indicator = require "tools.indicator"
-  indicator:open()
-  indicator.set "あ"
-  -- end, 0)
-  vim.cmd [[set iminsert=1]]
   return "<C-^>"
 end
 
