@@ -8,40 +8,45 @@ end
 
 ---inputとの前方一致で絞り込む
 ---@param pre string
----@return KanaRule[]
-local function filter(pre)
-  local items = {}
-  for i, item in ipairs(KanaTable) do
+---@return KanaRule? full match
+---@return integer prefix match count
+local function match_rules(pre)
+  local found = nil
+  local match_count = 0
+  for _, item in ipairs(KanaTable) do
     if string_startswith(item.input, pre) then
-      table.insert(items, item)
+      match_count = match_count + 1
+      if item.input == pre then
+        found = item
+      end
     end
   end
-  return items
+  return found, match_count
 end
 
 ---@param input string
 ---@return string|KanaRule|nil 確定|未確定
 ---@return string 未使用
 local function kanaInput(input)
-  local candidates = filter(input)
-  if #candidates == 0 then
+  local candidate, match_count = match_rules(input)
+  if match_count == 0 then
     return nil, input
   end
 
-  if #candidates == 1 and candidates[1].input == input then
-    -- 1 候補が一つかつ完全一致。確定
-    return candidates[1].output, candidates[1].next
+  if not candidate then
+    -- 3 入力を先送り
+    return "", input
   end
+  assert(candidate)
 
-  for _, candidate in ipairs(candidates) do
-    if candidate.input == input then
-      -- 2 未確定
-      return candidate, input
-    end
+  if match_count == 1 then
+    -- 1 候補が一つ
+    return candidate.output, candidate.next
   end
+  assert(match_count > 1)
 
-  -- 3 入力を先送り
-  return "", input
+  -- 2 未確定
+  return candidate, input
 end
 
 ---@param src string キー入力
