@@ -150,6 +150,10 @@ function SkkMachine.input(self, lhs, jisyo)
     if lhs == " " then
       local conv_feed = self:clear_conv()
       local items = filter_jisyo(jisyo, conv_feed)
+      if #items == 1 then
+        -- 確定
+        return items[1].word, ""
+      end
       return conv_feed, "", items
     else
       local out = self:_input(lhs)
@@ -163,6 +167,10 @@ function SkkMachine.input(self, lhs, jisyo)
       -- trigger
       local conv_feed = self:clear_conv()
       local items = filter_jisyo(jisyo, conv_feed .. self.okuri_feed, out)
+      if #items == 1 then
+        -- 確定
+        return items[1].word, ""
+      end
       return conv_feed, "", items
     else
       return "", self.conv_feed .. self.kana_feed

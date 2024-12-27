@@ -112,7 +112,7 @@ https://zenn.dev/notomo/articles/neovim-zebra-highlight
 - [x] 大文字でのモード変更
 - [x] 変換モード(RAW, CONV, OKURI)
 - [x] 送り仮名
-- [ ] 候補が一つのときに自動で確定
+- [x] 候補が一つのときに自動で確定
 
 - [ ] floating でカーソル近くにモード表示
 
