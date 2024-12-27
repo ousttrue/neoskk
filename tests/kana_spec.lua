@@ -35,6 +35,6 @@ describe("Tests for かな入力", function()
 
   it("mistaken input", function()
     local kana = kanaconv.to_kana "rkakyra"
-    assert.are.equal("から", kana)
+    assert.are.equal("rかkyら", kana)
   end)
 end)

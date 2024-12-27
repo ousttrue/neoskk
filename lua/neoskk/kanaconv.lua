@@ -27,14 +27,18 @@ function M.to_kana(src, _feed)
     end
   end
 
-  if feed then
+  while #feed > 0 do
     -- 入力の残り
     local match = MatchedKanaRule.match_rules(candidate and candidate.prefix_matches or KanaTable, feed)
-    local tmp_output
-    tmp_output, feed, candidate = match:resolve(candidate)
+    local tmp_output, tmp_feed, tmp_candidate = match:resolve(candidate)
+    candidate = tmp_candidate
     if tmp_output then
       output = output .. tmp_output
     end
+    if feed == tmp_feed then
+      break
+    end
+    feed = tmp_feed
   end
 
   return output, feed

@@ -81,27 +81,14 @@ local function copy_item(src)
 end
 
 ---@param jisyo JisyoItem[]
----@param conv_feed string
+---@param key string
 ---@param okuri string?
 ---@return JisyoItem[]
-local function filter_jisyo(jisyo, conv_feed, okuri)
-  -- local items = {}
-  -- local key = conv_feed .. self.okuri_feed
-  -- for k, v in pairs(M.jisyo) do
-  --   if k == key then
-  --     for _, item in ipairs(v) do
-  --       local copy = copy_item(item)
-  --       copy.word = copy.word .. out
-  --       table.insert(items, copy)
-  --     end
-  --   end
-  -- end
-
+local function filter_jisyo(jisyo, key, okuri)
   local items = {}
   for k, v in pairs(jisyo) do
-    if k == conv_feed then
+    if k == key then
       for _, item in ipairs(v) do
-        -- table.insert(items, item)
         local copy = copy_item(item)
         if okuri then
           copy.word = copy.word .. okuri

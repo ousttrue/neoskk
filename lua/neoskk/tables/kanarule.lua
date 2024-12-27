@@ -62,7 +62,8 @@ function M.MatchedKanaRule.resolve(self, candidate)
       feed = candidate.full_match.next .. self.prefix:sub(#candidate.full_match.input + 1)
       candidate = nil
     else
-      -- １文字すてる
+      -- １文字確定
+      kakutei = self.prefix:sub(1, 1)
       feed = self.prefix:sub(2)
     end
   else
