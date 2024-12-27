@@ -1,6 +1,10 @@
 # neoskk
 
-やっぱ neoskk にしよう。
+neovim の skk(lua).
+
+[SKK実装入門 (2) ひらがな入力](https://zenn.dev/uga_rosa/articles/e4c532a59de7d6)
+
+を基点に実装しました.
 
 ```lua
 -- lazy
@@ -18,6 +22,27 @@
     })
   end,
 },
+```
+
+## テスト環境
+
+`Windows11`
+
+```sh
+> pip install hererocks
+> hererocks -j 2.1 -r latest luarocks
+> .\luarocks\bin\lua.exe -v
+LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/
+> .\luarocks\bin\activate.ps1
+> luarocks install busted
+> .\luarocks\bin\busted.bat --version
+2.2.0
+```
+
+```sh
+> busted ./tests --helper=./tests/testhelper.lua
+●●●●●●●
+7 successes / 0 failures / 0 errors / 0 pending : 0.0 seconds
 ```
 
 ## 実装ノート
@@ -50,25 +75,6 @@ q (ひら・カタ変換) |  変換  |                     |  選択  | Ctrl+P o
 - [x] 素の busted でテストが動く
       (Windows だからなのか vusted うまくいかなかった)
 
-`Windows11`
-
-```sh
-> pip install hererocks
-> hererocks -j 2.1 -r latest local
-> .\local\bin\lua.exe -v
-LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/
-> .\local\bin\activate.ps1
-> luarocks install busted
-> .\local\bin\busted.bat --version
-2.2.0
-```
-
-```sh
-> busted ./tests --helper=./tests/testhelper.lua
-●●●●●●●
-7 successes / 0 failures / 0 errors / 0 pending : 0.0 seconds
-```
-
 - [x] lua-language-server
 
 [Neovim Lua のための LuaLS セットアップ](https://zenn.dev/uga_rosa/articles/afe384341fc2e1)
@@ -81,6 +87,18 @@ LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/
 ---@return string 確定変換済み
 ---@return string 未使用のキー入力
 function M.to_kana(src, _feed)
+end
+
+-- busted test
+it("single char", function()
+  local kana, feed = kanaconv.to_kana "k"
+  assert.are.equal("", kana)
+  assert.are.equal("k", feed)
+
+  kana, feed = kanaconv.to_kana(feed .. "a")
+  assert.are.equal("か", kana)
+  assert.are.equal("", feed)
+end)
 ```
 
 - [x] nvim で動く
@@ -89,11 +107,17 @@ function M.to_kana(src, _feed)
   - [x] euc to utf-8 `vim.iconv`
 - [x] 大文字でのモード変更
 - [x] 変換モード(RAW, CONV, OKURI)
-- [ ] q: カタカナ・ひらがなスイッチ
 - [x] 送り仮名
-- [ ] backspace preedit
 - [ ] floating でカーソル近くにモード表示
 
+- alphabet 以外の入力
+
+  - [ ] `<BS>`
+  - [ ] `<Space>`
+  - [ ] `-`
+  - [ ] q: カタカナ・ひらがなスイッチ
+
+- [ ] azik
 - [ ] 絵文字 https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
 - Unihan_DictionaryLikeData.txt
   - [ ] 四角号碼

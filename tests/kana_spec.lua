@@ -1,6 +1,6 @@
 local kanaconv = require "neoskk.kanaconv"
 
-describe("Tests for input.lua", function()
+describe("Tests for かな入力", function()
   it("single char", function()
     local kana = kanaconv.to_kana "ka"
     assert.are.equal("か", kana)

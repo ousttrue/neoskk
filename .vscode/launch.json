@@ -9,7 +9,7 @@
             "type": "lua-local",
             "request": "launch",
             "program": {
-                "lua": "${workspaceFolder}/local/bin/lua.exe",
+                "lua": "${workspaceFolder}/luarocks/bin/lua.exe",
                 "file": "${workspaceFolder}/test.lua"
             },
             "env": {
