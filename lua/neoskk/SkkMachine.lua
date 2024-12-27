@@ -50,7 +50,7 @@ end
 
 --- 大文字入力によるモード変更
 --- @param lhs string
-function SkkMachine.upper(self, lhs)
+function SkkMachine._upper(self, lhs)
   if self.conv_mode == RAW then
     self.conv_mode = CONV
   elseif self.conv_mode == CONV then
@@ -114,7 +114,7 @@ function SkkMachine._input(self, lhs)
   local kana, feed = ruleconv(KanaRules, self.kana_feed .. lhs)
   self.kana_feed = feed
   if self.input_mode == KATAKANA then
-    return util.hira_to_kata(kana)
+    return util.str_to_katakana(kana)
   else
     return kana
   end
@@ -125,6 +125,11 @@ end
 ---@return string preedit
 ---@return JisyoItem[]?
 function SkkMachine.input(self, lhs, jisyo)
+  if lhs:match "^[A-Z]$" then
+    lhs = string.lower(lhs)
+    self:_upper(lhs)
+  end
+
   if lhs == "\b" then
     if #self.kana_feed > 0 then
       self.kana_feed = self.kana_feed:sub(1, #self.kana_feed - 1)
@@ -155,6 +160,9 @@ function SkkMachine.input(self, lhs, jisyo)
         return items[1].word, ""
       end
       return conv_feed, "", items
+    elseif lhs == "q" then
+      self.conv_feed = util.str_toggle_kana(self.conv_feed)
+      return "", self.conv_feed .. self.kana_feed
     else
       local out = self:_input(lhs)
       self.conv_feed = self.conv_feed .. out

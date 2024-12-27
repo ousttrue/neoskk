@@ -4,18 +4,15 @@
 local MODULE_NAME = "neoskk"
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
 local KEYS_SYMBOL = vim.split("., -~[]\b", "")
-local PreEdit = require("neoskk.PreEdit")
+local PreEdit = require "neoskk.PreEdit"
 local dict = require "neoskk.dict"
-local SkkMachine = require("neoskk.SkkMachine")
+local SkkMachine = require "neoskk.SkkMachine"
 
 ---@class JisyoItem
 ---@field word string
 ---@fiend annotation string?
 
-local M = {
-  ---@type {[string]: JisyoItem[]}
-  jisyo = {},
-}
+local M = {}
 
 ---@class Opts
 ---@field jisyo string path to SKK-JISYO.L
@@ -26,6 +23,7 @@ local Opts = {}
 ---@field conv_col integer 漢字変換を開始した col
 ---@field preedit PreEdit
 ---@field map_keys string[]
+---@field jisyo {[string]: JisyoItem[]}
 M.NeoSkk = {}
 
 ---@param opts Opts?
@@ -37,6 +35,7 @@ function M.NeoSkk.new(opts)
     conv_col = 0,
     preedit = PreEdit.new(MODULE_NAME),
     map_keys = {},
+    jisyo = {},
   }, {
     __index = M.NeoSkk,
   })
@@ -78,9 +77,8 @@ function M.NeoSkk.delete(self)
 end
 
 ---@param lhs string
----@param is_upper boolean
 ---@return string
-function M.NeoSkk.input(self, lhs, is_upper)
+function M.NeoSkk.input(self, lhs)
   if lhs == "\b" then
     if vim.bo.iminsert ~= 1 then
       return "<C-h>"
@@ -89,14 +87,13 @@ function M.NeoSkk.input(self, lhs, is_upper)
     end
   end
 
-  if is_upper then
+  if lhs:match "^[A-Z]$" then
     if self.state.conv_mode == SkkMachine.RAW then
       self.conv_col = vim.fn.col "."
     end
-    self.state:upper(lhs)
   end
 
-  local out, preedit, items = self.state:input(lhs, M.jisyo)
+  local out, preedit, items = self.state:input(lhs, self.jisyo)
 
   if items then
     vim.defer_fn(function()
@@ -113,7 +110,7 @@ end
 function M.NeoSkk.map(self)
   for _, lhs in ipairs(KEYS_LOWER) do
     vim.keymap.set("l", lhs, function()
-      return self:input(lhs, false)
+      return self:input(lhs)
     end, {
       -- buffer = true,
       silent = true,
@@ -124,7 +121,7 @@ function M.NeoSkk.map(self)
     -- upper case
     local u = lhs:upper()
     vim.keymap.set("l", u, function()
-      return self:input(lhs, true)
+      return self:input(u)
     end, {
       -- buffer = true,
       silent = true,
@@ -135,7 +132,7 @@ function M.NeoSkk.map(self)
 
   for _, lhs in ipairs(KEYS_SYMBOL) do
     vim.keymap.set("l", lhs, function()
-      return self:input(lhs, false)
+      return self:input(lhs)
     end, {
       -- buffer = true,
       silent = true,
@@ -189,11 +186,14 @@ end
 
 ---@param opts Opts
 function M.setup(opts)
-  if opts.jisyo then
-    M.jisyo = dict.load(opts.jisyo)
-  end
+  local skk = M.NeoSkk.new(opts)
 
-  M.NeoSkk.new(opts)
+  if opts.jisyo then
+    local jisyo = dict.load(opts.jisyo)
+    if jisyo then
+      skk.jisyo = jisyo
+    end
+  end
 end
 
 function M.toggle()

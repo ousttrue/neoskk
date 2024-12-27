@@ -121,7 +121,7 @@ https://github.com/delphinus/skkeleton_indicator.nvim
 - alphabet 以外の入力
   - [x] `-` `~` `[`, `]` `,` `.`
   - [x] q: カタカナ・ひらがなスイッチ
-  - [ ] 変換モードq: カタカナ・ひらがなスイッチ
+  - [x] 変換モードq: カタカナ・ひらがなスイッチ
 
 [Vim scriptでひらがな・カタカナ相互変換](https://zenn.dev/kawarimidoll/articles/46ccbbf8b62700)
 
