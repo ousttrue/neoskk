@@ -1,5 +1,5 @@
 ---@type KanaRule[]
-local kanaRules = {
+local KanaRules = {
   { input = "-", output = "ー", next = "" },
   { input = "~", output = "〜", next = "" },
   { input = ".", output = "。", next = "" },
@@ -323,4 +323,4 @@ local kanaRules = {
   { input = "whe", output = "うぇ", next = "" },
   { input = "who", output = "うぉ", next = "" },
 }
-return kanaRules
+return KanaRules

@@ -131,8 +131,9 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 
 - [x] `<BS>`
 - [x] 変換モード`<Space>`: completion
-
 - [ ] l: ASCIIモード
+- [ ] completion キャンセルで conv_feed 化する
+- [ ] visual mode 選択を conv_feed 化する
 
 - [ ] azik
 - [ ] 絵文字 https://www.unicode.org/Public/emoji/1.0/emoji-data.txt

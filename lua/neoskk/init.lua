@@ -6,7 +6,7 @@ local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
 local KEYS_SYMBOL = vim.split("., -~[]\b", "")
 local PreEdit = require("neoskk.preedit").PreEdit
 local dict = require "neoskk.dict"
-local SkkMachine = require("neoskk.machine").SkkMachine
+local SkkMachine = require("neoskk.SkkMachine")
 
 ---@class JisyoItem
 ---@field word string

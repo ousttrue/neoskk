@@ -3,8 +3,6 @@
 ---@field output string
 ---@field next string
 
-local M = {}
-
 local function string_startswith(self, start)
   return self:sub(1, #start) == start
 end
@@ -13,31 +11,19 @@ end
 ---@field prefix string
 ---@field full_match KanaRule?
 ---@field prefix_matches KanaRule[]
-M.MatchedKanaRule = {}
+MatchedKanaRule = {}
 
 ---@param prefix string
 ---@return MatchedKanaRule
-function M.MatchedKanaRule.new(prefix)
+function MatchedKanaRule.new(prefix)
   return setmetatable({
     prefix = prefix,
     prefix_matches = {},
-  }, { __index = M.MatchedKanaRule })
-end
-
----inputとの前方一致で絞り込む
----@param rules KanaRule[]
----@param pre string
----@return MatchedKanaRule
-function M.MatchedKanaRule.match_rules(rules, pre)
-  local match = M.MatchedKanaRule.new(pre)
-  for _, item in ipairs(rules) do
-    match:push(item)
-  end
-  return match
+  }, { __index = MatchedKanaRule })
 end
 
 ---@param rule KanaRule
-function M.MatchedKanaRule.push(self, rule)
+function MatchedKanaRule.push(self, rule)
   if string_startswith(rule.input, self.prefix) then
     table.insert(self.prefix_matches, rule)
     if rule.input == self.prefix then
@@ -50,7 +36,7 @@ end
 ---@return string 確定
 ---@return string 未使用
 ---@return MatchedKanaRule? 未確定
-function M.MatchedKanaRule.resolve(self, candidate)
+function MatchedKanaRule.resolve(self, candidate)
   local kakutei = ""
   local feed = self.prefix
   if #self.prefix_matches == 0 then
@@ -79,4 +65,16 @@ function M.MatchedKanaRule.resolve(self, candidate)
   return kakutei, feed, candidate
 end
 
-return M
+---inputとの前方一致で絞り込む
+---@param rules KanaRule[]
+---@param pre string
+---@return MatchedKanaRule
+local function match_rules(rules, pre)
+  local match = MatchedKanaRule.new(pre)
+  for _, item in ipairs(rules) do
+    match:push(item)
+  end
+  return match
+end
+
+return match_rules

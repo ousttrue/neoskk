@@ -1,8 +1,7 @@
-local kanaconv = require "neoskk.kanaconv"
+local ruleconv = require "neoskk.tables.ruleconv"
+local KanaRules = require "neoskk.tables.KanaRules"
 local util = require "neoskk.util"
 local utf8 = require "neoskk.utf8"
-
-local M = {}
 
 local HIRAKANA = 0
 local KATAKANA = 1
@@ -21,7 +20,7 @@ local OKURI = 2
 ---@field conv_feed string 漢字変換の未確定(かな)
 ---@field okuri_feed string 送り仮名
 ---@field conv_mode CONV_MODE
-M.SkkMachine = {
+SkkMachine = {
   HIRAKANA = HIRAKANA,
   KATAKANA = KATAKANA,
 
@@ -30,7 +29,7 @@ M.SkkMachine = {
   OKURI = OKURI,
 }
 
-function M.SkkMachine.new()
+function SkkMachine.new()
   local self = setmetatable({
     input_mode = HIRAKANA,
     kana_feed = "",
@@ -38,12 +37,12 @@ function M.SkkMachine.new()
     okuri_feed = "",
     conv_mode = RAW,
   }, {
-    __index = M.SkkMachine,
+    __index = SkkMachine,
   })
   return self
 end
 
-function M.SkkMachine.clear(self)
+function SkkMachine.clear(self)
   self.kana_feed = ""
   self.conv_feed = ""
   self.conv_mode = RAW
@@ -51,7 +50,7 @@ end
 
 --- 大文字入力によるモード変更
 --- @param lhs string
-function M.SkkMachine.upper(self, lhs)
+function SkkMachine.upper(self, lhs)
   if self.conv_mode == RAW then
     self.conv_mode = CONV
   elseif self.conv_mode == CONV then
@@ -65,7 +64,7 @@ function M.SkkMachine.upper(self, lhs)
 end
 
 ---@return string
-function M.SkkMachine.clear_conv(self)
+function SkkMachine.clear_conv(self)
   local conv_feed = self.conv_feed
   self.conv_feed = ""
   self.conv_mode = RAW
@@ -102,7 +101,7 @@ end
 
 ---@param lhs string
 ---@return string
-function M.SkkMachine._input(self, lhs)
+function SkkMachine._input(self, lhs)
   if lhs == "q" then
     if self.input_mode == HIRAKANA then
       self.input_mode = KATAKANA
@@ -112,7 +111,7 @@ function M.SkkMachine._input(self, lhs)
     return ""
   end
 
-  local kana, feed = kanaconv.to_kana(self.kana_feed .. lhs)
+  local kana, feed = ruleconv(KanaRules, self.kana_feed .. lhs)
   self.kana_feed = feed
   if self.input_mode == KATAKANA then
     return util.hira_to_kata(kana)
@@ -125,7 +124,7 @@ end
 ---@return string out
 ---@return string preedit
 ---@return JisyoItem[]?
-function M.SkkMachine.input(self, lhs, jisyo)
+function SkkMachine.input(self, lhs, jisyo)
   if lhs == "\b" then
     if #self.kana_feed > 0 then
       self.kana_feed = self.kana_feed:sub(1, #self.kana_feed - 1)
@@ -174,4 +173,4 @@ function M.SkkMachine.input(self, lhs, jisyo)
   end
 end
 
-return M
+return SkkMachine

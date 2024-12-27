@@ -1,3 +1,7 @@
+--
+-- vscode でデバッガをアタッチする
+--
+
 local kanaconv = require "neoskk.kanaconv"
 local SkkMachine = require "neoskk.machine".SkkMachine
 

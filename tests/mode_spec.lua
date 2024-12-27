@@ -1,4 +1,4 @@
-local SkkMachine = require("neoskk.machine").SkkMachine
+local SkkMachine = require("neoskk.SkkMachine")
 
 describe("Tests for 変換モード", function()
   it("q", function()
