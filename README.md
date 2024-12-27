@@ -141,8 +141,8 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - Unihan_DictionaryLikeData.txt
   - [ ] 四角号碼
   - [ ] 音読み
-  - [ ] pinyin => 注音符号 => 漢字
-- [ ] 広韻の反切から歴史的仮名遣いを生成する
+  - [ ] pinyin => (注音符号) => 漢字
+- [ ] 學生字典の反切から字音仮名遣を生成する
 
 ## 参考
 
@@ -161,9 +161,21 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - http://openlab.ring.gr.jp/skk/wiki/wiki.cgi?page=SKK%BC%AD%BD%F1
 - https://github.com/skk-dict/jisyo
 
-### その他
+### unicode
 
 - https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
+- https://www.unicode.org/Public/UCD/latest/ucd/
+  - https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
+
+### 漢字
+
+- https://github.com/cjkvi/cjkvi-dict
+  - 學生字典 Text Data (xszd.txt)
+
+### pinyin
+
+- https://github.com/ZSaberLv0/ZFVimIM_pinyin_base/tree/master/misc
+- https://github.com/ZSaberLv0/ZFVimIM_pinyin/tree/master/misc
 
 ## 各種SKK実装
 
