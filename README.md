@@ -123,7 +123,8 @@ https://github.com/delphinus/skkeleton_indicator.nvim
   - [ ] `<BS>`
   - [ ] `<Space>`
   - [ ] `-`
-  - [ ] q: カタカナ・ひらがなスイッチ
+  - [x] q: カタカナ・ひらがなスイッチ
+  - [ ] 変換モードq: カタカナ・ひらがなスイッチ
 
 [Vim scriptでひらがな・カタカナ相互変換](https://zenn.dev/kawarimidoll/articles/46ccbbf8b62700)
 

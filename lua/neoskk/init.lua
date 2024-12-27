@@ -77,40 +77,6 @@ function M.NeoSkk.delete(self)
   self:unmap()
 end
 
-local function copy_item(src)
-  local dst = {}
-  for k, v in pairs(src) do
-    dst[k] = v
-  end
-  return dst
-end
-
----@param conv_feed string
----@return JisyoItem[]
-function M.NeoSkk.filter_jisyo(self, conv_feed)
-  local items = {}
-  local key = conv_feed .. self.okuri_feed
-  for k, v in pairs(M.jisyo) do
-    if k == key then
-      for _, item in ipairs(v) do
-        local copy = copy_item(item)
-        copy.word = copy.word .. out
-        table.insert(items, copy)
-      end
-    end
-  end
-
-  local items = {}
-  for k, v in pairs(M.jisyo) do
-    if k == conv_feed then
-      for _, item in ipairs(v) do
-        table.insert(items, item)
-      end
-    end
-  end
-  return items
-end
-
 ---@param lhs string
 ---@param is_upper boolean
 ---@return string
@@ -122,41 +88,17 @@ function M.NeoSkk.input(self, lhs, is_upper)
     self.state:upper(lhs)
   end
 
-  if self.state.conv_mode == SkkMachine.CONV and lhs == " " then
-    local conv_feed = self.state:clear_conv()
+  local out, preedit, items = self.state:input(lhs, M.jisyo)
+
+  if items then
     vim.defer_fn(function()
       -- trigger completion
-      local items = self:filter_jisyo(conv_feed)
       vim.fn.complete(self.conv_col, items)
     end, 0)
-    self.preedit:highlight ""
-    return conv_feed
-  else
-    local out = self.state:input(lhs)
-
-    if self.state.conv_mode == SkkMachine.RAW then
-      self.preedit:highlight(self.state.kana_feed)
-      return out
-    elseif self.state.conv_mode == SkkMachine.CONV then
-      self.state.conv_feed = self.state.conv_feed .. out
-      self.preedit:highlight(self.state.conv_feed .. self.state.kana_feed)
-      return ""
-    elseif self.state.conv_mode == SkkMachine.OKURI then
-      if #out > 0 then
-        -- trigger
-        local conv_feed = self.state:clear_conv()
-        vim.defer_fn(function()
-          local items = self:filter_jisyo(conv_feed .. self.state.okuri_feed)
-          vim.fn.complete(self.conv_col, items)
-        end, 0)
-        self.preedit:highlight ""
-        return conv_feed .. out
-      else
-        self.preedit:highlight(self.state.conv_feed .. self.state.kana_feed)
-        return ""
-      end
-    end
   end
+
+  self.preedit:highlight(preedit)
+  return out
 end
 
 --- language-mapping
