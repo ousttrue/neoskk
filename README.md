@@ -113,6 +113,7 @@ https://zenn.dev/notomo/articles/neovim-zebra-highlight
 - [x] 変換モード(RAW, CONV, OKURI)
 - [x] 送り仮名
 - [x] 候補が一つのときに自動で確定
+- [ ] insertmode を抜けるときに conv_feed を buffer に出力する
 
 - [ ] floating でカーソル近くにモード表示
 

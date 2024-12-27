@@ -64,8 +64,8 @@ function M.NeoSkk.new(opts)
   end, function(old)
     -- reload
     local new_module = require(MODULE_NAME)
-    new_module.NeoSkk.new(old.opts)
-    new_module.jisyo = old.jisyo
+    local new_self = new_module.NeoSkk.new(old.opts)
+    new_self.jisyo = old.jisyo
   end)
 
   M.instance = self
