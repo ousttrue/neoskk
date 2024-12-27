@@ -6,6 +6,7 @@ local KEYS = vim.split("abcdefghijklmnopqrstuvwxyz", "")
 local kanaconv = require "neoskk.kanaconv"
 local PreEdit = require("neoskk.preedit").PreEdit
 local dict = require "neoskk.dict"
+local SkkMachine = require("neoskk.machine").SkkMachine
 
 ---@class JisyoItem
 ---@field word string
@@ -20,20 +21,11 @@ local M = {
 ---@field jisyo string path to SKK-JISYO.L
 local Opts = {}
 
-local RAW = 0
-local CONV = 1
-local OKURI = 2
-
----@alias MODE `RAW` | `CONV` | `OKURI`
-
 ---@class NeoSkk
----@field kana_feed string かな入力の未確定(ascii)
----@field conv_feed string 漢字変換の未確定(かな)
+---@field state SkkMachine 状態管理
 ---@field conv_col integer 漢字変換を開始した col
----@field okuri_feed string 送り仮名
 ---@field preedit PreEdit
 ---@field map_keys string[]
----@field mode MODE
 M.NeoSkk = {}
 
 ---@param opts Opts?
@@ -41,13 +33,10 @@ M.NeoSkk = {}
 function M.NeoSkk.new(opts)
   local self = setmetatable({
     opts = opts and opts or {},
-    kana_feed = "",
-    conv_feed = "",
+    state = SkkMachine.new(),
     conv_col = 0,
-    okuri_feed = "",
     preedit = PreEdit.new(MODULE_NAME),
     map_keys = {},
-    mode = RAW,
   }, {
     __index = M.NeoSkk,
   })
@@ -96,75 +85,74 @@ local function copy_item(src)
   return dst
 end
 
+---@param conv_feed string
+---@return JisyoItem[]
+function M.NeoSkk.filter_jisyo(self, conv_feed)
+  local items = {}
+  local key = conv_feed .. self.okuri_feed
+  for k, v in pairs(M.jisyo) do
+    if k == key then
+      for _, item in ipairs(v) do
+        local copy = copy_item(item)
+        copy.word = copy.word .. out
+        table.insert(items, copy)
+      end
+    end
+  end
+
+  local items = {}
+  for k, v in pairs(M.jisyo) do
+    if k == conv_feed then
+      for _, item in ipairs(v) do
+        table.insert(items, item)
+      end
+    end
+  end
+  return items
+end
+
 ---@param lhs string
 ---@param is_upper boolean
 ---@return string
 function M.NeoSkk.input(self, lhs, is_upper)
   if is_upper then
-    if self.mode == RAW then
-      self.mode = CONV
+    if self.state.conv_mode == SkkMachine.RAW then
       self.conv_col = vim.fn.col "."
-    elseif self.mode == CONV then
-      self.mode = OKURI
-      self.okuri_feed = lhs
-    elseif self.mode == OKURI then
-      --
     end
+    self.state:upper(lhs)
   end
 
-  if self.mode == CONV and lhs == " " then
-    -- trigger
-    local conv_feed = self.conv_feed
-    self.conv_feed = ""
+  if self.state.conv_mode == SkkMachine.CONV and lhs == " " then
+    local conv_feed = self.state:clear_conv()
     vim.defer_fn(function()
-      local items = {}
-      for k, v in pairs(M.jisyo) do
-        if k == conv_feed then
-          for _, item in ipairs(v) do
-            table.insert(items, item)
-          end
-        end
-      end
+      -- trigger completion
+      local items = self:filter_jisyo(conv_feed)
       vim.fn.complete(self.conv_col, items)
     end, 0)
     self.preedit:highlight ""
-    self.mode = RAW
     return conv_feed
   else
-    local out, feed = kanaconv.to_kana(lhs, self.kana_feed)
-    self.kana_feed = feed
+    local out = self.state:input(lhs)
 
-    if self.mode == RAW then
-      self.preedit:highlight(self.kana_feed)
+    if self.state.conv_mode == SkkMachine.RAW then
+      self.preedit:highlight(self.state.kana_feed)
       return out
-    elseif self.mode == CONV then
-      self.conv_feed = self.conv_feed .. out
-      self.preedit:highlight(self.conv_feed .. self.kana_feed)
+    elseif self.state.conv_mode == SkkMachine.CONV then
+      self.state.conv_feed = self.state.conv_feed .. out
+      self.preedit:highlight(self.state.conv_feed .. self.state.kana_feed)
       return ""
-    elseif self.mode == OKURI then
+    elseif self.state.conv_mode == SkkMachine.OKURI then
       if #out > 0 then
         -- trigger
-        local conv_feed = self.conv_feed
-        self.conv_feed = ""
+        local conv_feed = self.state:clear_conv()
         vim.defer_fn(function()
-          local items = {}
-          local key = conv_feed .. self.okuri_feed
-          for k, v in pairs(M.jisyo) do
-            if k == key then
-              for _, item in ipairs(v) do
-                local copy = copy_item(item)
-                copy.word = copy.word .. out
-                table.insert(items, copy)
-              end
-            end
-          end
+          local items = self:filter_jisyo(conv_feed .. self.state.okuri_feed)
           vim.fn.complete(self.conv_col, items)
         end, 0)
         self.preedit:highlight ""
-        self.mode = RAW
         return conv_feed .. out
       else
-        self.preedit:highlight(self.conv_feed .. self.kana_feed)
+        self.preedit:highlight(self.state.conv_feed .. self.state.kana_feed)
         return ""
       end
     end
