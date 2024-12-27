@@ -1,5 +1,7 @@
 local kanaconv = require "neoskk.kanaconv"
 
+-- TODO 辞書を引数にする
+
 describe("Tests for かな入力", function()
   it("single char", function()
     local kana = kanaconv.to_kana "ka"

@@ -1,7 +1,7 @@
 local M = {}
 
-local KanaTable = require "neoskk.kana.kana_table"
-local MatchedKanaRule = require("neoskk.kana.kanarule").MatchedKanaRule
+local KanaTable = require "neoskk.tables.kana_table"
+local MatchedKanaRule = require("neoskk.tables.kanarule").MatchedKanaRule
 
 ---@param src string キー入力
 ---@param _feed string?

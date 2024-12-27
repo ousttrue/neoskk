@@ -6,6 +6,8 @@ neovim の skk(lua).
 
 を基点に実装しました.
 
+未確定の入力を extmark で色を変えて表示します.
+
 ```lua
 -- lazy
 {
@@ -72,14 +74,13 @@ q (ひら・カタ変換) |  変換  |                     |  選択  | Ctrl+P o
                               ESC: 変換モードへ戻る
 ```
 
-- [x] 素の busted でテストが動く
-      (Windows だからなのか vusted うまくいかなかった)
-
+- [x] 素の busted でテストが動く(コアは vim 要素を使わない)
+- [ ] vusted (Windows だからなのか vusted うまくいかなかった)
 - [x] lua-language-server
 
 [Neovim Lua のための LuaLS セットアップ](https://zenn.dev/uga_rosa/articles/afe384341fc2e1)
 
-- [x] ロジックを関数型っぽくしてテストしやすくする
+- [x] ロジックを関数型っぽくしてテストしやすくする(状態も関数の引数/返り値にする)
 
 ```lua
 ---@param src string キー入力
@@ -103,12 +104,18 @@ end)
 
 - [x] nvim で動く
 - [x] extmark で 未確定を表示する
+
+https://zenn.dev/notomo/articles/neovim-zebra-highlight
+
 - [x] SKK-JISYO.L
   - [x] euc to utf-8 `vim.iconv`
 - [x] 大文字でのモード変更
 - [x] 変換モード(RAW, CONV, OKURI)
 - [x] 送り仮名
+
 - [ ] floating でカーソル近くにモード表示
+
+https://github.com/delphinus/skkeleton_indicator.nvim
 
 - alphabet 以外の入力
 
@@ -116,6 +123,7 @@ end)
   - [ ] `<Space>`
   - [ ] `-`
   - [ ] q: カタカナ・ひらがなスイッチ
+  - [ ] l: ASCIIモード
 
 - [ ] azik
 - [ ] 絵文字 https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
@@ -135,10 +143,16 @@ end)
 - [SKK Openlab - トップ](http://openlab.ring.gr.jp/skk/index-j.html)
 - [SKK (Simple Kana to Kanji conversion program) Manual &mdash; ddskk 17.1 ドキュメント](https://ddskk.readthedocs.io/ja/latest/)
 
-### 辞書
+## 辞書
+
+### SKK
 
 - http://openlab.ring.gr.jp/skk/wiki/wiki.cgi?page=SKK%BC%AD%BD%F1
 - https://github.com/skk-dict/jisyo
+
+### その他
+
+- https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
 
 ## 各種SKK実装
 
