@@ -32,14 +32,14 @@ local M = {}
 ---@class PreEdit
 ---@field ns integer
 ---@field bufmap {[integer]: Highlighter}
-M.PreEdit = {}
+PreEdit = {}
 
 ---@param namespace string
-function M.PreEdit.new(namespace)
+function PreEdit.new(namespace)
   local self = setmetatable({
     ns = vim.api.nvim_create_namespace(namespace),
     bufmap = {},
-  }, { __index = M.PreEdit })
+  }, { __index = PreEdit })
 
   vim.api.nvim_set_decoration_provider(self.ns, {
     on_win = function(_, _, bufnr)
@@ -61,11 +61,11 @@ function M.PreEdit.new(namespace)
   return self
 end
 
-function M.PreEdit.delete(self)
+function PreEdit.delete(self)
   -- vim.api.nvim_buf_clear_namespace
 end
 
-function M.PreEdit.highlight(self, feed)
+function PreEdit.highlight(self, feed)
   local bufnr = vim.api.nvim_get_current_buf()
   local highlighter = self.bufmap[bufnr]
   if not highlighter then
@@ -78,4 +78,4 @@ function M.PreEdit.highlight(self, feed)
   end, 0)
 end
 
-return M
+return PreEdit 

@@ -4,7 +4,7 @@
 local MODULE_NAME = "neoskk"
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
 local KEYS_SYMBOL = vim.split("., -~[]\b", "")
-local PreEdit = require("neoskk.preedit").PreEdit
+local PreEdit = require("neoskk.PreEdit")
 local dict = require "neoskk.dict"
 local SkkMachine = require("neoskk.SkkMachine")
 
