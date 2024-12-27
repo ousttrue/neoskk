@@ -112,6 +112,7 @@ https://zenn.dev/notomo/articles/neovim-zebra-highlight
 - [x] 大文字でのモード変更
 - [x] 変換モード(RAW, CONV, OKURI)
 - [x] 送り仮名
+- [ ] 候補が一つのときに自動で確定
 
 - [ ] floating でカーソル近くにモード表示
 
@@ -123,7 +124,10 @@ https://github.com/delphinus/skkeleton_indicator.nvim
   - [ ] `<Space>`
   - [ ] `-`
   - [ ] q: カタカナ・ひらがなスイッチ
-  - [ ] l: ASCIIモード
+
+[Vim scriptでひらがな・カタカナ相互変換](https://zenn.dev/kawarimidoll/articles/46ccbbf8b62700)
+
+- [ ] l: ASCIIモード
 
 - [ ] azik
 - [ ] 絵文字 https://www.unicode.org/Public/emoji/1.0/emoji-data.txt

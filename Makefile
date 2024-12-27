@@ -1,5 +1,5 @@
 all: test
 
 test:
-	busted ./tests --helper=./tests/testhelper.lua
+	busted --helper=./tests/testhelper.lua ./tests
 
