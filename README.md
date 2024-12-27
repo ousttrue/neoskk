@@ -119,10 +119,9 @@ https://zenn.dev/notomo/articles/neovim-zebra-highlight
 https://github.com/delphinus/skkeleton_indicator.nvim
 
 - alphabet 以外の入力
-  - [x] `-`
+  - [x] `-` `~` `[`, `]` `,` `.`
   - [x] q: カタカナ・ひらがなスイッチ
   - [ ] 変換モードq: カタカナ・ひらがなスイッチ
-  - [ ] 読点,句読点
 
 [Vim scriptでひらがな・カタカナ相互変換](https://zenn.dev/kawarimidoll/articles/46ccbbf8b62700)
 
