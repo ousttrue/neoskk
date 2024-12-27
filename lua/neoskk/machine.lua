@@ -1,5 +1,6 @@
 local kanaconv = require "neoskk.kanaconv"
 local util = require "neoskk.util"
+local utf8 = require "neoskk.utf8"
 
 local M = {}
 
@@ -40,6 +41,12 @@ function M.SkkMachine.new()
     __index = M.SkkMachine,
   })
   return self
+end
+
+function M.SkkMachine.clear(self)
+  self.kana_feed = ""
+  self.conv_feed = ""
+  self.conv_mode = RAW
 end
 
 --- 大文字入力によるモード変更
@@ -106,24 +113,24 @@ local function filter_jisyo(jisyo, conv_feed, okuri)
   return items
 end
 
----@param ch string
+---@param lhs string
 ---@return string
-function M.SkkMachine._input(self, ch)
-  if ch == "q" then
+function M.SkkMachine._input(self, lhs)
+  if lhs == "q" then
     if self.input_mode == HIRAKANA then
       self.input_mode = KATAKANA
     else
       self.input_mode = HIRAKANA
     end
     return ""
+  end
+
+  local kana, feed = kanaconv.to_kana(self.kana_feed .. lhs)
+  self.kana_feed = feed
+  if self.input_mode == KATAKANA then
+    return util.hira_to_kata(kana)
   else
-    local kana, feed = kanaconv.to_kana(self.kana_feed .. ch)
-    self.kana_feed = feed
-    if self.input_mode == KATAKANA then
-      return util.hira_to_kata(kana)
-    else
-      return kana
-    end
+    return kana
   end
 end
 
@@ -132,6 +139,22 @@ end
 ---@return string preedit
 ---@return JisyoItem[]?
 function M.SkkMachine.input(self, lhs, jisyo)
+  if lhs == "\b" then
+    if #self.kana_feed > 0 then
+      self.kana_feed = self.kana_feed:sub(1, #self.kana_feed - 1)
+      return "", self.conv_feed .. self.kana_feed
+    elseif #self.conv_feed > 0 then
+      local pos
+      for i, c in utf8.codes(self.conv_feed) do
+        pos = i
+      end
+      self.conv_feed = self.conv_feed:sub(1, pos - 1)
+      return "", self.conv_feed .. self.kana_feed
+    else
+      return "<C-h>", ""
+    end
+  end
+
   if self.conv_mode == RAW then
     -- raw
     local out = self:_input(lhs)

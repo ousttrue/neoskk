@@ -18,7 +18,8 @@ function M.to_kana(src, _feed)
 
   for key in src:gmatch "." do
     -- 一文字ずつ処理する
-    local match = MatchedKanaRule.match_rules(candidate and candidate.prefix_matches or KanaTable, feed .. key)
+    feed = feed .. key
+    local match = MatchedKanaRule.match_rules(candidate and candidate.prefix_matches or KanaTable, feed)
     local tmp_output
     tmp_output, feed, candidate = match:resolve(candidate)
     if tmp_output then

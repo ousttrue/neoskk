@@ -119,14 +119,18 @@ https://zenn.dev/notomo/articles/neovim-zebra-highlight
 https://github.com/delphinus/skkeleton_indicator.nvim
 
 - alphabet 以外の入力
-
-  - [ ] `<BS>`
-  - [ ] `<Space>`
-  - [ ] `-`
+  - [x] `-`
   - [x] q: カタカナ・ひらがなスイッチ
   - [ ] 変換モードq: カタカナ・ひらがなスイッチ
 
 [Vim scriptでひらがな・カタカナ相互変換](https://zenn.dev/kawarimidoll/articles/46ccbbf8b62700)
+
+language-mapping
+
+https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
+
+- [x] `<BS>`
+- [x] 変換モード`<Space>`: completion
 
 - [ ] l: ASCIIモード
 

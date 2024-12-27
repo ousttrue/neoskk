@@ -2,8 +2,8 @@
 --- vim の状態管理
 ---
 local MODULE_NAME = "neoskk"
-local KEYS = vim.split("abcdefghijklmnopqrstuvwxyz", "")
-local kanaconv = require "neoskk.kanaconv"
+local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
+local KEYS_SYMBOL = vim.split(" -\b", "")
 local PreEdit = require("neoskk.preedit").PreEdit
 local dict = require "neoskk.dict"
 local SkkMachine = require("neoskk.machine").SkkMachine
@@ -81,6 +81,14 @@ end
 ---@param is_upper boolean
 ---@return string
 function M.NeoSkk.input(self, lhs, is_upper)
+  if lhs == "\b" then
+    if vim.bo.iminsert ~= 1 then
+      return "<C-h>"
+    elseif #self.state.kana_feed == 0 and #self.state.conv_feed == 0 then
+      return "<C-h>"
+    end
+  end
+
   if is_upper then
     if self.state.conv_mode == SkkMachine.RAW then
       self.conv_col = vim.fn.col "."
@@ -103,7 +111,7 @@ end
 
 --- language-mapping
 function M.NeoSkk.map(self)
-  for _, lhs in ipairs(KEYS) do
+  for _, lhs in ipairs(KEYS_LOWER) do
     vim.keymap.set("l", lhs, function()
       return self:input(lhs, false)
     end, {
@@ -122,18 +130,23 @@ function M.NeoSkk.map(self)
       silent = true,
       expr = true,
     })
+    table.insert(self.map_keys, u)
+  end
 
-    -- space
-    vim.keymap.set("l", " ", function()
-      return self:input(" ", false)
+  for _, lhs in ipairs(KEYS_SYMBOL) do
+    vim.keymap.set("l", lhs, function()
+      return self:input(lhs, false)
     end, {
       -- buffer = true,
       silent = true,
       expr = true,
     })
-
-    table.insert(self.map_keys, u)
+    table.insert(self.map_keys, lhs)
   end
+
+  --
+  -- not lmap
+  --
 end
 
 function M.NeoSkk.unmap(self)
@@ -154,8 +167,7 @@ end
 
 ---@return string
 function M.NeoSkk.disable(self)
-  self.kana_feed = ""
-  self.mode = RAW
+  self.state:clear()
   self.preedit:highlight ""
 
   if vim.bo.iminsert ~= 1 then
