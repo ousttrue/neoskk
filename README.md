@@ -133,6 +133,8 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 
 - [x] `<BS>`
 - [x] 変換モード`<Space>`: completion
+- [ ] `<Enter>` で変換モード脱出
+- [ ] ひらがな片仮名変換除外 `ー` 
 - [ ] l: ASCIIモード
 - [ ] completion キャンセルで conv_feed 化する
 - [ ] visual mode 選択を conv_feed 化する
@@ -145,6 +147,7 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
   - [ ] pinyin => (注音符号) => 漢字
 - [ ] 學生字典から completion info
 - [ ] 學生字典の反切から字音仮名遣を生成する
+- [ ] 常用漢字などハイライトする
 
 ## 参考
 
