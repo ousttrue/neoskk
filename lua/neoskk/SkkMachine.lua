@@ -79,10 +79,10 @@ local function copy_item(src)
   return dst
 end
 
----@param jisyo JisyoItem[]
+---@param jisyo table<string, CompletionItem[]>
 ---@param key string
 ---@param okuri string?
----@return JisyoItem[]
+---@return CompletionItem[]
 local function filter_jisyo(jisyo, key, okuri)
   local items = {}
   for k, v in pairs(jisyo) do
@@ -124,7 +124,7 @@ end
 ---@param dict SkkDict?
 ---@return string out
 ---@return string preedit
----@return CompletionItem[]?
+---@return {items: CompletionItem[], completeopt: table}?
 function SkkMachine:input(lhs, dict)
   if lhs:match "^[A-Z]$" then
     lhs = string.lower(lhs)
@@ -153,37 +153,56 @@ function SkkMachine:input(lhs, dict)
     return out, self.kana_feed
   elseif self.conv_mode == CONV then
     -- conv
-    if dict and lhs == " " then
-      local conv_feed = self:clear_conv()
-      local items = filter_jisyo(dict.jisyo, conv_feed)
-      return conv_feed, "", items
-    elseif lhs == "q" then
+    if lhs == "q" then
       self.conv_feed = util.str_toggle_kana(self.conv_feed)
       return "", self.conv_feed .. self.kana_feed
-    else
-      local out = self:_input(lhs)
-      self.conv_feed = self.conv_feed .. out
-      local preedit = self.conv_feed .. self.kana_feed
-      if preedit:match "^g%d+$" then
-        return preedit, "", {
-          "四角号碼",
-          "四角号碼",
-        }
-      else
-        return "", preedit
+    end
+
+    if lhs == " " then
+      if dict then
+        local conv_feed = self:clear_conv()
+        local items = filter_jisyo(dict.jisyo, conv_feed)
+        self.conv_mode = RAW
+        return conv_feed, "", { items = items, completeopt = { "menuone", "popup" } }
       end
     end
+
+    local out = self:_input(lhs)
+    self.conv_feed = self.conv_feed .. out
+    local preedit = self.conv_feed .. self.kana_feed
+    if preedit:match "^g%d+$" then
+      if dict then
+        -- 四角号碼
+        self.conv_mode = RAW
+        self.conv_feed = ""
+        self.kana_feed = ""
+        return preedit,
+            "",
+            {
+              items = dict.goma,
+              completeopt = {
+                "menuone",
+                "popup",
+                "fuzzy",
+                "noselect",
+                "noinsert",
+              },
+            }
+      end
+    end
+    return "", preedit
   elseif self.conv_mode == OKURI then
     -- okuri
     local out = self:_input(lhs)
-    if dict and #out > 0 then
-      -- trigger
-      local conv_feed = self:clear_conv()
-      local items = filter_jisyo(dict.jisyo, conv_feed .. self.okuri_feed, out)
-      return conv_feed, "", items
-    else
-      return "", self.conv_feed .. self.kana_feed
+    if #out > 0 then
+      if dict then
+        local conv_feed = self:clear_conv()
+        local items = filter_jisyo(dict.jisyo, conv_feed .. self.okuri_feed, out)
+        return conv_feed, "", { item = items, completeopt = { "menuone", "popup" } }
+      end
     end
+
+    return "", self.conv_feed .. self.kana_feed
   else
     assert(false)
     return "", ""

@@ -112,22 +112,23 @@ function M.NeoSkk.input(self, lhs)
     end
   end
 
-  local out, preedit, items = self.state:input(lhs, self.dict)
+  local out, preedit, completion = self.state:input(lhs, self.dict)
   self.preedit:highlight(preedit)
 
-  if items and #items > 0 then
-    if #items == 0 then
-    elseif #items == 1 then
+  if completion then
+    -- print(vim.inspect(completion))
+    if not completion.items or #completion.items == 0 then
+    elseif #completion.items == 1 then
       -- 確定
-      local item = items[1]
+      local item = completion.items[1]
       out = item.word
     else
       -- completion
       vim.defer_fn(function()
         -- trigger completion
         local opt_backup = vim.opt.completeopt
-        vim.opt.completeopt = { "menuone", "popup" }
-        vim.fn.complete(self.conv_col, items)
+        vim.opt.completeopt = completion.completeopt
+        vim.fn.complete(self.conv_col, completion.items)
         vim.opt.completeopt = opt_backup
       end, 0)
     end

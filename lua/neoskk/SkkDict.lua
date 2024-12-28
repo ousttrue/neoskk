@@ -1,13 +1,19 @@
+local utf8 = require "neoskk.utf8"
+
 ---@param path string
----@param from string
----@param to string
+---@param from string?
+---@param to string?
+---@param opts table? vim.iconv opts
 ---@return string
 local function readFileSync(path, from, to, opts)
   local fd = assert(vim.uv.fs_open(path, "r", 438))
   local stat = assert(vim.uv.fs_fstat(fd))
   local data = assert(vim.uv.fs_read(fd, stat.size, 0))
   assert(vim.uv.fs_close(fd))
-  return assert(vim.iconv(data, from, to, opts))
+  if from and to then
+    data = assert(vim.iconv(data, from, to, opts))
+  end
+  return data
 end
 
 ---@param l string
@@ -57,17 +63,15 @@ function SkkDict:load_skk(path)
     return
   end
 
-  local jisyo = self.jisyo
-  -- local jisyo = {}
   local data = readFileSync(path, "euc-jp", "utf-8", {})
   for i, l in ipairs(vim.split(data, "\n")) do
     local word, values = parse_line(l)
     if word and values then
       -- print(("[%s][%s]"):format(word, values))
-      local items = jisyo[word]
+      local items = self.jisyo[word]
       if not items then
         items = {}
-        jisyo[word] = items
+        self.jisyo[word] = items
       end
       for w in values:gmatch "[^/]+" do
         local annotation = w:find(";", nil, true)
@@ -86,9 +90,21 @@ function SkkDict:load_skk(path)
       -- break
     end
   end
-  return jisyo
 end
 
-function SkkDict:load_goma(path) end
+---@param path string
+function SkkDict:load_goma(path)
+  local src = readFileSync(path)
+  -- U+5650	kFourCornerCode	6666.1
+  for unicode, goma in string.gmatch(src, "U%+([A-F0-9]+)\tkFourCornerCode\t([%d%.]+)") do
+    local codepoint = tonumber(unicode, 16)
+    local ch = utf8.char(codepoint)
+    table.insert(self.goma, {
+      word = "g" .. goma,
+      abbr = ch .. " " .. goma,
+      menu = "号碼",
+    })
+  end
+end
 
 return SkkDict

@@ -54,6 +54,9 @@ function PreEdit.delete(self)
 end
 
 function PreEdit.highlight(self, feed)
+  if self.highlighter.feed == feed then
+    return
+  end
   self.highlighter.feed = feed
   vim.defer_fn(function()
     vim.fn.winrestview(vim.fn.winsaveview())
