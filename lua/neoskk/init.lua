@@ -89,10 +89,24 @@ end
 
 function M.NeoSkk:on_complete_done()
   local completed_item = vim.api.nvim_get_vvar "completed_item"
-  if not completed_item or not completed_item.user_data or not completed_item.user_data.nvim then
+  if not completed_item or not completed_item.user_data then
     return
   end
-  -- print(vim.inspect(completed_item))
+  local user_data = completed_item.user_data
+  if not user_data then
+    return
+  end
+  if user_data.replace then
+    -- print(vim.inspect(completed_item))
+    local bufnr = vim.api.nvim_get_current_buf()
+    local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
+    cursor_row = cursor_row - 1
+
+    -- Replace the already inserted word with user_data.replace
+    local start_char = cursor_col - #completed_item.word
+    print(cursor_row, cursor_col, start_char)
+    vim.api.nvim_buf_set_text(bufnr, cursor_row, start_char, cursor_row, cursor_col, { user_data.replace })
+  end
 end
 
 ---@param lhs string

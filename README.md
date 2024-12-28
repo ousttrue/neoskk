@@ -121,7 +121,7 @@ https://zenn.dev/notomo/articles/neovim-zebra-highlight
 https://github.com/delphinus/skkeleton_indicator.nvim
 
 - alphabet 以外の入力
-  - [x] `-` `~` `[`, `]` `,` `.`
+  - [x] `-` `~` `[`, `]` `,.` `0123456789`
   - [x] q: カタカナ・ひらがなスイッチ
   - [x] 変換モードq: カタカナ・ひらがなスイッチ
 
@@ -140,9 +140,10 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - [ ] azik
 - [ ] 絵文字 https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
 - Unihan_DictionaryLikeData.txt
-  - [ ] 四角号碼
+  - [x] 四角号碼 G1234 のように入力する
   - [ ] 音読み
   - [ ] pinyin => (注音符号) => 漢字
+- [ ] 學生字典から completion info
 - [ ] 學生字典の反切から字音仮名遣を生成する
 
 ## 参考

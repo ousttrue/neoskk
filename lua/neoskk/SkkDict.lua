@@ -103,6 +103,9 @@ function SkkDict:load_goma(path)
       word = "g" .. goma,
       abbr = ch .. " " .. goma,
       menu = "号碼",
+      user_data = {
+        replace = ch,
+      },
     })
   end
 end
