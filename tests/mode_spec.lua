@@ -31,8 +31,10 @@ describe("Tests for 変換モード", function()
     local engine = SkkMachine.new()
     local out, feed = engine:input "A"
     assert.are.equal("あ", feed)
-    out, feed = engine:input(" ", jisyo)
-    assert.are.equal("亜", out)
+    local _out, _feed, items = engine:input(" ", jisyo)
+    assert(items)
+    assert.are.equal("あ", _out)
+    assert.are.equal("亜", items[1].word)
   end)
 
   it("変換 q", function()

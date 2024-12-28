@@ -162,7 +162,15 @@ function SkkMachine.input(self, lhs, jisyo)
     else
       local out = self:_input(lhs)
       self.conv_feed = self.conv_feed .. out
-      return "", self.conv_feed .. self.kana_feed
+      local preedit = self.conv_feed .. self.kana_feed
+      if preedit:match "^g%d+$" then
+        return preedit, "", {
+          "四角号碼",
+          "四角号碼",
+        }
+      else
+        return "", preedit
+      end
     end
   elseif self.conv_mode == OKURI then
     -- okuri

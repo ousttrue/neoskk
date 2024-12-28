@@ -60,7 +60,7 @@ end
 -- 		customization of ctermfg and guifg properties for the
 -- 		completion kind
 ---@param path string
-function M.load(path)
+function M.load_skk(path)
   if not vim.uv.fs_stat(path) then
     return
   end
@@ -94,6 +94,9 @@ function M.load(path)
     end
   end
   return jisyo
+end
+
+function M.load_goma(path)
 end
 
 function M.find_start()

@@ -15,6 +15,7 @@ neovim の skk(lua).
   config = function()
     require("neoskk").setup {
       jisyo = vim.fn.expand "~/.skk/SKK-JISYO.L",
+      unihan = vim.fn.expand "~/.skk/Unihan_DictionaryLikeData.txt",
     }
     vim.keymap.set("i", "<C-j>", function()
       return require("neoskk").toggle()

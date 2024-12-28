@@ -3,9 +3,9 @@
 ---
 local MODULE_NAME = "neoskk"
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
-local KEYS_SYMBOL = vim.split("., -~[]\b", "")
+local KEYS_SYMBOL = vim.split("., -~[]\b0123456789", "")
 local PreEdit = require "neoskk.PreEdit"
-local dict = require "neoskk.dict"
+local dict = require "neoskk.Dict"
 local SkkMachine = require "neoskk.SkkMachine"
 
 ---@class JisyoItem
@@ -15,7 +15,8 @@ local SkkMachine = require "neoskk.SkkMachine"
 local M = {}
 
 ---@class Opts
----@field jisyo string path to SKK-JISYO.L
+---@field jisyo string path to SKK-JISYO.L from https://github.com/skk-dict/jisyo
+---@field unihan string path to Unihan_DictionaryLikeData.txt from https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
 local Opts = {}
 
 ---@class NeoSkk
@@ -24,6 +25,7 @@ local Opts = {}
 ---@field preedit PreEdit
 ---@field map_keys string[]
 ---@field jisyo {[string]: JisyoItem[]}
+---@field goma JisyoItem[]
 M.NeoSkk = {}
 
 ---@param opts Opts?
@@ -36,6 +38,7 @@ function M.NeoSkk.new(opts)
     preedit = PreEdit.new(MODULE_NAME),
     map_keys = {},
     jisyo = {},
+    goma = {},
   }, {
     __index = M.NeoSkk,
   })
@@ -52,6 +55,7 @@ function M.NeoSkk.new(opts)
     callback = function(ev)
       self.state:clear()
       self.preedit:highlight ""
+      vim.bo.iminsert = 0
     end,
   })
 
@@ -78,6 +82,7 @@ function M.NeoSkk.new(opts)
     local new_module = require(MODULE_NAME)
     local new_self = new_module.NeoSkk.new(old.opts)
     new_self.jisyo = old.jisyo
+    new_self.goma = old.goma
   end)
 
   M.instance = self
@@ -114,11 +119,16 @@ function M.NeoSkk.input(self, lhs)
     end
   end
 
-  local out, preedit, items = self.state:input(lhs, self.jisyo)
+  local out, preedit, items = self.state:input(lhs, self.jisyo, self.goma)
   self.preedit:highlight(preedit)
 
-  if items then
-    if #items > 1 then
+  if items and #items > 0 then
+    if #items == 0 then
+    elseif #items == 1 then
+      -- 確定
+      out = items[1].word
+    else
+      -- completion
       vim.defer_fn(function()
         -- trigger completion
         local opt_backup = vim.opt.completeopt
@@ -126,9 +136,6 @@ function M.NeoSkk.input(self, lhs)
         vim.fn.complete(self.conv_col, items)
         vim.opt.completeopt = opt_backup
       end, 0)
-    else
-      -- 確定
-      out = items[1].word
     end
   end
 
@@ -137,42 +144,32 @@ end
 
 --- language-mapping
 function M.NeoSkk.map(self)
-  for _, lhs in ipairs(KEYS_LOWER) do
+  ---@param lhs string
+  ---@param alt string?
+  local function add_key(lhs, alt)
     vim.keymap.set("l", lhs, function()
-      return self:input(lhs)
+      return self:input(alt and alt or lhs)
     end, {
       -- buffer = true,
       silent = true,
       expr = true,
     })
     table.insert(self.map_keys, lhs)
+  end
 
-    -- upper case
-    local u = lhs:upper()
-    vim.keymap.set("l", u, function()
-      return self:input(u)
-    end, {
-      -- buffer = true,
-      silent = true,
-      expr = true,
-    })
-    table.insert(self.map_keys, u)
+  for _, lhs in ipairs(KEYS_LOWER) do
+    add_key(lhs)
+    add_key(lhs:upper())
   end
 
   for _, lhs in ipairs(KEYS_SYMBOL) do
-    vim.keymap.set("l", lhs, function()
-      return self:input(lhs)
-    end, {
-      -- buffer = true,
-      silent = true,
-      expr = true,
-    })
-    table.insert(self.map_keys, lhs)
+    add_key(lhs)
   end
 
   --
   -- not lmap
   --
+  add_key("<BS>", "\b")
 end
 
 function M.NeoSkk.unmap(self)
@@ -190,9 +187,16 @@ function M.setup(opts)
   local skk = M.NeoSkk.new(opts)
 
   if opts.jisyo then
-    local jisyo = dict.load(opts.jisyo)
+    local jisyo = dict.load_skk(opts.jisyo)
     if jisyo then
       skk.jisyo = jisyo
+    end
+  end
+
+  if opts.unihan then
+    local goma = dict.load_goma(opts.unihan)
+    if goma then
+      skk.goma = goma
     end
   end
 end
