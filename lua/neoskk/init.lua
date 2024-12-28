@@ -50,7 +50,19 @@ function M.NeoSkk.new(opts)
     group = group,
     pattern = { "*" },
     callback = function(ev)
-      self:disable()
+      self.state:clear()
+      self.preedit:highlight ""
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("CompleteDone", {
+    group = group,
+    -- buffer = bufnr,
+    callback = function()
+      local reason = vim.api.nvim_get_vvar("event").reason --- @type string
+      if reason == "accept" then
+        self:on_complete_done()
+      end
     end,
   })
 
@@ -72,8 +84,17 @@ function M.NeoSkk.new(opts)
   return self
 end
 
-function M.NeoSkk.delete(self)
+function M.NeoSkk:delete()
+  self.preedit:highlight ""
   self:unmap()
+end
+
+function M.NeoSkk:on_complete_done()
+  local completed_item = vim.api.nvim_get_vvar "completed_item"
+  if not completed_item or not completed_item.user_data or not completed_item.user_data.nvim then
+    return
+  end
+  -- print(vim.inspect(completed_item))
 end
 
 ---@param lhs string
@@ -94,24 +115,23 @@ function M.NeoSkk.input(self, lhs)
   end
 
   local out, preedit, items = self.state:input(lhs, self.jisyo)
+  self.preedit:highlight(preedit)
 
   if items then
-    if #items == 1 then
-      -- 確定
-      out = items[1].word
-      preedit = ""
-    else
+    if #items > 1 then
       vim.defer_fn(function()
         -- trigger completion
         local opt_backup = vim.opt.completeopt
-        vim.opt.completeopt = { "popup" }
+        vim.opt.completeopt = { "menuone", "popup" }
         vim.fn.complete(self.conv_col, items)
         vim.opt.completeopt = opt_backup
       end, 0)
+    else
+      -- 確定
+      out = items[1].word
     end
   end
 
-  self.preedit:highlight(preedit)
   return out
 end
 
@@ -159,37 +179,9 @@ function M.NeoSkk.unmap(self)
   -- language-mapping
   for _, lhs in ipairs(self.map_keys) do
     -- vim.api.nvim_buf_del_keymap(0, "l", lhs)
-    vim.api.nvim_del_keymap("l", lhs)
-  end
-end
-
----@return string
-function M.NeoSkk.enable(self)
-  if vim.bo.iminsert == 1 then
-    return ""
-  end
-  return "<C-^>"
-end
-
----@return string
-function M.NeoSkk.disable(self)
-  self.state:clear()
-  self.preedit:highlight ""
-
-  if vim.bo.iminsert ~= 1 then
-    return ""
-  end
-
-  vim.cmd [[set iminsert=0]]
-  return "<C-^>"
-end
-
----@return string
-function M.NeoSkk.toggle(self)
-  if vim.bo.iminsert == 1 then
-    return self:disable()
-  else
-    return self:enable()
+    if vim.api.nvim_get_keymap("l")[lhs] then
+      vim.api.nvim_del_keymap("l", lhs)
+    end
   end
 end
 

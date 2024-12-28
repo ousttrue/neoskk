@@ -82,13 +82,11 @@ function M.load(path)
           table.insert(items, {
             word = w:sub(1, annotation - 1),
             abbr = w,
-            equl = 1,
           })
         else
           table.insert(items, {
             word = w,
             -- abbr = w,
-            equl = 1,
           })
         end
       end
