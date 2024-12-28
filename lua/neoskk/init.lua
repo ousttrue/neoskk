@@ -96,10 +96,19 @@ function M.NeoSkk.input(self, lhs)
   local out, preedit, items = self.state:input(lhs, self.jisyo)
 
   if items then
-    vim.defer_fn(function()
-      -- trigger completion
-      vim.fn.complete(self.conv_col, items)
-    end, 0)
+    if #items == 1 then
+      -- 確定
+      out = items[1].word
+      preedit = ""
+    else
+      vim.defer_fn(function()
+        -- trigger completion
+        local opt_backup = vim.opt.completeopt
+        vim.opt.completeopt = { "popup" }
+        vim.fn.complete(self.conv_col, items)
+        vim.opt.completeopt = opt_backup
+      end, 0)
+    end
   end
 
   self.preedit:highlight(preedit)
