@@ -5,12 +5,8 @@ local MODULE_NAME = "neoskk"
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
 local KEYS_SYMBOL = vim.split("., -~[]\b0123456789", "")
 local PreEdit = require "neoskk.PreEdit"
-local dict = require "neoskk.Dict"
+local SkkDict = require "neoskk.SkkDict"
 local SkkMachine = require "neoskk.SkkMachine"
-
----@class JisyoItem
----@field word string
----@fiend annotation string?
 
 local M = {}
 
@@ -24,8 +20,7 @@ local Opts = {}
 ---@field conv_col integer 漢字変換を開始した col
 ---@field preedit PreEdit
 ---@field map_keys string[]
----@field jisyo {[string]: JisyoItem[]}
----@field goma JisyoItem[]
+---@field dict SkkDict
 M.NeoSkk = {}
 
 ---@param opts Opts?
@@ -37,8 +32,7 @@ function M.NeoSkk.new(opts)
     conv_col = 0,
     preedit = PreEdit.new(MODULE_NAME),
     map_keys = {},
-    jisyo = {},
-    goma = {},
+    dict = SkkDict.new(),
   }, {
     __index = M.NeoSkk,
   })
@@ -81,8 +75,7 @@ function M.NeoSkk.new(opts)
     -- reload
     local new_module = require(MODULE_NAME)
     local new_self = new_module.NeoSkk.new(old.opts)
-    new_self.jisyo = old.jisyo
-    new_self.goma = old.goma
+    new_self.dict = old.dict
   end)
 
   M.instance = self
@@ -119,14 +112,15 @@ function M.NeoSkk.input(self, lhs)
     end
   end
 
-  local out, preedit, items = self.state:input(lhs, self.jisyo, self.goma)
+  local out, preedit, items = self.state:input(lhs, self.dict)
   self.preedit:highlight(preedit)
 
   if items and #items > 0 then
     if #items == 0 then
     elseif #items == 1 then
       -- 確定
-      out = items[1].word
+      local item = items[1]
+      out = item.word
     else
       -- completion
       vim.defer_fn(function()
@@ -187,17 +181,11 @@ function M.setup(opts)
   local skk = M.NeoSkk.new(opts)
 
   if opts.jisyo then
-    local jisyo = dict.load_skk(opts.jisyo)
-    if jisyo then
-      skk.jisyo = jisyo
-    end
+    skk.dict:load_skk(opts.jisyo)
   end
 
   if opts.unihan then
-    local goma = dict.load_goma(opts.unihan)
-    if goma then
-      skk.goma = goma
-    end
+    skk.dict:load_goma(opts.unihan)
   end
 end
 

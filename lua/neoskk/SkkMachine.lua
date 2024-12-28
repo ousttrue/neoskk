@@ -121,10 +121,11 @@ function SkkMachine._input(self, lhs)
 end
 
 ---@param lhs string
+---@param dict SkkDict?
 ---@return string out
 ---@return string preedit
----@return JisyoItem[]?
-function SkkMachine.input(self, lhs, jisyo)
+---@return CompletionItem[]?
+function SkkMachine:input(lhs, dict)
   if lhs:match "^[A-Z]$" then
     lhs = string.lower(lhs)
     self:_upper(lhs)
@@ -152,9 +153,9 @@ function SkkMachine.input(self, lhs, jisyo)
     return out, self.kana_feed
   elseif self.conv_mode == CONV then
     -- conv
-    if lhs == " " then
+    if dict and lhs == " " then
       local conv_feed = self:clear_conv()
-      local items = filter_jisyo(jisyo, conv_feed)
+      local items = filter_jisyo(dict.jisyo, conv_feed)
       return conv_feed, "", items
     elseif lhs == "q" then
       self.conv_feed = util.str_toggle_kana(self.conv_feed)
@@ -175,10 +176,10 @@ function SkkMachine.input(self, lhs, jisyo)
   elseif self.conv_mode == OKURI then
     -- okuri
     local out = self:_input(lhs)
-    if #out > 0 then
+    if dict and #out > 0 then
       -- trigger
       local conv_feed = self:clear_conv()
-      local items = filter_jisyo(jisyo, conv_feed .. self.okuri_feed, out)
+      local items = filter_jisyo(dict.jisyo, conv_feed .. self.okuri_feed, out)
       return conv_feed, "", items
     else
       return "", self.conv_feed .. self.kana_feed
