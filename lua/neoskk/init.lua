@@ -56,7 +56,7 @@ function M.NeoSkk.new(opts)
     callback = function(ev)
       if self.bufnr ~= -1 then
         local out = self.state.conv_feed .. self.state.kana_feed
-        if out then
+        if #out > 0 then
           -- local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
           -- cursor_row = cursor_row - 1
           -- vim.api.nvim_buf_set_text(self.bufnr, cursor_row, cursor_col + 1, cursor_row, cursor_col + 1, { out })
