@@ -23,6 +23,7 @@ local Opts = {}
 ---@field map_keys string[]
 ---@field dict SkkDict
 M.NeoSkk = {}
+M.NeoSkk.__index = M.NeoSkk
 
 ---@param opts Opts?
 ---@return NeoSkk
@@ -34,9 +35,7 @@ function M.NeoSkk.new(opts)
     preedit = PreEdit.new(MODULE_NAME),
     map_keys = {},
     dict = SkkDict.new(),
-  }, {
-    __index = M.NeoSkk,
-  })
+  }, M.NeoSkk)
   self:map()
 
   --

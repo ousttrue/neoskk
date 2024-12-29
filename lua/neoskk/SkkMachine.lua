@@ -21,7 +21,7 @@ local OKURI = 2
 ---@field conv_feed string 漢字変換の未確定(かな)
 ---@field okuri_feed string 送り仮名
 ---@field conv_mode CONV_MODE
-SkkMachine = {
+local SkkMachine = {
   HIRAKANA = HIRAKANA,
   KATAKANA = KATAKANA,
 
@@ -29,6 +29,7 @@ SkkMachine = {
   CONV = CONV,
   OKURI = OKURI,
 }
+SkkMachine.__index = SkkMachine
 
 function SkkMachine.new()
   local self = setmetatable({
@@ -37,9 +38,7 @@ function SkkMachine.new()
     conv_feed = "",
     okuri_feed = "",
     conv_mode = RAW,
-  }, {
-    __index = SkkMachine,
-  })
+  }, SkkMachine)
   return self
 end
 

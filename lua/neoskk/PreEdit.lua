@@ -2,12 +2,13 @@
 ---@field ns integer
 ---@field feed string
 local Highlighter = {}
+Highlighter.__index = Highlighter
 
 function Highlighter.new(ns)
   local self = setmetatable({
     ns = ns,
     feed = "",
-  }, { __index = Highlighter })
+  }, Highlighter)
   return self
 end
 
@@ -30,6 +31,7 @@ end
 ---@field ns integer
 ---@field highlighter Highlighter
 PreEdit = {}
+PreEdit.__index = PreEdit
 
 ---@param namespace string
 function PreEdit.new(namespace)
@@ -37,7 +39,7 @@ function PreEdit.new(namespace)
   local self = setmetatable({
     ns = ns,
     highlighter = Highlighter.new(ns),
-  }, { __index = PreEdit })
+  }, PreEdit)
 
   vim.api.nvim_set_decoration_provider(self.ns, {
     on_win = function(_, _, bufnr)

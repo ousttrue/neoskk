@@ -12,6 +12,7 @@ end
 ---@field full_match KanaRule?
 ---@field prefix_matches KanaRule[]
 MatchedKanaRule = {}
+MatchedKanaRule.__index = MatchedKanaRule
 
 ---@param prefix string
 ---@return MatchedKanaRule
@@ -19,7 +20,7 @@ function MatchedKanaRule.new(prefix)
   return setmetatable({
     prefix = prefix,
     prefix_matches = {},
-  }, { __index = MatchedKanaRule })
+  }, MatchedKanaRule)
 end
 
 ---@param rule KanaRule

@@ -34,13 +34,13 @@ end
 ---@field jisyo table<string, CompletionItem[]>
 ---@field goma CompletionItem[]
 local SkkDict = {}
-
+SkkDict.__index = SkkDict
 ---@return SkkDict
 function SkkDict.new()
   local self = setmetatable({
     jisyo = {},
     goma = {},
-  }, { __index = SkkDict })
+  }, SkkDict)
   return self
 end
 
