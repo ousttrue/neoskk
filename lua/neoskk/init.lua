@@ -25,6 +25,8 @@ local NeoSkkOpts = {}
 ---@field map_keys string[]
 ---@field dict SkkDict
 ---@field indicator Indicator
+---@field has_backspace boolean
+---@field last_completion Completion?
 M.NeoSkk = {}
 M.NeoSkk.__index = M.NeoSkk
 
@@ -40,6 +42,7 @@ function M.NeoSkk.new(opts)
     map_keys = {},
     dict = SkkDict.new(),
     indicator = Indicator.new(),
+    has_backspace = false,
   }, M.NeoSkk)
   self:map()
 
@@ -75,10 +78,24 @@ function M.NeoSkk.new(opts)
   vim.api.nvim_create_autocmd("CompleteDone", {
     group = group,
     -- buffer = bufnr,
-    callback = function()
-      local reason = vim.api.nvim_get_vvar("event").reason --- @type string
-      if reason == "accept" then
-        self:on_complete_done()
+    callback = function(ev)
+      local event = vim.api.nvim_get_vvar "event"
+      if event.reason == "accept" then
+        self.last_completion = nil
+        local item = vim.api.nvim_get_vvar "completed_item"
+        self:on_complete_done(ev.buf, item)
+      elseif event.reason == "cancel" then
+        if self.has_backspace and self.last_completion and vim.fn.col "." > self.conv_col + 2 then
+          print(vim.fn.col ".", self.conv_col)
+          self:raise_completion(self.last_completion)
+        else
+          self.last_completion = nil
+          local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
+          cursor_row = cursor_row - 1
+          -- Replace the already inserted word with user_data.replace
+          -- local start_char = cursor_col - #item.word
+          vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
+        end
       end
     end,
   })
@@ -131,22 +148,22 @@ function M.NeoSkk:delete()
   self:unmap()
 end
 
-function M.NeoSkk:on_complete_done()
-  local completed_item = vim.api.nvim_get_vvar "completed_item"
-  if not completed_item or not completed_item.user_data then
+---@param bufnr integer
+---@param item CompletionItem
+function M.NeoSkk:on_complete_done(bufnr, item)
+  if not item or not item.user_data then
     return
   end
-  local user_data = completed_item.user_data
+  local user_data = item.user_data
   if not user_data then
     return
   end
   if user_data.replace then
-    local bufnr = vim.api.nvim_get_current_buf()
     local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
     cursor_row = cursor_row - 1
 
     -- Replace the already inserted word with user_data.replace
-    local start_char = cursor_col - #completed_item.word
+    local start_char = cursor_col - #item.word
     vim.api.nvim_buf_set_text(bufnr, cursor_row, start_char, cursor_row, cursor_col, { user_data.replace })
   end
 end
@@ -191,30 +208,33 @@ function M.NeoSkk:input(win, bufnr, lhs)
       out = item.word
     else
       -- completion
-      vim.defer_fn(function()
-        -- trigger completion
-        local opt_backup = vim.opt.completeopt
-        if completion.opts == Completion.SKK_OPTS then
-          vim.opt.completeopt = { "menuone", "popup" }
-        elseif completion.opts == Completion.FUZZY_OPTS then
-          vim.opt.completeopt = {
-            "menuone",
-            "popup",
-            "fuzzy",
-            "noselect",
-            "noinsert",
-          }
-        else
-          --
-        end
-        -- completeopt
-        vim.fn.complete(self.conv_col, completion.items)
-        vim.opt.completeopt = opt_backup
-      end, 0)
+      if completion.opts == Completion.FUZZY_OPTS then
+        self.last_completion = completion
+      end
+      self:raise_completion(completion)
     end
   end
 
   return out
+end
+
+---@param completion Completion
+function M.NeoSkk:raise_completion(completion)
+  vim.defer_fn(function()
+    -- trigger completion
+    local opt_backup = vim.opt.completeopt
+    if completion.opts == Completion.SKK_OPTS then
+      vim.opt.completeopt = { "menuone", "popup" }
+    elseif completion.opts == Completion.FUZZY_OPTS then
+      vim.opt.completeopt = { "menuone", "popup", "fuzzy", "noselect", "noinsert" }
+    else
+      --
+    end
+    -- completeopt
+    self.has_backspace = false
+    vim.fn.complete(self.conv_col, completion.items)
+    vim.opt.completeopt = opt_backup
+  end, 0)
 end
 
 ---@param reverse boolean?
@@ -240,6 +260,10 @@ function M.NeoSkk.map(self)
   ---@param alt string?
   local function add_key(lhs, alt)
     vim.keymap.set("l", lhs, function()
+      if vim.fn.pumvisible() and (lhs == "\b" or alt == "\b") then
+        self.has_backspace = true
+      end
+
       local bufnr = vim.api.nvim_get_current_buf()
       local win = vim.api.nvim_get_current_win()
       local out = self:input(win, bufnr, alt and alt or lhs)
