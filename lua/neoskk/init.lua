@@ -181,10 +181,7 @@ function M.NeoSkk:input(win, bufnr, lhs)
     -- completion を確定する
     out = " \b" .. out
   end
-  vim.defer_fn(function()
-    -- pumvisible のときに defer_fn が必要
-    self.preedit:highlight(self.bufnr, preedit)
-  end, 0)
+  self.preedit:highlight(self.bufnr, preedit)
 
   if completion then
     if not completion.items or #completion.items == 0 then

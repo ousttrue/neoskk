@@ -67,10 +67,12 @@ function PreEdit.delete(self)
 end
 
 function PreEdit:highlight(bufnr, feed)
-  self.highlighter.bufnr = bufnr
-  self.highlighter.feed = feed
   vim.defer_fn(function()
-    vim.fn.winrestview(vim.fn.winsaveview())
+    self.highlighter.bufnr = bufnr
+    self.highlighter.feed = feed
+    vim.defer_fn(function()
+      vim.fn.winrestview(vim.fn.winsaveview())
+    end, 0)
   end, 0)
 end
 
