@@ -1,4 +1,13 @@
 local SkkMachine = require "neoskk.SkkMachine"
+local Skkdict = require "neoskk.SkkDict"
+local CompletionItem = require "neoskk.CompletionItem"
+local Completion = require "neoskk.Completion"
+
+local dict = Skkdict.new()
+dict.jisyo = {
+  ["あ"] = { { word = "亜" } },
+  ["あるk"] = { { word = "歩" } },
+}
 
 describe("Tests for 変換モード", function()
   it("q", function()
@@ -26,15 +35,28 @@ describe("Tests for 変換モード", function()
     assert.are.equal("", feed)
   end)
 
+  it("Dict", function()
+    local item = CompletionItem.new { word = "a" }
+    assert.are_equal(CompletionItem.new { word = "a" }, item)
+    assert.are_not_equal(CompletionItem.new { word = "b" }, item)
+  end)
+
   it("変換", function()
-    local jisyo = { ["あ"] = { { word = "亜" } } }
     local engine = SkkMachine.new()
     local out, feed = engine:input "A"
     assert.are.equal("あ", feed)
-    local _out, _feed, items = engine:input(" ", jisyo)
-    assert(items)
+    local _out, _feed, completion = engine:input(" ", dict)
+
     assert.are.equal("あ", _out)
-    assert.are.equal("亜", items[1].word)
+    assert.are.equal(Completion.new { "亜" }, completion)
+  end)
+
+  it("変換 okuri", function()
+    local engine = SkkMachine.new()
+    local out, feed, completion = engine:input("AruKu", dict)
+
+    assert.are.equal("あるく", out)
+    assert.are.equal(Completion.new { "歩" }, completion)
   end)
 
   it("変換 q", function()

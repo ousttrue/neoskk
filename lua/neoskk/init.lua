@@ -7,6 +7,7 @@ local KEYS_SYMBOL = vim.split("., -~[]\b0123456789", "")
 local PreEdit = require "neoskk.PreEdit"
 local SkkDict = require "neoskk.SkkDict"
 local SkkMachine = require "neoskk.SkkMachine"
+local Completion = require "neoskk.Completion"
 
 local M = {}
 
@@ -141,7 +142,20 @@ function M.NeoSkk.input(self, lhs)
       vim.defer_fn(function()
         -- trigger completion
         local opt_backup = vim.opt.completeopt
-        vim.opt.completeopt = completion.completeopt
+        if completion.opts == Completion.SKK_OPTS then
+          vim.opt.completeopt = { "menuone", "popup" }
+        elseif completion.opts == Completion.FUZZY_OPTS then
+          vim.opt.completeopt = {
+            "menuone",
+            "popup",
+            "fuzzy",
+            "noselect",
+            "noinsert",
+          }
+        else
+          --
+        end
+        -- completeopt
         vim.fn.complete(self.conv_col, completion.items)
         vim.opt.completeopt = opt_backup
       end, 0)

@@ -1,5 +1,6 @@
 local ruleconv = require "neoskk.tables.ruleconv"
 local KanaRules = require "neoskk.tables.KanaRules"
+local Completion = require "neoskk.Completion"
 local util = require "neoskk.util"
 local utf8 = require "neoskk.utf8"
 
@@ -101,7 +102,7 @@ end
 
 ---@param lhs string
 ---@return string
-function SkkMachine._input(self, lhs)
+function SkkMachine.input_char(self, lhs)
   if lhs == "q" then
     if self.input_mode == HIRAKANA then
       self.input_mode = KATAKANA
@@ -124,8 +125,20 @@ end
 ---@param dict SkkDict?
 ---@return string out
 ---@return string preedit
----@return {items: CompletionItem[], completeopt: table}?
+---@return Completion?
 function SkkMachine:input(lhs, dict)
+  local out = ""
+  local out_tmp, preedit, completion
+  for key in lhs:gmatch "." do
+    out_tmp, preedit, completion = self:_input(key, dict)
+    if out_tmp then
+      out = out .. out_tmp
+    end
+  end
+  return out, preedit, completion
+end
+
+function SkkMachine:_input(lhs, dict)
   if lhs:match "^[A-Z]$" then
     lhs = string.lower(lhs)
     self:_upper(lhs)
@@ -149,7 +162,7 @@ function SkkMachine:input(lhs, dict)
 
   if self.conv_mode == RAW then
     -- raw
-    local out = self:_input(lhs)
+    local out = self:input_char(lhs)
     return out, self.kana_feed
   elseif self.conv_mode == CONV then
     -- conv
@@ -163,11 +176,11 @@ function SkkMachine:input(lhs, dict)
         local conv_feed = self:clear_conv()
         local items = filter_jisyo(dict.jisyo, conv_feed)
         self.conv_mode = RAW
-        return conv_feed, "", { items = items, completeopt = { "menuone", "popup" } }
+        return conv_feed, "", Completion.new(items)
       end
     end
 
-    local out = self:_input(lhs)
+    local out = self:input_char(lhs)
     self.conv_feed = self.conv_feed .. out
     local preedit = self.conv_feed .. self.kana_feed
     if preedit:match "^g%d+$" then
@@ -176,29 +189,18 @@ function SkkMachine:input(lhs, dict)
         self.conv_mode = RAW
         self.conv_feed = ""
         self.kana_feed = ""
-        return preedit,
-            "",
-            {
-              items = dict.goma,
-              completeopt = {
-                "menuone",
-                "popup",
-                "fuzzy",
-                "noselect",
-                "noinsert",
-              },
-            }
+        return preedit, "", Completion.new(dict.goma)
       end
     end
     return "", preedit
   elseif self.conv_mode == OKURI then
     -- okuri
-    local out = self:_input(lhs)
+    local out = self:input_char(lhs)
     if #out > 0 then
       if dict then
         local conv_feed = self:clear_conv()
         local items = filter_jisyo(dict.jisyo, conv_feed .. self.okuri_feed, out)
-        return conv_feed, "", { item = items, completeopt = { "menuone", "popup" } }
+        return conv_feed .. out, "", Completion.new(items)
       end
     end
 
