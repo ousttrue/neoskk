@@ -137,6 +137,11 @@ function SkkMachine:input(lhs, dict)
   return out, preedit, completion
 end
 
+---@param lhs string
+---@param dict SkkDict?
+---@return string out
+---@return string preedit
+---@return Completion?
 function SkkMachine:_input(lhs, dict)
   if lhs:match "^[A-Z]$" then
     lhs = string.lower(lhs)
@@ -188,7 +193,16 @@ function SkkMachine:_input(lhs, dict)
         self.conv_mode = RAW
         self.conv_feed = ""
         self.kana_feed = ""
-        return preedit, "", Completion.new(dict.goma)
+        --@type CompletionItem[]
+        local items = {}
+        local n = preedit:sub(2, 2)
+        -- print(preedit, n)
+        for i, item in ipairs(dict.goma) do
+          if item.word:match(n) then
+            table.insert(items, item)
+          end
+        end
+        return preedit, "", Completion.new(items, Completion.FUZZY_OPTS)
       end
     end
     return "", preedit
