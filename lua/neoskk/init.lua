@@ -43,7 +43,7 @@ function M.NeoSkk.new(opts)
   }, M.NeoSkk)
   self:map()
 
-  Indicator.set "無"
+  self:update_indicator()
 
   --
   -- event
@@ -87,6 +87,23 @@ function M.NeoSkk.new(opts)
     group = group,
     callback = function()
       self.indicator:open()
+      self:update_indicator()
+    end,
+  })
+
+  -- vim.api.nvim_create_autocmd("OptionSet", {
+  --   group = group,
+  --   pattern = "iminsert",
+  --   callback = function()
+  --     print "OptionSet"
+  --     self:update_indicator()
+  --   end,
+  -- })
+
+  vim.api.nvim_create_autocmd("ModeChanged", {
+    group = group,
+    callback = function()
+      self.preedit:highlight ""
     end,
   })
 
@@ -198,6 +215,23 @@ function M.NeoSkk.input(self, lhs)
   return out
 end
 
+---@param reverse boolean?
+function M.NeoSkk:update_indicator(reverse)
+  if reverse then
+    if vim.bo.iminsert ~= 1 then
+      Indicator.set(self.state:mode_text())
+    else
+      Indicator.set "無"
+    end
+  else
+    if vim.bo.iminsert == 1 then
+      Indicator.set(self.state:mode_text())
+    else
+      Indicator.set "無"
+    end
+  end
+end
+
 --- language-mapping
 function M.NeoSkk.map(self)
   ---@param lhs string
@@ -205,11 +239,7 @@ function M.NeoSkk.map(self)
   local function add_key(lhs, alt)
     vim.keymap.set("l", lhs, function()
       local out = self:input(alt and alt or lhs)
-      if vim.bo.iminsert == 0 then
-        Indicator.set "無"
-      else
-        Indicator.set(self.state:mode_text())
-      end
+      self:update_indicator()
       return out
     end, {
       -- buffer = true,
@@ -258,7 +288,8 @@ function M.setup(opts)
 end
 
 function M.toggle()
-  return M.instance:toggle()
+  M.instance:update_indicator(true)
+  return "<C-^>"
 end
 
 return M

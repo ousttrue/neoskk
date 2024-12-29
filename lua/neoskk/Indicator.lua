@@ -140,10 +140,7 @@ end
 
 ---@param content string
 function Indicator.set_content(self, content)
-  local lines = self.content:set(content, self.buf)
-  if not lines then
-    return
-  end
+  self.content:set(content, self.buf)
 end
 
 function Indicator.open(self)
