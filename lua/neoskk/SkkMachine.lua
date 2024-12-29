@@ -1,6 +1,7 @@
 local ruleconv = require "neoskk.tables.ruleconv"
 local KanaRules = require "neoskk.tables.KanaRules"
 local Completion = require "neoskk.Completion"
+local Indicator = require "neoskk.Indicator"
 local util = require "neoskk.util"
 local utf8 = require "neoskk.utf8"
 
@@ -9,11 +10,37 @@ local KATAKANA = 1
 
 ---@alias INPUT_MODE `HIRAKANA` | `KATAKANA`
 
+---@param mode INPUT_MODE
+---@return string
+local function input_mode_name(mode)
+  if mode == HIRAKANA then
+    return "か"
+  elseif mode == KATAKANA then
+    return "カ"
+  else
+    return "?"
+  end
+end
+
 local RAW = 0
 local CONV = 1
 local OKURI = 2
 
 ---@alias CONV_MODE `RAW` | `CONV` | `OKURI`
+
+---@param mode CONV_MODE
+---@return string
+local function conv_mode_name(mode)
+  if mode == RAW then
+    return "直"
+  elseif mode == CONV then
+    return "変"
+  elseif mode == OKURI then
+    return "送"
+  else
+    return "?"
+  end
+end
 
 ---@class SkkMachine
 ---@field input_mode INPUT_MODE
@@ -40,6 +67,10 @@ function SkkMachine.new()
     conv_mode = RAW,
   }, SkkMachine)
   return self
+end
+
+function SkkMachine:mode_text()
+  return input_mode_name(self.input_mode) .. conv_mode_name(self.conv_mode)
 end
 
 function SkkMachine.clear(self)

@@ -8,48 +8,67 @@ local PreEdit = require "neoskk.PreEdit"
 local SkkDict = require "neoskk.SkkDict"
 local SkkMachine = require "neoskk.SkkMachine"
 local Completion = require "neoskk.Completion"
+local Indicator = require "neoskk.Indicator"
 
 local M = {}
 
----@class Opts
+---@class NeoSkkOpts
 ---@field jisyo string path to SKK-JISYO.L from https://github.com/skk-dict/jisyo
 ---@field unihan string path to Unihan_DictionaryLikeData.txt from https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
-local Opts = {}
+local NeoSkkOpts = {}
 
 ---@class NeoSkk
+---@field bufnr integer 対象のbuf。変わったら状態をクリアする
 ---@field state SkkMachine 状態管理
 ---@field conv_col integer 漢字変換を開始した col
 ---@field preedit PreEdit
 ---@field map_keys string[]
 ---@field dict SkkDict
+---@field indicator Indicator
 M.NeoSkk = {}
 M.NeoSkk.__index = M.NeoSkk
 
----@param opts Opts?
+---@param opts NeoSkkOpts?
 ---@return NeoSkk
 function M.NeoSkk.new(opts)
   local self = setmetatable({
+    bufnr = -1,
     opts = opts and opts or {},
     state = SkkMachine.new(),
     conv_col = 0,
     preedit = PreEdit.new(MODULE_NAME),
     map_keys = {},
     dict = SkkDict.new(),
+    indicator = Indicator.new(),
   }, M.NeoSkk)
   self:map()
+
+  Indicator.set "無"
 
   --
   -- event
   --
   local group = vim.api.nvim_create_augroup(MODULE_NAME, { clear = true })
 
-  vim.api.nvim_create_autocmd("InsertLeave", {
+  vim.api.nvim_create_autocmd({ "InsertLeave", "WinLeave" }, {
     group = group,
     pattern = { "*" },
     callback = function(ev)
+      if self.bufnr ~= -1 then
+        local out = self.state.conv_feed .. self.state.kana_feed
+        if out then
+          -- local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
+          -- cursor_row = cursor_row - 1
+          -- vim.api.nvim_buf_set_text(self.bufnr, cursor_row, cursor_col + 1, cursor_row, cursor_col + 1, { out })
+          vim.api.nvim_put({ out }, "", true, true)
+        end
+        self.bufnr = -1
+      end
+
       self.state:clear()
       self.preedit:highlight ""
       vim.bo.iminsert = 0
+      self.indicator:close()
     end,
   })
 
@@ -61,6 +80,13 @@ function M.NeoSkk.new(opts)
       if reason == "accept" then
         self:on_complete_done()
       end
+    end,
+  })
+
+  vim.api.nvim_create_autocmd("InsertEnter", {
+    group = group,
+    callback = function()
+      self.indicator:open()
     end,
   })
 
@@ -83,6 +109,7 @@ function M.NeoSkk.new(opts)
 end
 
 function M.NeoSkk:delete()
+  self.indicator:delete()
   self.preedit:highlight ""
   self:unmap()
 end
@@ -97,14 +124,12 @@ function M.NeoSkk:on_complete_done()
     return
   end
   if user_data.replace then
-    -- print(vim.inspect(completed_item))
     local bufnr = vim.api.nvim_get_current_buf()
     local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
     cursor_row = cursor_row - 1
 
     -- Replace the already inserted word with user_data.replace
     local start_char = cursor_col - #completed_item.word
-    print(cursor_row, cursor_col, start_char)
     vim.api.nvim_buf_set_text(bufnr, cursor_row, start_char, cursor_row, cursor_col, { user_data.replace })
   end
 end
@@ -112,6 +137,12 @@ end
 ---@param lhs string
 ---@return string
 function M.NeoSkk.input(self, lhs)
+  local bufnr = vim.api.nvim_get_current_buf()
+  if self.bufnr ~= -1 and self.bufnr ~= bufnr then
+    self.state:clear()
+  end
+  self.bufnr = bufnr
+
   if lhs == "\b" then
     if vim.bo.iminsert ~= 1 then
       return "<C-h>"
@@ -127,10 +158,13 @@ function M.NeoSkk.input(self, lhs)
   end
 
   local out, preedit, completion = self.state:input(lhs, self.dict)
+  if vim.fn.pumvisible() and #preedit > 0 then
+    -- かて
+    out = " \b" .. out
+  end
   self.preedit:highlight(preedit)
 
   if completion then
-    -- print(vim.inspect(completion))
     if not completion.items or #completion.items == 0 then
     elseif #completion.items == 1 then
       -- 確定
@@ -170,7 +204,13 @@ function M.NeoSkk.map(self)
   ---@param alt string?
   local function add_key(lhs, alt)
     vim.keymap.set("l", lhs, function()
-      return self:input(alt and alt or lhs)
+      local out = self:input(alt and alt or lhs)
+      if vim.bo.iminsert == 0 then
+        Indicator.set "無"
+      else
+        Indicator.set(self.state:mode_text())
+      end
+      return out
     end, {
       -- buffer = true,
       silent = true,
@@ -204,7 +244,7 @@ function M.NeoSkk.unmap(self)
   end
 end
 
----@param opts Opts
+---@param opts NeoSkkOpts
 function M.setup(opts)
   local skk = M.NeoSkk.new(opts)
 

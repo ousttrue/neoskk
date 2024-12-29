@@ -1,6 +1,8 @@
 ---@class Highlighter
 ---@field ns integer
 ---@field feed string
+---@field winid integer?
+---@field bufnr integer?
 local Highlighter = {}
 Highlighter.__index = Highlighter
 
@@ -14,17 +16,28 @@ end
 
 -- local hl_groups = { "DiffAdd", "DiffChange", "DiffDelete" }
 ---@param bufnr integer
-function Highlighter.highlight(self, bufnr)
-  if #self.feed == 0 then
-    return
+function Highlighter.highlight(self, winid, bufnr)
+  local col = vim.fn.col(".", winid) - 1
+  local row = vim.fn.line(".", winid) - 1
+
+  if self.winid ~= winid or self.bufnr ~= bufnr or #self.feed == 0 then
+    -- vim.api.nvim_buf_set_extmark(bufnr, self.ns, row, col, {
+    --   virt_text = { { self.feed, "DiffAdd" } },
+    --   virt_text_pos = "",
+    --   ephemeral = true,
+    -- })
+    return false
   end
-  local col = vim.fn.col "." - 1
-  local row = vim.fn.line "." - 1
+
+  -- local row, col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
+  -- row = row - 1
+
   vim.api.nvim_buf_set_extmark(bufnr, self.ns, row, col, {
     virt_text = { { self.feed, "DiffAdd" } },
     virt_text_pos = "overlay",
     ephemeral = true,
   })
+  return true
 end
 
 ---@class PreEdit
@@ -42,9 +55,8 @@ function PreEdit.new(namespace)
   }, PreEdit)
 
   vim.api.nvim_set_decoration_provider(self.ns, {
-    on_win = function(_, _, bufnr)
-      self.highlighter:highlight(bufnr)
-      return true
+    on_win = function(_, winid, bufnr)
+      return self.highlighter:highlight(winid, bufnr)
     end,
   })
 
@@ -56,9 +68,8 @@ function PreEdit.delete(self)
 end
 
 function PreEdit.highlight(self, feed)
-  if self.highlighter.feed == feed then
-    return
-  end
+  self.highlighter.bufnr = vim.api.nvim_get_current_buf()
+  self.highlighter.winid = vim.api.nvim_get_current_win()
   self.highlighter.feed = feed
   vim.defer_fn(function()
     vim.fn.winrestview(vim.fn.winsaveview())

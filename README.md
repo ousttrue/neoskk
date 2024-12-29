@@ -6,7 +6,7 @@ neovim の skk(lua).
 
 を基点に実装しました.
 
-未確定の入力を extmark で色を変えて表示します.
+preedit を extmark で表示します.
 
 ```lua
 -- lazy
@@ -114,14 +114,13 @@ https://zenn.dev/notomo/articles/neovim-zebra-highlight
 - [x] 変換モード(RAW, CONV, OKURI)
 - [x] 送り仮名
 - [x] 候補が一つのときに自動で確定
-- [ ] insertmode を抜けるときに conv_feed を buffer に出力する
-
-- [ ] floating でカーソル近くにモード表示
+- [x] insertmode を抜けるときに conv_feed を buffer に出力する
+- [x] floating でカーソル近くにモード表示
 
 https://github.com/delphinus/skkeleton_indicator.nvim
 
 - alphabet 以外の入力
-  - [x] `-` `~` `[`, `]` `,.` `0123456789`
+- [x] `-` `~` `[`, `]` `,.` `0123456789`
   - [x] q: カタカナ・ひらがなスイッチ
   - [x] 変換モードq: カタカナ・ひらがなスイッチ
 
@@ -133,7 +132,7 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 
 - [x] `<BS>`
 - [x] 変換モード`<Space>`: completion
-- [ ] `<Enter>` で変換モード脱出
+- [ ] `<Enter>` で変換モード脱出(変換しなかったかなを確定)
 - [ ] ひらがな片仮名変換除外 `ー` 
 - [ ] l: ASCIIモード
 - [ ] completion キャンセルで conv_feed 化する
