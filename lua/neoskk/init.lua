@@ -62,11 +62,11 @@ function M.NeoSkk.new(opts)
           -- vim.api.nvim_buf_set_text(self.bufnr, cursor_row, cursor_col + 1, cursor_row, cursor_col + 1, { out })
           vim.api.nvim_put({ out }, "", true, true)
         end
+        self.preedit:highlight(self.bufnr, "")
         self.bufnr = -1
       end
 
       self.state:clear()
-      self.preedit:highlight ""
       vim.bo.iminsert = 0
       self.indicator:close()
     end,
@@ -91,19 +91,19 @@ function M.NeoSkk.new(opts)
     end,
   })
 
-  -- vim.api.nvim_create_autocmd("OptionSet", {
-  --   group = group,
-  --   pattern = "iminsert",
-  --   callback = function()
-  --     print "OptionSet"
-  --     self:update_indicator()
-  --   end,
-  -- })
+  vim.api.nvim_create_autocmd("OptionSet", {
+    group = group,
+    pattern = "iminsert",
+    callback = function()
+      print "OptionSet"
+      self:update_indicator()
+    end,
+  })
 
   vim.api.nvim_create_autocmd("ModeChanged", {
     group = group,
     callback = function()
-      self.preedit:highlight ""
+      self.preedit:highlight(self.bufnr, "")
     end,
   })
 
@@ -127,7 +127,7 @@ end
 
 function M.NeoSkk:delete()
   self.indicator:delete()
-  self.preedit:highlight ""
+  self.preedit:highlight(self.bufnr, "")
   self:unmap()
 end
 
@@ -151,10 +151,11 @@ function M.NeoSkk:on_complete_done()
   end
 end
 
+---@param win integer
+---@param bufnr integer
 ---@param lhs string
 ---@return string
-function M.NeoSkk.input(self, lhs)
-  local bufnr = vim.api.nvim_get_current_buf()
+function M.NeoSkk:input(win, bufnr, lhs)
   if self.bufnr ~= -1 and self.bufnr ~= bufnr then
     self.state:clear()
   end
@@ -169,6 +170,7 @@ function M.NeoSkk.input(self, lhs)
   end
 
   if lhs:match "^[A-Z]$" then
+    -- SHIFT
     if self.state.conv_mode == SkkMachine.RAW then
       self.conv_col = vim.fn.col "."
     end
@@ -176,10 +178,13 @@ function M.NeoSkk.input(self, lhs)
 
   local out, preedit, completion = self.state:input(lhs, self.dict)
   if vim.fn.pumvisible() and #preedit > 0 then
-    -- かて
+    -- completion を確定する
     out = " \b" .. out
   end
-  self.preedit:highlight(preedit)
+  vim.defer_fn(function()
+    -- pumvisible のときに defer_fn が必要
+    self.preedit:highlight(self.bufnr, preedit)
+  end, 0)
 
   if completion then
     if not completion.items or #completion.items == 0 then
@@ -238,7 +243,9 @@ function M.NeoSkk.map(self)
   ---@param alt string?
   local function add_key(lhs, alt)
     vim.keymap.set("l", lhs, function()
-      local out = self:input(alt and alt or lhs)
+      local bufnr = vim.api.nvim_get_current_buf()
+      local win = vim.api.nvim_get_current_win()
+      local out = self:input(win, bufnr, alt and alt or lhs)
       self:update_indicator()
       return out
     end, {

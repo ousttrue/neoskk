@@ -160,6 +160,7 @@ function SkkMachine:input(lhs, dict)
   local out = ""
   local out_tmp, preedit, completion
   for key in lhs:gmatch "." do
+    -- 一文字ずつ
     out_tmp, preedit, completion = self:_input(key, dict)
     if out_tmp then
       out = out .. out_tmp
@@ -203,7 +204,13 @@ function SkkMachine:_input(lhs, dict)
     -- conv
     if lhs == "q" then
       self.conv_feed = util.str_toggle_kana(self.conv_feed)
-      return "", self.conv_feed .. self.kana_feed
+      -- return "", self.conv_feed .. self.kana_feed
+      -- 確定
+      local preedit = self.conv_feed .. self.kana_feed
+      self.conv_feed = ""
+      self.kana_feed = ""
+      self.conv_mode = RAW
+      return preedit, ""
     end
 
     if lhs == " " then
@@ -227,7 +234,6 @@ function SkkMachine:_input(lhs, dict)
         --@type CompletionItem[]
         local items = {}
         local n = preedit:sub(2, 2)
-        -- print(preedit, n)
         for i, item in ipairs(dict.goma) do
           if item.word:match(n) then
             table.insert(items, item)

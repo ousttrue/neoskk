@@ -1,7 +1,6 @@
 ---@class Highlighter
 ---@field ns integer
 ---@field feed string
----@field winid integer?
 ---@field bufnr integer?
 local Highlighter = {}
 Highlighter.__index = Highlighter
@@ -20,7 +19,7 @@ function Highlighter.highlight(self, winid, bufnr)
   local col = vim.fn.col(".", winid) - 1
   local row = vim.fn.line(".", winid) - 1
 
-  if self.winid ~= winid or self.bufnr ~= bufnr or #self.feed == 0 then
+  if self.bufnr ~= bufnr or #self.feed == 0 then
     -- vim.api.nvim_buf_set_extmark(bufnr, self.ns, row, col, {
     --   virt_text = { { self.feed, "DiffAdd" } },
     --   virt_text_pos = "",
@@ -67,9 +66,8 @@ function PreEdit.delete(self)
   -- vim.api.nvim_buf_clear_namespace
 end
 
-function PreEdit.highlight(self, feed)
-  self.highlighter.bufnr = vim.api.nvim_get_current_buf()
-  self.highlighter.winid = vim.api.nvim_get_current_win()
+function PreEdit:highlight(bufnr, feed)
+  self.highlighter.bufnr = bufnr
   self.highlighter.feed = feed
   vim.defer_fn(function()
     vim.fn.winrestview(vim.fn.winsaveview())
