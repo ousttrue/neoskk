@@ -132,7 +132,7 @@ function SkkDict:load_goma(path)
     table.insert(self.goma, {
       word = "g" .. goma,
       abbr = ch .. " " .. goma,
-      menu = "号碼",
+      menu = "[四]",
       dup = true,
       user_data = {
         replace = ch,

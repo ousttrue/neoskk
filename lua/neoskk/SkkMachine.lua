@@ -167,9 +167,11 @@ function SkkMachine:input(lhs, dict)
   local out = ""
   local out_tmp, preedit, completion
   for key in lhs:gmatch "." do
+    -- 一文字ずつ
+
     if key == " " then
-      -- 一文字投入して[ん]などを確定させる
-      out_tmp, preedit, completion = self:_input("k", dict)
+      -- 一文字投入して "n" を "ん" に確定させる
+      out_tmp, preedit, completion = self:_input("-", dict)
       if out_tmp then
         out = out .. out_tmp
       end
@@ -180,7 +182,6 @@ function SkkMachine:input(lhs, dict)
       end
     end
 
-    -- 一文字ずつ
     out_tmp, preedit, completion = self:_input(key, dict)
     if out_tmp then
       out = out .. out_tmp
