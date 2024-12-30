@@ -99,14 +99,19 @@ function M.NeoSkk.new(opts)
         self:on_complete_done(ev.buf, item)
       elseif event.reason == "cancel" then
         if last_completion then
-          if self.has_backspace and last_completion and vim.fn.col "." > self.conv_col + 2 then
+          local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
+          cursor_row = cursor_row - 1
+          if self.has_backspace and last_completion and cursor_col > self.conv_col then
             -- 再
-            -- print(vim.fn.col ".", self.conv_col)
+            local current = vim.api.nvim_buf_get_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, {})[1]
+            print(current)
+            if current:match "^%d$" then
+              -- 'g%d'
+              last_completion = self.dict:filter_goma(current:sub(2, 2))
+            end
             self:raise_completion(last_completion)
           else
             -- cancel clear
-            local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
-            cursor_row = cursor_row - 1
             -- Replace the already inserted word with user_data.replace
             -- local start_char = cursor_col - #item.word
             vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
@@ -279,6 +284,10 @@ function M.NeoSkk.map(self)
   ---@param alt string?
   local function add_key(lhs, alt)
     vim.keymap.set("l", lhs, function()
+      if vim.fn.mode():sub(1, 1) ~= "i" then
+        return alt and alt or lhs
+      end
+
       if vim.fn.pumvisible() and (lhs == "\b" or alt == "\b") then
         self.has_backspace = true
       end

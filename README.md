@@ -186,8 +186,16 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 ### unicode
 
 - https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
+
+#### Unihan
+
 - https://www.unicode.org/Public/UCD/latest/ucd/
   - https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
+- https://hexdocs.pm/unicode_unihan/dictionary_like_data.html#content
+
+- Unihan_DictionaryLikeData.txt 四角号碼 etc...
+- Unihan_Readings.txt 字音, pinyin etc...
+- Unihan_Variants.txt 異字体, kSimplifiedVariant, kTraditionalVariant
 
 ### 漢字
 
@@ -195,6 +203,9 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
   - https://www.seiwatei.net/info/dnchina.htm
 - https://github.com/cjkvi/cjkvi-dict
   - 學生字典 Text Data (xszd.txt)
+
+- 常用漢字
+  - https://x0213.org/joyo-kanji-code/
 
 ### pinyin
 

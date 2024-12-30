@@ -1,5 +1,6 @@
 local utf8 = require "neoskk.utf8"
 local CompletionItem = require "neoskk.CompletionItem"
+local Completion = require "neoskk.Completion"
 
 ---@param path string
 ---@param from string?
@@ -139,6 +140,23 @@ function SkkDict:load_goma(path)
       },
     })
   end
+end
+
+---@param n string %d
+---@return Completion
+function SkkDict:filter_goma(n)
+  --@type CompletionItem[]
+  local items = {}
+  for i, item in ipairs(self.goma) do
+    if item.word:match(n) then
+      local info = self.chars[item.user_data.replace]
+      if info then
+        item.info = info
+      end
+      table.insert(items, item)
+    end
+  end
+  return Completion.new(items, Completion.FUZZY_OPTS)
 end
 
 return SkkDict

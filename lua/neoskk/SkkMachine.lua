@@ -14,9 +14,9 @@ local KATAKANA = 1
 ---@return string
 local function input_mode_name(mode)
   if mode == HIRAKANA then
-    return "か"
+    return "平"
   elseif mode == KATAKANA then
-    return "カ"
+    return "片"
   else
     return "?"
   end
@@ -32,7 +32,7 @@ local OKURI = 2
 ---@return string
 local function conv_mode_name(mode)
   if mode == RAW then
-    return "直"
+    return ""
   elseif mode == CONV then
     return "変"
   elseif mode == OKURI then
@@ -247,24 +247,13 @@ function SkkMachine:_input(lhs, dict)
     self.conv_feed = self.conv_feed .. out
     local preedit = self.conv_feed .. self.kana_feed
     if preedit:match "^g%d+$" then
+      -- 四角号碼
       if dict then
-        -- 四角号碼
         self.conv_mode = RAW
         self.conv_feed = ""
         self.kana_feed = ""
-        --@type CompletionItem[]
-        local items = {}
-        local n = preedit:sub(2, 2)
-        for i, item in ipairs(dict.goma) do
-          if item.word:match(n) then
-            local info = dict.chars[item.user_data.replace]
-            if info then
-              item.info = info
-            end
-            table.insert(items, item)
-          end
-        end
-        return preedit, "", Completion.new(items, Completion.FUZZY_OPTS)
+        local completion = dict:filter_goma(preedit:sub(2, 2))
+        return preedit, "", completion
       end
     end
     return "", preedit
