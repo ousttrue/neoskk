@@ -16,6 +16,7 @@ preedit を extmark で表示します.
     require("neoskk").setup {
       jisyo = vim.fn.expand "~/.skk/SKK-JISYO.L",
       unihan = vim.fn.expand "~/.skk/Unihan_DictionaryLikeData.txt",
+      xszd = vim.fn.expand "~/.skk/xszd.txt",
     }
     vim.keymap.set("i", "<C-j>", function()
       return require("neoskk").toggle()
@@ -28,7 +29,6 @@ preedit を extmark で表示します.
 ```
 
 學生字典から info を表示。
-漢文を読むのに使えそうだ。
 
 ```
   # input
