@@ -15,6 +15,7 @@ local M = {}
 ---@class NeoSkkOpts
 ---@field jisyo string path to SKK-JISYO.L from https://github.com/skk-dict/jisyo
 ---@field unihan string path to Unihan_DictionaryLikeData.txt from https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
+---@field xszd string path to xszd.txt from https://github.com/cjkvi/cjkvi-dict
 local NeoSkkOpts = {}
 
 ---@class NeoSkk
@@ -52,6 +53,15 @@ function M.NeoSkk.new(opts)
   -- event
   --
   local group = vim.api.nvim_create_augroup(MODULE_NAME, { clear = true })
+
+  vim.api.nvim_create_autocmd({ "CmdlineEnter" }, {
+    group = group,
+    callback = function(ev)
+      self.state:clear()
+      vim.bo.iminsert = 0
+      self.indicator:close()
+    end,
+  })
 
   vim.api.nvim_create_autocmd({ "InsertLeave", "WinLeave" }, {
     group = group,
@@ -314,6 +324,10 @@ end
 ---@param opts NeoSkkOpts
 function M.setup(opts)
   local skk = M.NeoSkk.new(opts)
+
+  if opts.xszd then
+    skk.dict:load_xszd(opts.xszd)
+  end
 
   if opts.jisyo then
     skk.dict:load_skk(opts.jisyo)

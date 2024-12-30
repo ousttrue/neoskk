@@ -27,6 +27,23 @@ preedit を extmark で表示します.
 },
 ```
 
+學生字典から info を表示。
+漢文を読むのに使えそうだ。
+
+```
+  # input
+  少 な$
+  # completion   # info
+~ 少な           -始夭切(Shao)上聲
+~ 竦;足が竦んで  --不多也。此減於彼亦曰少。如言共少若干。俗亦謂失去物件曰少。如言缺少、短少、是也。
+~ 窘;<rare>      --暫也。時不久也。如有間曰少頃。
+~                --短也。訾人曰少之。猶稱人曰多之也。
+~                -試要切去聲
+~                --老之對。如少年、少壯。
+~                --副貳也。如太師、太傅、太保。副之以少師、少傅、少保、是也。
+~
+```
+
 ## テスト環境
 
 `Windows11`
@@ -123,6 +140,7 @@ https://github.com/delphinus/skkeleton_indicator.nvim
 - [x] `-` `~` `[`, `]` `,.` `0123456789`
   - [x] q: カタカナ・ひらがなスイッチ
   - [x] 変換モードq: カタカナ・ひらがなスイッチ
+- [x] CommandlineMode では止める
 
 [Vim scriptでひらがな・カタカナ相互変換](https://zenn.dev/kawarimidoll/articles/46ccbbf8b62700)
 
@@ -144,8 +162,8 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
   - [x] 四角号碼 G1234 のように入力する
   - [ ] 音読み
   - [ ] pinyin => (注音符号) => 漢字
-- [ ] 學生字典から completion info
-- [ ] 學生字典の反切から字音仮名遣を生成する
+- [ ] WEB支那漢 日本語音訓 https://www.seiwatei.net/info/dnchina.htm
+- [x] 學生字典から completion info
 - [ ] 常用漢字などハイライトする
 
 ## 参考
@@ -173,6 +191,8 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 
 ### 漢字
 
+- WEB支那漢 日本語音訓 
+  - https://www.seiwatei.net/info/dnchina.htm
 - https://github.com/cjkvi/cjkvi-dict
   - 學生字典 Text Data (xszd.txt)
 

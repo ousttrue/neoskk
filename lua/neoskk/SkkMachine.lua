@@ -113,13 +113,20 @@ end
 ---@param jisyo table<string, CompletionItem[]>
 ---@param key string
 ---@param okuri string?
+---@param xszd table<string, string>?
 ---@return CompletionItem[]
-local function filter_jisyo(jisyo, key, okuri)
+local function filter_jisyo(jisyo, key, okuri, xszd)
   local items = {}
   for k, v in pairs(jisyo) do
     if k == key then
       for _, item in ipairs(v) do
         local copy = copy_item(item)
+        if xszd then
+          local info = xszd[copy.word]
+          if info then
+            copy.info = info
+          end
+        end
         if okuri then
           copy.word = copy.word .. okuri
         end
@@ -216,7 +223,7 @@ function SkkMachine:_input(lhs, dict)
     if lhs == " " then
       if dict then
         local conv_feed = self:clear_conv()
-        local items = filter_jisyo(dict.jisyo, conv_feed)
+        local items = filter_jisyo(dict.jisyo, conv_feed, nil, dict.chars)
         self.conv_mode = RAW
         return conv_feed, "", Completion.new(items)
       end
@@ -236,6 +243,10 @@ function SkkMachine:_input(lhs, dict)
         local n = preedit:sub(2, 2)
         for i, item in ipairs(dict.goma) do
           if item.word:match(n) then
+            local info = dict.chars[item.user_data.replace]
+            if info then
+              item.info = info
+            end
             table.insert(items, item)
           end
         end
@@ -249,7 +260,7 @@ function SkkMachine:_input(lhs, dict)
     if #out > 0 then
       if dict then
         local conv_feed = self:clear_conv()
-        local items = filter_jisyo(dict.jisyo, conv_feed .. self.okuri_feed, out)
+        local items = filter_jisyo(dict.jisyo, conv_feed .. self.okuri_feed, out, dict.chars)
         return conv_feed .. out, "", Completion.new(items)
       end
     end
