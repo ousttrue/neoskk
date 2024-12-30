@@ -11,7 +11,7 @@ end
 ---@field prefix string
 ---@field full_match KanaRule?
 ---@field prefix_matches KanaRule[]
-MatchedKanaRule = {}
+local MatchedKanaRule = {}
 MatchedKanaRule.__index = MatchedKanaRule
 
 ---@param prefix string
