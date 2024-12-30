@@ -212,6 +212,8 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - https://github.com/ZSaberLv0/ZFVimIM_pinyin_base/tree/master/misc
 - https://github.com/ZSaberLv0/ZFVimIM_pinyin/tree/master/misc
 
+- https://github.com/fxsjy/jieba
+
 ## 各種SKK実装
 
 ### uim-fep

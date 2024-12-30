@@ -63,6 +63,6 @@ describe("Tests for 変換モード", function()
     local engine = SkkMachine.new()
     local out, feed = engine:input "A"
     out, feed = engine:input "q"
-    assert.are.equal("ア", feed)
+    assert.are.equal("ア", out)
   end)
 end)
