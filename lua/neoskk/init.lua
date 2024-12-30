@@ -80,21 +80,27 @@ function M.NeoSkk.new(opts)
     -- buffer = bufnr,
     callback = function(ev)
       local event = vim.api.nvim_get_vvar "event"
+      local last_completion = self.last_completion
+      self.last_completion = nil
+
       if event.reason == "accept" then
-        self.last_completion = nil
         local item = vim.api.nvim_get_vvar "completed_item"
+        -- replace
         self:on_complete_done(ev.buf, item)
       elseif event.reason == "cancel" then
-        if self.has_backspace and self.last_completion and vim.fn.col "." > self.conv_col + 2 then
-          print(vim.fn.col ".", self.conv_col)
-          self:raise_completion(self.last_completion)
-        else
-          self.last_completion = nil
-          local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
-          cursor_row = cursor_row - 1
-          -- Replace the already inserted word with user_data.replace
-          -- local start_char = cursor_col - #item.word
-          vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
+        if last_completion then
+          if self.has_backspace and last_completion and vim.fn.col "." > self.conv_col + 2 then
+            -- 再
+            -- print(vim.fn.col ".", self.conv_col)
+            self:raise_completion(last_completion)
+          else
+            -- cancel clear
+            local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
+            cursor_row = cursor_row - 1
+            -- Replace the already inserted word with user_data.replace
+            -- local start_char = cursor_col - #item.word
+            vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
+          end
         end
       end
     end,
@@ -208,9 +214,6 @@ function M.NeoSkk:input(win, bufnr, lhs)
       out = item.word
     else
       -- completion
-      if completion.opts == Completion.FUZZY_OPTS then
-        self.last_completion = completion
-      end
       self:raise_completion(completion)
     end
   end
@@ -220,6 +223,12 @@ end
 
 ---@param completion Completion
 function M.NeoSkk:raise_completion(completion)
+  if completion.opts == Completion.FUZZY_OPTS then
+    self.last_completion = completion
+  else
+    self.last_completion = nil
+  end
+
   vim.defer_fn(function()
     -- trigger completion
     local opt_backup = vim.opt.completeopt
