@@ -13,21 +13,22 @@
 local CompletionItem = {}
 CompletionItem.__index = CompletionItem
 
----@param src table?
+---@param src {word:string?, abbr:string?, menu:string?, info:string?, kind:string?, equal: boolean?, dup:boolean?, empty: boolean?, user_data: any, abbr_hlgroup:string?, kind_hlgroup:string? }?
 function CompletionItem.new(src)
-  local self = setmetatable({
-    word = (src and src.word) or "",
-    abbr = (src and src.abbr) or "",
-    menu = (src and src.menu) or "",
-    info = (src and src.info) or "",
-    kind = (src and src.kind) or "",
-    equal = (src and src.equal) or false,
-    dup = (src and src.dup) or false,
-    empty = (src and src.empty) or false,
-    user_data = (src and src.user_data) or "",
-    abbr_hlgroup = (src and src.abbr_hlgroup) or "",
-    kind_hlgroup = (src and src.kind_hlgroup) or "",
-  }, CompletionItem)
+  local self = setmetatable({}, CompletionItem)
+  if src then
+    self.word = src.word or ""
+    self.abbr = src.abbr or ""
+    self.menu = src.menu or ""
+    self.info = src.info or ""
+    self.kind = src.kind or ""
+    self.equal = src.equal or false
+    self.dup = src.dup or false
+    self.empty = src.empty or false
+    self.user_data = src.user_data or ""
+    self.abbr_hlgroup = src.abbr_hlgroup or ""
+    self.kind_hlgroup = src.kind_hlgroup or ""
+  end
   return self
 end
 

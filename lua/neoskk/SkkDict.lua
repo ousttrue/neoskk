@@ -1,4 +1,5 @@
 local utf8 = require "neoskk.utf8"
+local CompletionItem = require "neoskk.CompletionItem"
 
 ---@param path string
 ---@param from string?
@@ -90,6 +91,7 @@ function SkkDict:load_goma(path)
       word = "g" .. goma,
       abbr = ch .. " " .. goma,
       menu = "号碼",
+      dup = true,
       user_data = {
         replace = ch,
       },
