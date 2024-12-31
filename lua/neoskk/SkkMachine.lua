@@ -77,20 +77,21 @@ function SkkMachine:mode_text()
   return input_mode_name(self.input_mode) .. conv_mode_name(self.conv_mode)
 end
 
-function SkkMachine.clear(self)
-  self.kana_feed = ""
+---@return string
+function SkkMachine.flush(self)
+  local out = self.conv_feed .. self.kana_feed
   self.conv_feed = ""
+  self.kana_feed = ""
   self.conv_mode = RAW
+  return out
 end
 
 --- 大文字入力によるモード変更
---- @param lhs string
-function SkkMachine._upper(self, lhs)
+function SkkMachine._upper(self)
   if self.conv_mode == RAW then
     self.conv_mode = CONV
   elseif self.conv_mode == CONV then
     self.conv_mode = OKURI
-    self.okuri_feed = lhs
   elseif self.conv_mode == OKURI then
     --
   else
@@ -202,7 +203,12 @@ end
 function SkkMachine:_input(lhs, dict)
   if lhs:match "^[A-Z]$" then
     lhs = string.lower(lhs)
-    self:_upper(lhs)
+    self:_upper()
+  end
+
+  if lhs == ";" then
+    self:_upper()
+    return "", self.conv_feed .. self.kana_feed
   end
 
   if lhs == "\b" then
@@ -221,11 +227,19 @@ function SkkMachine:_input(lhs, dict)
     end
   end
 
+  if lhs == "\n" then
+    local out = self:flush()
+    return out .. "\n", ""
+  end
+
   if self.conv_mode == RAW then
     -- raw
     local out = self:input_char(lhs)
     return out, self.kana_feed
   elseif self.conv_mode == CONV then
+    if not self.okuri_feed then
+      self.okuri_feed = lhs
+    end
     -- conv
     if lhs == "q" then
       self.conv_feed = util.str_toggle_kana(self.conv_feed)

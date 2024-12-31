@@ -57,8 +57,8 @@ describe("zhuyin", function()
     local zhuyin = to_zhuyin "zhch"
     assert.are.equal("ㄓㄔ", zhuyin)
 
-    zhuyin = to_zhuyin "zhchzcs-"
-    assert.are.equal("ㄓㄔㄗㄘㄙ-", zhuyin)
+    zhuyin = to_zhuyin "zhchzcs\n"
+    assert.are.equal("ㄓㄔㄗㄘㄙ\n", zhuyin)
 
     zhuyin = to_zhuyin "bpmfdtnlgkhjqxzhchshrzcsaeaiaoouanenangeriuy"
     assert.are.equal(

@@ -51,6 +51,16 @@ describe("Tests for 変換モード", function()
     assert.are.equal(Completion.new { "亜" }, completion)
   end)
 
+  it("変換;", function()
+    local engine = SkkMachine.new()
+    local out, feed = engine:input ";a"
+    assert.are.equal("あ", feed)
+    local _out, _feed, completion = engine:input(" ", dict)
+
+    assert.are.equal("あ", _out)
+    assert.are.equal(Completion.new { "亜" }, completion)
+  end)
+
   it("変換 okuri", function()
     local engine = SkkMachine.new()
     local out, feed, completion = engine:input("AruKu", dict)
@@ -64,5 +74,12 @@ describe("Tests for 変換モード", function()
     local out, feed = engine:input "A"
     out, feed = engine:input "q"
     assert.are.equal("ア", out)
+  end)
+
+  it("変換 enter", function()
+    local engine = SkkMachine.new()
+    local out, feed = engine:input "A"
+    out, feed = engine:input "\n"
+    assert.are.equal("あ\n", out)
   end)
 end)

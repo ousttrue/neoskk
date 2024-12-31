@@ -3,7 +3,7 @@
 ---
 local MODULE_NAME = "neoskk"
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
-local KEYS_SYMBOL = vim.split("., -~[]\b0123456789", "")
+local KEYS_SYMBOL = vim.split("., :;-+~[](){}<>\b0123456789", "")
 local PreEdit = require "neoskk.PreEdit"
 local SkkDict = require "neoskk.SkkDict"
 local SkkMachine = require "neoskk.SkkMachine"
@@ -57,7 +57,7 @@ function M.NeoSkk.new(opts)
   vim.api.nvim_create_autocmd({ "CmdlineEnter" }, {
     group = group,
     callback = function(ev)
-      self.state:clear()
+      self.state:flush()
       vim.bo.iminsert = 0
       self.indicator:close()
     end,
@@ -67,19 +67,16 @@ function M.NeoSkk.new(opts)
     group = group,
     pattern = { "*" },
     callback = function(ev)
+      local out = self.state:flush()
       if self.bufnr ~= -1 then
-        local out = self.state.conv_feed .. self.state.kana_feed
         if #out > 0 then
-          -- local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
-          -- cursor_row = cursor_row - 1
-          -- vim.api.nvim_buf_set_text(self.bufnr, cursor_row, cursor_col + 1, cursor_row, cursor_col + 1, { out })
           vim.api.nvim_put({ out }, "", true, true)
         end
         self.preedit:highlight(self.bufnr, "")
         self.bufnr = -1
       end
 
-      self.state:clear()
+      self.state:flush()
       vim.bo.iminsert = 0
       self.indicator:close()
     end,
@@ -112,8 +109,6 @@ function M.NeoSkk.new(opts)
             self:raise_completion(last_completion)
           else
             -- cancel clear
-            -- Replace the already inserted word with user_data.replace
-            -- local start_char = cursor_col - #item.word
             vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
           end
         end
@@ -195,7 +190,7 @@ end
 ---@return string
 function M.NeoSkk:input(win, bufnr, lhs)
   if self.bufnr ~= -1 and self.bufnr ~= bufnr then
-    self.state:clear()
+    self.state:flush()
   end
   self.bufnr = bufnr
 
@@ -261,28 +256,6 @@ function M.NeoSkk:raise_completion(completion)
   end, 0)
 end
 
----@param reverse boolean?
----@return boolean
-function M.NeoSkk:update_indicator(reverse)
-  if reverse then
-    if vim.bo.iminsert ~= 1 then
-      Indicator.set(self.state:mode_text())
-      return true
-    else
-      Indicator.set "無"
-      return false
-    end
-  else
-    if vim.bo.iminsert == 1 then
-      Indicator.set(self.state:mode_text())
-      return true
-    else
-      Indicator.set "無"
-      return false
-    end
-  end
-end
-
 --- language-mapping
 function M.NeoSkk.map(self)
   ---@param lhs string
@@ -290,6 +263,7 @@ function M.NeoSkk.map(self)
   local function add_key(lhs, alt)
     vim.keymap.set("l", lhs, function()
       if vim.fn.mode():sub(1, 1) ~= "i" then
+        -- not insert mode
         return alt and alt or lhs
       end
 
@@ -323,6 +297,7 @@ function M.NeoSkk.map(self)
   -- not lmap
   --
   add_key("<BS>", "\b")
+  add_key("<CR>", "\n")
 end
 
 function M.NeoSkk.unmap(self)
@@ -333,6 +308,29 @@ function M.NeoSkk.unmap(self)
       vim.api.nvim_del_keymap("l", lhs)
     end
   end
+end
+
+function M.NeoSkk:_update_indicator()
+  if vim.bo.iminsert == 1 then
+    Indicator.set(self.state:mode_text())
+    return true
+  else
+    Indicator.set "無"
+    return false
+  end
+end
+
+---@return boolean
+function M.NeoSkk:update_indicator()
+  vim.defer_fn(function()
+    self:_update_indicator()
+  end, 1)
+end
+
+---@param input_mode string?
+function M.toggle(input_mode)
+  M.instance:update_indicator()
+  return "<C-^>"
 end
 
 ---@param opts NeoSkkOpts
@@ -350,14 +348,6 @@ function M.setup(opts)
   if opts.unihan then
     skk.dict:load_goma(opts.unihan)
   end
-end
-
----@param input_mode string?
-function M.toggle(input_mode)
-  if M.instance:update_indicator(true) then
-    M.instance.state.input_mode = input_mode and input_mode or "hirakana"
-  end
-  return "<C-^>"
 end
 
 return M

@@ -96,7 +96,7 @@ function MatchedKanaRule.conv(rules, feed, candidate)
   local match = MatchedKanaRule.new(rules, feed)
   assert(match)
   local out, out_feed, new_candidate = match:resolve(rules, candidate)
-  print(("%s + %s => %s %s: %s"):format(candidate, feed, new_candidate, out_feed, out))
+  -- print(("%s + %s => %s %s: %s"):format(candidate, feed, new_candidate, out_feed, out))
   return out, out_feed, new_candidate
 end
 
