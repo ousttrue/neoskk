@@ -10,7 +10,9 @@ local SkkMachine = require "neoskk.SkkMachine"
 local Completion = require "neoskk.Completion"
 local Indicator = require "neoskk.Indicator"
 
-local M = {}
+local M = {
+  state_mode = "hiragana",
+}
 
 ---@class NeoSkkOpts
 ---@field jisyo string path to SKK-JISYO.L from https://github.com/skk-dict/jisyo
@@ -20,7 +22,7 @@ local NeoSkkOpts = {}
 
 ---@class NeoSkk
 ---@field bufnr integer 対象のbuf。変わったら状態をクリアする
----@field state SkkMachine 状態管理
+---@field state SkkMachine? 状態管理
 ---@field conv_col integer 漢字変換を開始した col
 ---@field preedit PreEdit
 ---@field map_keys string[]
@@ -37,7 +39,6 @@ function M.NeoSkk.new(opts)
   local self = setmetatable({
     bufnr = -1,
     opts = opts and opts or {},
-    state = SkkMachine.new(),
     conv_col = 0,
     preedit = PreEdit.new(MODULE_NAME),
     map_keys = {},
@@ -57,7 +58,7 @@ function M.NeoSkk.new(opts)
   vim.api.nvim_create_autocmd({ "CmdlineEnter" }, {
     group = group,
     callback = function(ev)
-      self.state:flush()
+      self.state = nil
       vim.bo.iminsert = 0
       self.indicator:close()
     end,
@@ -67,7 +68,10 @@ function M.NeoSkk.new(opts)
     group = group,
     pattern = { "*" },
     callback = function(ev)
-      local out = self.state:flush()
+      local out = ""
+      if self.state then
+        self.state:flush()
+      end
       if self.bufnr ~= -1 then
         if #out > 0 then
           vim.api.nvim_put({ out }, "", true, true)
@@ -76,7 +80,7 @@ function M.NeoSkk.new(opts)
         self.bufnr = -1
       end
 
-      self.state:flush()
+      self.state = nil
       vim.bo.iminsert = 0
       self.indicator:close()
     end,
@@ -184,13 +188,16 @@ function M.NeoSkk:on_complete_done(bufnr, item)
   end
 end
 
----@param win integer
 ---@param bufnr integer
 ---@param lhs string
 ---@return string
-function M.NeoSkk:input(win, bufnr, lhs)
-  if self.bufnr ~= -1 and self.bufnr ~= bufnr then
-    self.state:flush()
+function M.NeoSkk:input(bufnr, lhs)
+  if self.state then
+    if self.bufnr ~= -1 and self.bufnr ~= bufnr then
+      self.state:flush()
+    end
+  else
+    self.state = SkkMachine.new()
   end
   self.bufnr = bufnr
 
@@ -267,13 +274,17 @@ function M.NeoSkk.map(self)
         return alt and alt or lhs
       end
 
-      if vim.fn.pumvisible() and (lhs == "\b" or alt == "\b") then
-        self.has_backspace = true
+      if vim.fn.pumvisible() == 1 then
+        if lhs == "\b" or alt == "\b" then
+          self.has_backspace = true
+        elseif lhs == "\n" or alt == "\n" then
+          return "<C-y>"
+        end
       end
 
       local bufnr = vim.api.nvim_get_current_buf()
       local win = vim.api.nvim_get_current_win()
-      local out = self:input(win, bufnr, alt and alt or lhs)
+      local out = self:input(bufnr, alt and alt or lhs)
       self:update_indicator()
       return out
     end, {
@@ -312,11 +323,13 @@ end
 
 function M.NeoSkk:_update_indicator()
   if vim.bo.iminsert == 1 then
-    Indicator.set(self.state:mode_text())
-    return true
+    if self.state then
+      Indicator.set(self.state:mode_text())
+    else
+      Indicator.set "NO"
+    end
   else
     Indicator.set "無"
-    return false
   end
 end
 
@@ -327,9 +340,10 @@ function M.NeoSkk:update_indicator()
   end, 1)
 end
 
----@param input_mode string?
-function M.toggle(input_mode)
+---@param mode string?
+function M.toggle(mode)
   M.instance:update_indicator()
+  M.state_mode = mode
   return "<C-^>"
 end
 
