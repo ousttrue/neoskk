@@ -18,12 +18,18 @@ preedit を extmark で表示します.
       unihan = vim.fn.expand "~/.skk/Unihan_DictionaryLikeData.txt",
       xszd = vim.fn.expand "~/.skk/xszd.txt",
     }
-    vim.keymap.set("i", "<C-j>", function()
-      return require("neoskk").toggle()
-    end, {
+    local opts = {
       remap = false,
       expr = true,
-    })
+    }
+    vim.keymap.set("i", "<C-j>", function()
+      local neoskk = require "neoskk"
+      return neoskk.toggle()
+    end, opts)
+    vim.keymap.set("i", "<C-b>", function()
+      local neoskk = require "neoskk"
+      return neoskk.toggle "zhuyin"
+    end, opts)
   end,
 },
 ```

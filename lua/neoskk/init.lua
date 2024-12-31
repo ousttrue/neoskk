@@ -3,15 +3,21 @@
 ---
 local MODULE_NAME = "neoskk"
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
-local KEYS_SYMBOL = vim.split("., :;-+~[](){}<>\b0123456789", "")
+local KEYS_SYMBOL = vim.split("., :;-+~[](){}<>\b0123456789/", "")
 local PreEdit = require "neoskk.PreEdit"
 local SkkDict = require "neoskk.SkkDict"
 local SkkMachine = require "neoskk.SkkMachine"
+local ZhuyinMachine = require "neoskk.ZhuyinMachine"
 local Completion = require "neoskk.Completion"
 local Indicator = require "neoskk.Indicator"
 
+local STATE_MODE_SKK = "skk"
+local STATE_MODE_ZHUYIN = "zhuyin"
+---@alias STATE_MODE `STATE_MODE_SKK` | `STATE_MODE_ZHUYIN`
+
 local M = {
-  state_mode = "hiragana",
+  ---@type STATE_MODE
+  state_mode = STATE_MODE_SKK,
 }
 
 ---@class NeoSkkOpts
@@ -22,7 +28,7 @@ local NeoSkkOpts = {}
 
 ---@class NeoSkk
 ---@field bufnr integer 対象のbuf。変わったら状態をクリアする
----@field state SkkMachine? 状態管理
+---@field state SkkMachine | ZhuyinMachine | nil 状態管理
 ---@field conv_col integer 漢字変換を開始した col
 ---@field preedit PreEdit
 ---@field map_keys string[]
@@ -68,21 +74,9 @@ function M.NeoSkk.new(opts)
     group = group,
     pattern = { "*" },
     callback = function(ev)
-      local out = ""
-      if self.state then
-        self.state:flush()
-      end
-      if self.bufnr ~= -1 then
-        if #out > 0 then
-          vim.api.nvim_put({ out }, "", true, true)
-        end
-        self.preedit:highlight(self.bufnr, "")
-        self.bufnr = -1
-      end
-
-      self.state = nil
-      vim.bo.iminsert = 0
+      self:flush()
       self.indicator:close()
+      vim.bo.iminsert = 0
     end,
   })
 
@@ -162,6 +156,22 @@ function M.NeoSkk.new(opts)
   return self
 end
 
+function M.NeoSkk:flush()
+  local out = ""
+  if self.state then
+    self.state:flush()
+  end
+  if self.bufnr ~= -1 then
+    if #out > 0 then
+      vim.api.nvim_put({ out }, "", true, true)
+    end
+    self.preedit:highlight(self.bufnr, "")
+    self.bufnr = -1
+  end
+
+  self.state = nil
+end
+
 function M.NeoSkk:delete()
   self.indicator:delete()
   self.preedit:highlight(self.bufnr, "")
@@ -197,7 +207,16 @@ function M.NeoSkk:input(bufnr, lhs)
       self.state:flush()
     end
   else
-    self.state = SkkMachine.new()
+    if M.state_mode == STATE_MODE_SKK then
+      self.state = SkkMachine.new()
+    elseif M.state_mode == STATE_MODE_ZHUYIN then
+      self.state = ZhuyinMachine.new()
+    else
+      assert(false)
+    end
+    vim.defer_fn(function()
+      self.indicator:open()
+    end, 1)
   end
   self.bufnr = bufnr
 
@@ -322,28 +341,49 @@ function M.NeoSkk.unmap(self)
 end
 
 function M.NeoSkk:_update_indicator()
-  if vim.bo.iminsert == 1 then
-    if self.state then
+  -- if vim.bo.iminsert == 1 then
+  --   if self.state then
+  --     Indicator.set(self.state:mode_text())
+  --   else
+  --     Indicator.set "NO"
+  --   end
+  -- else
+  --   Indicator.set "無"
+  -- end
+  if self.state then
+    if vim.bo.iminsert == 1 then
       Indicator.set(self.state:mode_text())
     else
-      Indicator.set "NO"
+      Indicator.set "無"
     end
   else
-    Indicator.set "無"
+    Indicator.set "No"
   end
 end
 
----@return boolean
 function M.NeoSkk:update_indicator()
   vim.defer_fn(function()
     self:_update_indicator()
   end, 1)
 end
 
----@param mode string?
+---@param mode STATE_MODE?
 function M.toggle(mode)
   M.instance:update_indicator()
-  M.state_mode = mode
+  M.state_mode = mode and mode or STATE_MODE_SKK
+
+  if M.state_mode == STATE_MODE_SKK then
+    M.instance.state = SkkMachine.new()
+  elseif M.state_mode == STATE_MODE_ZHUYIN then
+    M.instance.state = ZhuyinMachine.new()
+  else
+    assert(false)
+  end
+
+  vim.defer_fn(function()
+    M.instance:flush()
+  end, 1)
+
   return "<C-^>"
 end
 

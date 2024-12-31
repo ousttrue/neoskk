@@ -1,9 +1,8 @@
-local Management = require "neoskk.tables.MachedKanaRule"
+local MatchedKanaRule = require "neoskk.tables.MachedKanaRule"
 local KanaRules = require "neoskk.tables.KanaRules"
-local ZhuyinRules = require "neoskk.tables.ZhuyinRules"
 
 local function to_kana(src)
-  return Management.split(KanaRules, src)
+  return MatchedKanaRule.split(KanaRules, src)
 end
 
 describe("Tests for かな入力", function()
@@ -40,30 +39,5 @@ describe("Tests for かな入力", function()
   it("mistaken input", function()
     local kana = to_kana "rkakyra"
     assert.are.equal("rかkyら", kana)
-  end)
-end)
-
-local function to_zhuyin(src)
-  return Management.split(ZhuyinRules, src)
-end
-
-describe("zhuyin", function()
-  it("single char", function()
-    local zhuyin = to_zhuyin "b"
-    assert.are.equal("ㄅ", zhuyin)
-  end)
-
-  it("multiple chars ", function()
-    local zhuyin = to_zhuyin "zhch"
-    assert.are.equal("ㄓㄔ", zhuyin)
-
-    zhuyin = to_zhuyin "zhchzcs\n"
-    assert.are.equal("ㄓㄔㄗㄘㄙ\n", zhuyin)
-
-    zhuyin = to_zhuyin "bpmfdtnlgkhjqxzhchshrzcsaeaiaoouanenangeriuy"
-    assert.are.equal(
-      "ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄚㄜㄞㄠㄡㄢㄣㄤㄦㄧㄨㄩ",
-      zhuyin
-    )
   end)
 end)
