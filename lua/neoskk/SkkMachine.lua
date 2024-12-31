@@ -72,9 +72,13 @@ function SkkMachine:mode_text()
   return input_mode_name(self.input_mode) .. conv_mode_name(self.conv_mode)
 end
 
+function SkkMachine:preedit()
+  return self.conv_feed .. self.kana_feed
+end
+
 ---@return string
 function SkkMachine.flush(self)
-  local out = self.conv_feed .. self.kana_feed
+  local out = self:preedit()
   self.conv_feed = ""
   self.kana_feed = ""
   self.conv_mode = RAW
@@ -149,7 +153,8 @@ function SkkMachine.input_char(self, lhs)
     return ""
   end
 
-  local kana, feed = MachedKanaRule.conv(KanaRules, self.kana_feed .. lhs, MachedKanaRule.new(KanaRules, self.kana_feed))
+  local kana, feed =
+    MachedKanaRule.conv(KanaRules, self.kana_feed .. lhs, MachedKanaRule.new(KanaRules, self.kana_feed))
   self.kana_feed = feed
   if self.input_mode == KATAKANA then
     kana = util.str_to_katakana(kana)

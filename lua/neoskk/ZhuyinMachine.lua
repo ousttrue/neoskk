@@ -56,15 +56,16 @@ ZhuyinMachine.__index = ZhuyinMachine
 
 ---@return ZhuyinMachine
 function ZhuyinMachine.new()
-  local self = setmetatable({
-    kana_feed = "",
-    conv_feed = "",
-  }, ZhuyinMachine)
+  local self = setmetatable({}, ZhuyinMachine)
   return self
 end
 
 function ZhuyinMachine:mode_text()
   return "ㄅ"
+end
+
+function ZhuyinMachine:preedit()
+  return ""
 end
 
 function ZhuyinMachine:flush()

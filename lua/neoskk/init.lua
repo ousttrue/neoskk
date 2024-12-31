@@ -223,7 +223,7 @@ function M.NeoSkk:input(bufnr, lhs)
   if lhs == "\b" then
     if vim.bo.iminsert ~= 1 then
       return "<C-h>"
-    elseif #self.state.kana_feed == 0 and #self.state.conv_feed == 0 then
+    elseif #self.state:preedit() == 0 then
       return "<C-h>"
     end
   end
@@ -370,7 +370,15 @@ end
 ---@param mode STATE_MODE?
 function M.toggle(mode)
   M.instance:update_indicator()
-  M.state_mode = mode and mode or STATE_MODE_SKK
+  if not mode then
+    mode = STATE_MODE_SKK
+  end
+
+  local changed = false
+  if M.state_mode ~= mode then
+    changed = true
+    M.state_mode = mode
+  end
 
   if M.state_mode == STATE_MODE_SKK then
     M.instance.state = SkkMachine.new()
@@ -380,11 +388,11 @@ function M.toggle(mode)
     assert(false)
   end
 
-  vim.defer_fn(function()
-    M.instance:flush()
-  end, 1)
-
-  return "<C-^>"
+  if vim.bo.iminsert == 1 and changed then
+    return ""
+  else
+    return "<C-^>"
+  end
 end
 
 ---@param opts NeoSkkOpts
