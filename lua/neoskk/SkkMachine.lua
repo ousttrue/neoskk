@@ -1,14 +1,15 @@
-local ruleconv = require "neoskk.tables.ruleconv"
+local MachedKanaRule = require "neoskk.tables.MachedKanaRule"
 local KanaRules = require "neoskk.tables.KanaRules"
+local ZhuyinRules = require "neoskk.tables.ZhuyinRules"
 local Completion = require "neoskk.Completion"
-local Indicator = require "neoskk.Indicator"
 local util = require "neoskk.util"
 local utf8 = require "neoskk.utf8"
 
-local HIRAKANA = 0
-local KATAKANA = 1
+local HIRAKANA = "hirakana"
+local KATAKANA = "kanakana"
+local ZHUYIN = "zhuyin"
 
----@alias INPUT_MODE `HIRAKANA` | `KATAKANA`
+---@alias INPUT_MODE `HIRAKANA` | `KATAKANA` | `ZHUYIN`
 
 ---@param mode INPUT_MODE
 ---@return string
@@ -17,6 +18,8 @@ local function input_mode_name(mode)
     return "平"
   elseif mode == KATAKANA then
     return "片"
+  elseif mode == ZHUYIN then
+    return "ㄅ"
   else
     return "?"
   end
@@ -51,6 +54,7 @@ end
 local SkkMachine = {
   HIRAKANA = HIRAKANA,
   KATAKANA = KATAKANA,
+  ZHUYIN = ZHUYIN,
 
   RAW = RAW,
   CONV = CONV,
@@ -149,13 +153,13 @@ function SkkMachine.input_char(self, lhs)
     return ""
   end
 
-  local kana, feed = ruleconv(KanaRules, self.kana_feed .. lhs)
+  local rules = self.input_mode == ZHUYIN and ZhuyinRules or KanaRules
+  local kana, feed = MachedKanaRule.conv(rules, self.kana_feed .. lhs, MachedKanaRule.new(rules, self.kana_feed))
   self.kana_feed = feed
   if self.input_mode == KATAKANA then
-    return util.str_to_katakana(kana)
-  else
-    return kana
+    kana = util.str_to_katakana(kana)
   end
+  return kana
 end
 
 ---@param lhs string

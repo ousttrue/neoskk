@@ -262,18 +262,23 @@ function M.NeoSkk:raise_completion(completion)
 end
 
 ---@param reverse boolean?
+---@return boolean
 function M.NeoSkk:update_indicator(reverse)
   if reverse then
     if vim.bo.iminsert ~= 1 then
       Indicator.set(self.state:mode_text())
+      return true
     else
       Indicator.set "無"
+      return false
     end
   else
     if vim.bo.iminsert == 1 then
       Indicator.set(self.state:mode_text())
+      return true
     else
       Indicator.set "無"
+      return false
     end
   end
 end
@@ -347,8 +352,11 @@ function M.setup(opts)
   end
 end
 
-function M.toggle()
-  M.instance:update_indicator(true)
+---@param input_mode string?
+function M.toggle(input_mode)
+  if M.instance:update_indicator(true) then
+    M.instance.state.input_mode = input_mode and input_mode or "hirakana"
+  end
   return "<C-^>"
 end
 
