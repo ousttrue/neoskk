@@ -1,7 +1,13 @@
 local MODULE_NAME = "neoskk.indicator"
 local USER_SET_CONTENT = "neoskk.indicator.set_content"
+local ColorMap = {
+  SkkIndicator = {
+    fg = "#444444",
+  },
+}
 
 ---@class Content
+---@field ns integer
 ---@field content string
 ---@field lines string[]
 ---@field cols integer
@@ -12,6 +18,13 @@ Content.__index = Content
 ---@return Content
 function Content.new()
   local self = setmetatable({}, Content)
+
+  -- self.ns = vim.api.nvim_create_namespace(MODULE_NAME)
+
+  for k, v in pairs(ColorMap) do
+    vim.api.nvim_set_hl(0, k, v)
+  end
+
   return self
 end
 
@@ -118,12 +131,12 @@ function Indicator.redraw(self)
 
   col = x + col - 2
   local width = self.content.cols
-  if width==0 then
-    width=1
+  if width == 0 then
+    width = 1
   end
   local height = self.content.rows
-  if height==0 then
-    height=1
+  if height == 0 then
+    height = 1
   end
   vim.api.nvim_win_set_config(self.win, {
     relative = "editor",
@@ -158,6 +171,9 @@ function Indicator.open(self)
     style = "minimal",
   })
   vim.wo[win].winfixbuf = true
+  for k, v in pairs(ColorMap) do
+    vim.wo[win].winhighlight = "Normal:" .. k
+  end
   self.win = win
   self:redraw()
 end
