@@ -151,6 +151,8 @@ function SkkMachine.input_char(self, lhs)
       self.input_mode = HIRAKANA
     end
     return ""
+  elseif lhs == 'l' then
+    return "<C-^>"
   end
 
   local kana, feed =
