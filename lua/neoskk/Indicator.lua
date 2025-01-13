@@ -1,12 +1,14 @@
 local MODULE_NAME = "neoskk.indicator"
 local USER_SET_CONTENT = "neoskk.indicator.set_content"
 local ColorMap = {
-  SkkIndicator = {
+  NeoSkkDefault = {
     fg = "#444444",
+    force = true,
   },
-  Hira = {
+  NeoSkkHira = {
     fg = "#eeeeee",
     bg = "#2222ff",
+    force = true,
   },
 }
 
@@ -16,7 +18,6 @@ local ColorMap = {
 ---@field lines string[]
 ---@field cols integer
 ---@field rows integer
----@field hl string?
 local Content = {}
 Content.__index = Content
 
@@ -26,19 +27,20 @@ function Content.new()
 
   -- self.ns = vim.api.nvim_create_namespace(MODULE_NAME)
 
-  for k, v in pairs(ColorMap) do
-    vim.api.nvim_set_hl(0, k, v)
-  end
+  vim.defer_fn(function()
+    for k, v in pairs(ColorMap) do
+      -- print("Content.new", k)
+      vim.api.nvim_set_hl(0, k, v)
+    end
+  end, 1)
 
   return self
 end
 
 ---@param content string
----@param hl string?
-function Content.set(self, content, hl)
+function Content.set(self, content)
   self.content = content
   self.lines = nil
-  self.hl = hl
 end
 
 function Content.get_lines(self, buf)
@@ -64,6 +66,7 @@ end
 ---@field buf number
 ---@field win number
 ---@field content Content
+---@field hl string?
 local Indicator = {
   content = Content.new(),
 }
@@ -78,7 +81,7 @@ function Indicator.new()
   -- buf
   --
   self.buf = vim.api.nvim_create_buf(false, true)
-  self.content:set(" ", self.buf)
+  self.content:set " "
 
   --
   -- VimEvent
@@ -105,7 +108,8 @@ function Indicator.new()
     callback = function(event)
       -- self:redraw()
       vim.defer_fn(function()
-        self:set_content(event.data.content, event.data.hl)
+        self:set_content(event.data.content)
+        self.hl = event.data.hl
         self:redraw()
       end, 0)
     end,
@@ -119,11 +123,12 @@ function Indicator.redraw(self)
     return
   end
 
-  local hl = self.content.hl
+  local hl = self.hl
   if not hl then
-    hl = "SkkIndicator"
+    hl = "NeoSkkDefault"
   end
   vim.wo[self.win].winhighlight = "Normal:" .. hl
+  -- print(self.hl, vim.wo[self.win].winhighlight)
 
   local lines = self.content:get_lines(self.buf)
   if not lines then
@@ -215,7 +220,7 @@ end
 function Indicator.set(content, hl)
   if not hl then
     if content:find "^平" then
-      hl = "Hira"
+      hl = "NeoSkkHira"
     end
   end
 
