@@ -4,6 +4,10 @@ local ColorMap = {
   SkkIndicator = {
     fg = "#444444",
   },
+  Hira = {
+    fg = "#eeeeee",
+    bg = "#2222ff",
+  },
 }
 
 ---@class Content
@@ -12,6 +16,7 @@ local ColorMap = {
 ---@field lines string[]
 ---@field cols integer
 ---@field rows integer
+---@field hl string?
 local Content = {}
 Content.__index = Content
 
@@ -29,10 +34,11 @@ function Content.new()
 end
 
 ---@param content string
----@param buf integer
-function Content.set(self, content, buf)
+---@param hl string?
+function Content.set(self, content, hl)
   self.content = content
   self.lines = nil
+  self.hl = hl
 end
 
 function Content.get_lines(self, buf)
@@ -99,7 +105,7 @@ function Indicator.new()
     callback = function(event)
       -- self:redraw()
       vim.defer_fn(function()
-        self:set_content(event.data)
+        self:set_content(event.data.content, event.data.hl)
         self:redraw()
       end, 0)
     end,
@@ -112,6 +118,13 @@ function Indicator.redraw(self)
   if not self.win then
     return
   end
+
+  local hl = self.content.hl
+  if not hl then
+    hl = "SkkIndicator"
+  end
+  vim.wo[self.win].winhighlight = "Normal:" .. hl
+
   local lines = self.content:get_lines(self.buf)
   if not lines then
     return
@@ -147,13 +160,12 @@ function Indicator.redraw(self)
     height = height,
     zindex = 1,
   })
-
-  -- vim.cmd [[redraw]]
 end
 
 ---@param content string
-function Indicator.set_content(self, content)
-  self.content:set(content, self.buf)
+---@param hl string?
+function Indicator.set_content(self, content, hl)
+  self.content:set(content, hl)
 end
 
 function Indicator.open(self)
@@ -171,9 +183,6 @@ function Indicator.open(self)
     style = "minimal",
   })
   vim.wo[win].winfixbuf = true
-  for k, v in pairs(ColorMap) do
-    vim.wo[win].winhighlight = "Normal:" .. k
-  end
   self.win = win
   self:redraw()
 end
@@ -201,10 +210,18 @@ function Indicator.delete(self)
   })
 end
 
-function Indicator.set(content)
+---@param content string
+---@param hl string?
+function Indicator.set(content, hl)
+  if not hl then
+    if content:find "^平" then
+      hl = "Hira"
+    end
+  end
+
   vim.api.nvim_exec_autocmds("User", {
     pattern = USER_SET_CONTENT,
-    data = content,
+    data = { content = content, hl = hl },
   })
 end
 
