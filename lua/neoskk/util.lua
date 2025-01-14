@@ -101,4 +101,33 @@ function M.str_toggle_kana(src)
   return dst
 end
 
+---@param str string
+---@param ts string?
+---@param plain boolean?
+function M.split(str, ts, plain)
+  -- 引数がないときは空tableを返す
+  assert(str)
+  if not ts then
+    ts = "%s"
+  end
+
+  local t = {}
+  local i = 1
+  while i <= #str do
+    local s, e = string.find(str, ts, i, plain)
+    if not s then
+      break
+    end
+    if i ~= s then
+      table.insert(t, str:sub(i, s - 1))
+    end
+    i = e + 1
+  end
+  if i <= #str then
+    table.insert(t, str:sub(i))
+  end
+
+  return t
+end
+
 return M
