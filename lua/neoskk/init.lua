@@ -24,6 +24,7 @@ local M = {
 ---@field jisyo string path to SKK-JISYO.L from https://github.com/skk-dict/jisyo
 ---@field unihan string path to Unihan_DictionaryLikeData.txt from https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
 ---@field xszd string path to xszd.txt from https://github.com/cjkvi/cjkvi-dict
+---@field emoji string path to emoji-data.txt from https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
 local NeoSkkOpts = {}
 
 ---@class NeoSkk
@@ -409,6 +410,10 @@ function M.setup(opts)
 
   if opts.unihan then
     skk.dict:load_goma(opts.unihan)
+  end
+
+  if opts.emoji then
+    skk.dict:load_emoji(opts.emoji)
   end
 end
 

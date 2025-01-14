@@ -18,5 +18,10 @@ describe("Utility", function()
 huga
 ]]
     )
+
+    assert.same(
+      { "00A9", "text", "L1", "none", "j	# V1.1 (©) COPYRIGHT SIGN" },
+      util.split("00A9 ;	text ;	L1 ;	none ;	j	# V1.1 (©) COPYRIGHT SIGN", "%s*;%s*")
+    )
   end)
 end)

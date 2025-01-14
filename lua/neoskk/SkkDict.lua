@@ -1,6 +1,7 @@
 local utf8 = require "neoskk.utf8"
 local CompletionItem = require "neoskk.CompletionItem"
 local Completion = require "neoskk.Completion"
+local util = require "neoskk.util"
 
 ---@param path string
 ---@param from string?
@@ -39,6 +40,7 @@ end
 ---@field jisyo table<string, CompletionItem[]>
 ---@field goma CompletionItem[]
 ---@field chars table<string, string>
+---@field emoji CompletionItem[]
 local SkkDict = {}
 SkkDict.__index = SkkDict
 ---@return SkkDict
@@ -47,6 +49,7 @@ function SkkDict.new()
     jisyo = {},
     goma = {},
     chars = {},
+    emoji = {},
   }, SkkDict)
   return self
 end
@@ -92,7 +95,7 @@ function SkkDict:load_skk(path)
   if not data then
     return
   end
-  for i, l in ipairs(vim.split(data, "\n")) do
+  for i, l in ipairs(util.split(data, "\n")) do
     local word, values = parse_line(l)
     if word and values then
       -- print(("[%s][%s]"):format(word, values))
@@ -120,6 +123,7 @@ function SkkDict:load_skk(path)
   end
 end
 
+---四角号碼
 ---@param path string
 function SkkDict:load_goma(path)
   local data = readFileSync(path)
@@ -157,6 +161,94 @@ function SkkDict:filter_goma(n)
     end
   end
   return Completion.new(items, Completion.FUZZY_OPTS)
+end
+
+-- https://stackoverflow.com/questions/22954073/lua-gmatch-odd-characters-slovak-alphabet
+local UTF8_PATTERN = "[%z\1-\127\194-\244][\128-\191]*"
+-- local UTF8_PATTERN = "[\0-\x7F\xC2-\xF4][\x80-\xBF]*"
+
+SkkDict.emoji_pattern = "\n(%w+)%s*;%s*(%w+)%s*;%s*(%w+)%s*;%s*(%w+)%s*;%s*([a-z ]+)%s*# (V%d+%.%d+) %(("
+    .. UTF8_PATTERN
+    .. ")%) ([^\n]+)\n"
+
+---@param l string
+---@return table?
+function SkkDict.split_emoji_line(l)
+  if util.startswith(l, "#") then
+    return
+  end
+
+  local code, style, level, status, source, v =
+      l:match "^(%w+)%s*;%s*(%w+)%s*;%s*(%w+)%s*;%s*(%w+)%s*;%s*([a-z ]+)%s*#%s*(V%d+%.%d+)"
+
+  local hash = l:find "#"
+  l = l:sub(hash + 1)
+  local open = l:find("(", nil, true)
+  local close = l:find(")", nil, true)
+  local emoji = l:sub(open + 1, close - 1)
+  local comment = l:sub(close + 2)
+  -- table.insert(tokens, v)
+  -- table.insert(tokens, emoji)
+  -- table.insert(tokens, comment)
+  return {
+    code,
+    style,
+    level,
+    status,
+    source,
+    v,
+    emoji,
+    comment,
+  }
+end
+
+---https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
+--# Format: Code ; Default_Emoji_Style ; Emoji_Level ; Emoji_Modifier_Status ; Emoji_Sources # Comment
+--#
+--#   Field 1 — Default_Emoji_Style:
+--#             text:      default text presentation
+--#             emoji:     default emoji presentation
+--#   Field 2 — Emoji_Level:
+--#             L1:        level 1 emoji
+--#             L2:        level 2 emoji
+--#             NA:        not applicable
+--#   Field 3 — Emoji_Modifier_Status:
+--#             modifier:  an emoji modifier
+--#             primary:   a primary emoji modifier base
+--#             secondary: a secondary emoji modifier base
+--#             none:      not applicable
+--#   Field 4 — Emoji_Sources:
+--#             one or more values from {z, a, j, w, x}
+--#             see the key in http://unicode.org/reports/tr51#Major_Sources
+--#             NA:        not applicable
+--#   Comment — currently contains the version where the character was first encoded,
+--#             followed by:
+--#             - a character name in uppercase (for a single character),
+--#             - a keycap name,
+--#             - an associated flag, where is associated with value unicode region code
+--#
+--00A9 ;	text ;	L1 ;	none ;	j	# V1.1 (©) COPYRIGHT SIGN
+function SkkDict:load_emoji(path)
+  local data = readFileSync(path)
+  if not data then
+    return
+  end
+
+  for l in string.gmatch(data, "[^\n]+") do
+    local item = SkkDict.split_emoji_line(l)
+    if item then
+      local code, style, level, status, source, v, emoji, comment = unpack(item)
+      table.insert(self.emoji, {
+        word = ":" .. comment,
+        abbr = emoji .. " " .. comment,
+        menu = "[emoji]",
+        dup = true,
+        user_data = {
+          replace = emoji,
+        },
+      })
+    end
+  end
 end
 
 return SkkDict

@@ -1,11 +1,8 @@
+local util = require "neoskk.util"
 ---@class KanaRule
 ---@field input string
 ---@field output string
 ---@field next string
-
-local function string_startswith(self, start)
-  return self:sub(1, #start) == start
-end
 
 ---@class MatchedKanaRule
 ---@field prefix string
@@ -42,7 +39,7 @@ end
 
 ---@param rule KanaRule
 function MatchedKanaRule.push(self, rule)
-  if string_startswith(rule.input, self.prefix) then
+  if util.startswith(rule.input, self.prefix) then
     table.insert(self.prefix_matches, rule)
     if rule.input == self.prefix then
       self.full_match = rule
