@@ -5,7 +5,7 @@ local MODULE_NAME = "neoskk"
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
 local KEYS_SYMBOL = vim.split("., :;-+~[](){}<>\b0123456789/", "")
 local PreEdit = require "neoskk.PreEdit"
-local SkkDict = require "neoskk.SkkDict"
+local UniHanDict = require "neoskk.UniHanDict"
 local SkkMachine = require "neoskk.SkkMachine"
 local ZhuyinMachine = require "neoskk.ZhuyinMachine"
 local Completion = require "neoskk.Completion"
@@ -32,7 +32,7 @@ local NeoSkkOpts = {}
 ---@field conv_col integer 漢字変換を開始した col
 ---@field preedit PreEdit
 ---@field map_keys string[]
----@field dict SkkDict
+---@field dict UniHanDict
 ---@field indicator Indicator
 ---@field has_backspace boolean
 ---@field last_completion Completion?
@@ -48,7 +48,7 @@ function M.NeoSkk.new(opts)
     conv_col = 0,
     preedit = PreEdit.new(MODULE_NAME),
     map_keys = {},
-    dict = SkkDict.new(),
+    dict = UniHanDict.new(),
     indicator = Indicator.new(),
     has_backspace = false,
   }, M.NeoSkk)

@@ -175,7 +175,7 @@ function SkkMachine.input_char(self, lhs)
 end
 
 ---@param lhs string
----@param dict SkkDict?
+---@param dict UniHanDict?
 ---@return string out
 ---@return string preedit
 ---@return Completion?
@@ -207,7 +207,7 @@ function SkkMachine:input(lhs, dict)
 end
 
 ---@param lhs string
----@param dict SkkDict?
+---@param dict UniHanDict?
 ---@return string out
 ---@return string preedit
 ---@return Completion?

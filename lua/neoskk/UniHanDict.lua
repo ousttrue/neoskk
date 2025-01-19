@@ -35,25 +35,25 @@ local function parse_line(l)
   end
 end
 
----@class SkkDict
+---@class UniHanDict
 ---@field jisyo table<string, CompletionItem[]>
 ---@field goma CompletionItem[]
 ---@field chars table<string, string>
-local SkkDict = {}
-SkkDict.__index = SkkDict
----@return SkkDict
-function SkkDict.new()
+local UniHanDict = {}
+UniHanDict.__index = UniHanDict
+---@return UniHanDict
+function UniHanDict.new()
   local self = setmetatable({
     jisyo = {},
     goma = {},
     chars = {},
-  }, SkkDict)
+  }, UniHanDict)
   return self
 end
 
 --- 學生字典(XueShengZiDian)
 ---@param path string
-function SkkDict:load_xszd(path)
+function UniHanDict:load_xszd(path)
   local data = readFileSync(path)
   if not data then
     return
@@ -87,7 +87,7 @@ function SkkDict:load_xszd(path)
 end
 
 ---@param path string
-function SkkDict:load_skk(path)
+function UniHanDict:load_skk(path)
   local data = readFileSync(path, "euc-jp", "utf-8", {})
   if not data then
     return
@@ -121,7 +121,7 @@ function SkkDict:load_skk(path)
 end
 
 ---@param path string
-function SkkDict:load_goma(path)
+function UniHanDict:load_goma(path)
   local data = readFileSync(path)
   if not data then
     return
@@ -144,7 +144,7 @@ end
 
 ---@param n string %d
 ---@return Completion
-function SkkDict:filter_goma(n)
+function UniHanDict:filter_goma(n)
   --@type CompletionItem[]
   local items = {}
   for i, item in ipairs(self.goma) do
@@ -159,4 +159,4 @@ function SkkDict:filter_goma(n)
   return Completion.new(items, Completion.FUZZY_OPTS)
 end
 
-return SkkDict
+return UniHanDict

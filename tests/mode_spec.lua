@@ -1,9 +1,9 @@
 local SkkMachine = require "neoskk.SkkMachine"
-local Skkdict = require "neoskk.SkkDict"
+local UniHanDict = require "neoskk.UniHanDict"
 local CompletionItem = require "neoskk.CompletionItem"
 local Completion = require "neoskk.Completion"
 
-local dict = Skkdict.new()
+local dict = UniHanDict.new()
 dict.jisyo = {
   ["あ"] = { { word = "亜" } },
   ["あるk"] = { { word = "歩" } },
