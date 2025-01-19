@@ -24,6 +24,7 @@ local M = {
 ---@field jisyo string path to SKK-JISYO.L from https://github.com/skk-dict/jisyo
 ---@field unihan_dir string path to dir. Extracted https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
 ---@field xszd string path to xszd.txt from https://github.com/cjkvi/cjkvi-dict
+---@field kangxi string kx2ucs.txt from https://github.com/cjkvi/cjkvi-dict
 local NeoSkkOpts = {}
 
 ---@class NeoSkk
@@ -401,6 +402,10 @@ function M.setup(opts)
 
   if opts.unihan_dir then
     skk.dict:load_unihan(opts.unihan_dir)
+  end
+
+  if opts.kangxi then
+    skk.dict:load_kangxi(opts.kangxi)
   end
 
   if opts.xszd then

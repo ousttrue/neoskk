@@ -12,6 +12,22 @@ local Completion = require "neoskk.Completion"
 ---@field indices string 康煕字典
 local UniHanChar = {}
 
+---@param item UniHanChar
+---@return string
+local function get_prefix(item)
+  local prefix = ""
+  if item.indices then
+    prefix = "康煕"
+  else
+    prefix = "    "
+  end
+  prefix = "[" .. prefix .. "]"
+  if item.xszd then
+    prefix = prefix .. "+"
+  end
+  return prefix
+end
+
 ---@param path string
 ---@param from string?
 ---@param to string?
@@ -48,6 +64,7 @@ end
 ---@class UniHanDict
 ---@field map table<string, UniHanChar>
 ---@field jisyo table<string, CompletionItem[]>
+---@field simple_map table<string, string>
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
 ---@return UniHanDict
@@ -55,6 +72,7 @@ function UniHanDict.new()
   local self = setmetatable({
     map = {},
     jisyo = {},
+    simple_map = {},
   }, UniHanDict)
   return self
 end
@@ -133,32 +151,55 @@ function UniHanDict:load_skk(path)
         self.jisyo[word] = items
       end
       for w in values:gmatch "[^/]+" do
-        local annotation = w:find(";", nil, true)
-
+        local annotation_index = w:find(";", nil, true)
+        local annotation = ""
+        if annotation_index then
+          annotation = w:sub(annotation_index + 1)
+          w = w:sub(1, annotation_index - 1)
+        end
+        local item = self:get(w)
+        local prefix = " "
+        if item then
+          prefix = get_prefix(item)
+        end
         local new_item = {
           word = w,
           abbr = w,
+          menu = prefix,
         }
-        if annotation then
-          new_item.word = w:sub(1, annotation - 1)
-          new_item.abbr = w
-        end
-        local item = self:get(new_item.word)
         if item then
           new_item.info = item.xszd
-          new_item.menu = item.goma
+          if item.goma then
+            new_item.abbr = new_item.abbr .. " " .. item.goma
+          end
           if item.pinyin then
-            new_item.menu = new_item.menu .. " " .. item.pinyin
+            new_item.abbr = new_item.abbr .. " " .. item.pinyin
           end
         end
-        if item and item.xszd then
-          new_item.abbr = "*" .. new_item.abbr
-        else
-          new_item.abbr = " " .. new_item.abbr
+        if annotation then
+          new_item.abbr = new_item.abbr .. "\t" .. annotation
         end
+
         table.insert(items, new_item)
       end
       -- break
+    end
+  end
+end
+
+function UniHanDict:load_kangxi(path)
+  local data = readFileSync(path)
+  if data then
+    -- KX0075.001	一
+    for kx, ch in string.gmatch(data, "(KX%d%d%d%d%.%d%d%d)\t([^\n]+)\n") do
+      local t = self.simple_map[ch]
+      if t then
+        -- print(t, ch)
+        ch = t
+      end
+      local item = self:get(ch)
+      assert(item)
+      item.indices = kx
     end
   end
 end
@@ -167,7 +208,8 @@ end
 function UniHanDict:load_unihan(dir)
   self:load_unihan_likedata(dir .. "/Unihan_DictionaryLikeData.txt")
   self:load_unihan_readings(dir .. "/Unihan_Readings.txt")
-  self:load_unihan_indices(dir .. "/Unihan_DictionaryIndices.txt")
+  -- self:load_unihan_indices(dir .. "/Unihan_DictionaryIndices.txt")
+  self:load_unihan_variants(dir .. "/Unihan_Variants.txt")
 end
 
 function UniHanDict:load_unihan_likedata(path)
@@ -198,11 +240,12 @@ function UniHanDict:load_unihan_readings(path)
   end
 end
 
+-- 新字体とか最近の文字も含まれてたー
 function UniHanDict:load_unihan_indices(path)
   local data = readFileSync(path)
   if data then
     -- U+3400	kKangXi	0078.010
-    for unicode, kangxi in string.gmatch(data, "U%+([A-F0-9]+)\tkKangXi\t([%S%.]+)") do
+    for unicode, kangxi in string.gmatch(data, "U%+([A-F0-9]+)\tkIRGKangXi\t([%S%.]+)") do
       local codepoint = tonumber(unicode, 16)
       local ch = utf8.char(codepoint)
       local item = self:get(ch)
@@ -212,20 +255,39 @@ function UniHanDict:load_unihan_indices(path)
   end
 end
 
+function UniHanDict:load_unihan_variants(path)
+  local data = readFileSync(path)
+  if data then
+    -- U+346E	kSimplifiedVariant	U+2B748
+    for traditional, simple in string.gmatch(data, "U%+([A-F0-9]+)\tkSimplifiedVariant\tU%+([A-F0-9]+)") do
+      local s_codepoint = tonumber(simple, 16)
+      local s_ch = utf8.char(s_codepoint)
+      local t_codepoint = tonumber(traditional, 16)
+      local t_ch = utf8.char(t_codepoint)
+      self.simple_map[s_ch] = t_ch
+    end
+  end
+end
+
 ---@param ch string
 ---@param item UniHanChar
 ---@return CompletionItem
 local function to_completion(ch, item)
+  local prefix = get_prefix(item)
   local new_item = {
     word = "g" .. item.goma,
-    abbr = ch .. (item.indices and " " or "*") .. item.goma,
-    menu = item.pinyin,
+    abbr = ch .. " " .. item.goma,
+    menu = prefix,
     dup = true,
     user_data = {
       replace = ch,
     },
     info = item.xszd,
   }
+  if item.pinyin then
+    new_item.abbr = new_item.abbr .. " " .. item.pinyin
+  end
+
   return new_item
 end
 
