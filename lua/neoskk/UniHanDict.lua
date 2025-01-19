@@ -177,7 +177,7 @@ function UniHanDict:load_skk(path)
           end
         end
         if annotation then
-          new_item.abbr = new_item.abbr .. "\t" .. annotation
+          new_item.abbr = new_item.abbr .. " " .. annotation
         end
 
         table.insert(items, new_item)
