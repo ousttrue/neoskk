@@ -9,6 +9,7 @@ local Completion = require "neoskk.Completion"
 ---@field pinyin string? pinyin
 ---@field chuon string? 注音符号 TODO
 ---@field flag integer TODO 新字体 簡体字 国字 常用漢字
+---@field indices string 康煕字典
 local UniHanChar = {}
 
 ---@param path string
@@ -164,11 +165,16 @@ end
 
 ---@param dir string
 function UniHanDict:load_unihan(dir)
-  local goma_path = dir .. "/Unihan_DictionaryLikeData.txt"
-  local goma_data = readFileSync(goma_path)
-  if goma_data then
+  self:load_unihan_likedata(dir .. "/Unihan_DictionaryLikeData.txt")
+  self:load_unihan_readings(dir .. "/Unihan_Readings.txt")
+  self:load_unihan_indices(dir .. "/Unihan_DictionaryIndices.txt")
+end
+
+function UniHanDict:load_unihan_likedata(path)
+  local data = readFileSync(path)
+  if data then
     -- U+5650	kFourCornerCode	6666.1
-    for unicode, goma in string.gmatch(goma_data, "U%+([A-F0-9]+)\tkFourCornerCode\t([%d%.]+)") do
+    for unicode, goma in string.gmatch(data, "U%+([A-F0-9]+)\tkFourCornerCode\t([%d%.]+)") do
       local codepoint = tonumber(unicode, 16)
       local ch = utf8.char(codepoint)
       local item = self:get(ch)
@@ -176,17 +182,32 @@ function UniHanDict:load_unihan(dir)
       item.goma = goma
     end
   end
+end
 
-  local reading_path = dir .. "/Unihan_Readings.txt"
-  local reading_data = readFileSync(reading_path)
-  if reading_data then
+function UniHanDict:load_unihan_readings(path)
+  local data = readFileSync(path)
+  if data then
     -- U+3400	kMandarin	qiū
-    for unicode, pinyin in string.gmatch(reading_data, "U%+([A-F0-9]+)\tkMandarin\t([%S%.]+)") do
+    for unicode, pinyin in string.gmatch(data, "U%+([A-F0-9]+)\tkMandarin\t([%S%.]+)") do
       local codepoint = tonumber(unicode, 16)
       local ch = utf8.char(codepoint)
       local item = self:get(ch)
       assert(item)
       item.pinyin = pinyin
+    end
+  end
+end
+
+function UniHanDict:load_unihan_indices(path)
+  local data = readFileSync(path)
+  if data then
+    -- U+3400	kKangXi	0078.010
+    for unicode, kangxi in string.gmatch(data, "U%+([A-F0-9]+)\tkKangXi\t([%S%.]+)") do
+      local codepoint = tonumber(unicode, 16)
+      local ch = utf8.char(codepoint)
+      local item = self:get(ch)
+      assert(item)
+      item.indices = kangxi
     end
   end
 end
@@ -197,7 +218,7 @@ end
 local function to_completion(ch, item)
   local new_item = {
     word = "g" .. item.goma,
-    abbr = ch .. (item.xszd and "*" or " ") .. item.goma,
+    abbr = ch .. (item.indices and " " or "*") .. item.goma,
     menu = item.pinyin,
     dup = true,
     user_data = {
