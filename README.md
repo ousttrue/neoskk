@@ -15,8 +15,9 @@ preedit を extmark で表示します.
   config = function()
     require("neoskk").setup {
       jisyo = vim.fn.expand "~/.skk/SKK-JISYO.L",
-      unihan = vim.fn.expand "~/.skk/Unihan_DictionaryLikeData.txt",
+      unihan_dir = vim.fn.expand "~/unihan",
       xszd = vim.fn.expand "~/.skk/xszd.txt",
+      emoji = vim.fn.expand "~/.skk/emoji-data.txt",
     }
     local opts = {
       remap = false,
@@ -32,6 +33,17 @@ preedit を extmark で表示します.
     end, opts)
   end,
 },
+```
+
+四角号碼と pinyin を表示。
+
+```
+  件$
+~ *件                          2520.0 jiàn   -技演切(Chien)上聲
+~ *券                          9022.7 quàn
+~  県                          2690.1 xiàn
+~  剣                          8250.0 jiàn
+~ *兼                          8023.7 jiān
 ```
 
 學生字典から info を表示。
@@ -212,6 +224,8 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 
 - 常用漢字
   - https://x0213.org/joyo-kanji-code/
+
+- https://github.com/rime-aca/character_set
 
 ### pinyin
 

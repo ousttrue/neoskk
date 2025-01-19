@@ -1,6 +1,15 @@
 local utf8 = require "neoskk.utf8"
-local CompletionItem = require "neoskk.CompletionItem"
 local Completion = require "neoskk.Completion"
+
+--- 単漢字
+---@class UniHanChar
+---@field goma string? 四角号碼
+---@field xszd string? 學生字典
+---@field qieyun string? 切韻 TODO
+---@field pinyin string? pinyin
+---@field chuon string? 注音符号 TODO
+---@field flag integer TODO 新字体 簡体字 国字 常用漢字
+local UniHanChar = {}
 
 ---@param path string
 ---@param from string?
@@ -36,19 +45,32 @@ local function parse_line(l)
 end
 
 ---@class UniHanDict
+---@field map table<string, UniHanChar>
 ---@field jisyo table<string, CompletionItem[]>
----@field goma CompletionItem[]
----@field chars table<string, string>
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
 ---@return UniHanDict
 function UniHanDict.new()
   local self = setmetatable({
+    map = {},
     jisyo = {},
-    goma = {},
-    chars = {},
   }, UniHanDict)
   return self
+end
+
+---@param char string 漢字
+---@return UniHanChar?
+function UniHanDict:get(char)
+  ---@type UniHanChar?
+  local item = self.map[char]
+  if not item then
+    -- if utf8.len ~= 1 then
+    --   return
+    -- end
+    item = {}
+    self.map[char] = item
+  end
+  return item
 end
 
 --- 學生字典(XueShengZiDian)
@@ -68,17 +90,25 @@ function UniHanDict:load_xszd(path)
 
   local pos = 1
   local char
+  local last_char
   while pos do
     local s, e = data:find("\n%*%*[^\n]+\n", pos)
     if s then
-      if char then
-        self.chars[char] = data:sub(self.chars[char], s)
+      if char and last_char then
+        local item = self:get(char)
+        if item then
+          item.xszd = data:sub(last_char, s)
+        end
       end
       char = data:sub(s + 3, e - 1)
-      self.chars[char] = e + 1
+      last_char = e + 1
     else
-      if char then
-        self.chars[char] = data:sub(self.chars[char])
+      -- last one
+      if char and last_char then
+        local item = self:get(char)
+        if item then
+          item.xszd = data:sub(last_char)
+        end
       end
       break
     end
@@ -92,7 +122,7 @@ function UniHanDict:load_skk(path)
   if not data then
     return
   end
-  for i, l in ipairs(vim.split(data, "\n")) do
+  for _, l in ipairs(vim.split(data, "\n")) do
     local word, values = parse_line(l)
     if word and values then
       -- print(("[%s][%s]"):format(word, values))
@@ -103,43 +133,79 @@ function UniHanDict:load_skk(path)
       end
       for w in values:gmatch "[^/]+" do
         local annotation = w:find(";", nil, true)
+
+        local new_item = {
+          word = w,
+          abbr = w,
+        }
         if annotation then
-          table.insert(items, {
-            word = w:sub(1, annotation - 1),
-            abbr = w,
-          })
-        else
-          table.insert(items, {
-            word = w,
-            -- abbr = w,
-          })
+          new_item.word = w:sub(1, annotation - 1)
+          new_item.abbr = w
         end
+        local item = self:get(new_item.word)
+        if item then
+          new_item.info = item.xszd
+          new_item.menu = item.goma
+          if item.pinyin then
+            new_item.menu = new_item.menu .. " " .. item.pinyin
+          end
+        end
+        if item and item.xszd then
+          new_item.abbr = "*" .. new_item.abbr
+        else
+          new_item.abbr = " " .. new_item.abbr
+        end
+        table.insert(items, new_item)
       end
       -- break
     end
   end
 end
 
----@param path string
-function UniHanDict:load_goma(path)
-  local data = readFileSync(path)
-  if not data then
-    return
+---@param dir string
+function UniHanDict:load_unihan(dir)
+  local goma_path = dir .. "/Unihan_DictionaryLikeData.txt"
+  local goma_data = readFileSync(goma_path)
+  if goma_data then
+    -- U+5650	kFourCornerCode	6666.1
+    for unicode, goma in string.gmatch(goma_data, "U%+([A-F0-9]+)\tkFourCornerCode\t([%d%.]+)") do
+      local codepoint = tonumber(unicode, 16)
+      local ch = utf8.char(codepoint)
+      local item = self:get(ch)
+      assert(item)
+      item.goma = goma
+    end
   end
-  -- U+5650	kFourCornerCode	6666.1
-  for unicode, goma in string.gmatch(data, "U%+([A-F0-9]+)\tkFourCornerCode\t([%d%.]+)") do
-    local codepoint = tonumber(unicode, 16)
-    local ch = utf8.char(codepoint)
-    table.insert(self.goma, {
-      word = "g" .. goma,
-      abbr = ch .. " " .. goma,
-      menu = "[四]",
-      dup = true,
-      user_data = {
-        replace = ch,
-      },
-    })
+
+  local reading_path = dir .. "/Unihan_Readings.txt"
+  local reading_data = readFileSync(reading_path)
+  if reading_data then
+    -- U+3400	kMandarin	qiū
+    for unicode, pinyin in string.gmatch(reading_data, "U%+([A-F0-9]+)\tkMandarin\t([%S%.]+)") do
+      local codepoint = tonumber(unicode, 16)
+      local ch = utf8.char(codepoint)
+      local item = self:get(ch)
+      assert(item)
+      item.pinyin = pinyin
+    end
   end
+end
+
+---@param ch string
+---@param item UniHanChar
+---@return CompletionItem
+local function to_completion(ch, item)
+  local new_item = {
+    word = "g" .. item.goma,
+    abbr = ch .. (item.xszd and "*" or " ") .. item.goma,
+    menu = item.pinyin,
+    dup = true,
+    user_data = {
+      replace = ch,
+    },
+    info = item.xszd,
+  }
+  return new_item
 end
 
 ---@param n string %d
@@ -147,13 +213,9 @@ end
 function UniHanDict:filter_goma(n)
   --@type CompletionItem[]
   local items = {}
-  for i, item in ipairs(self.goma) do
-    if item.word:match(n) then
-      local info = self.chars[item.user_data.replace]
-      if info then
-        item.info = info
-      end
-      table.insert(items, item)
+  for ch, item in pairs(self.map) do
+    if item.goma and item.goma:match(n) then
+      table.insert(items, to_completion(ch, item))
     end
   end
   return Completion.new(items, Completion.FUZZY_OPTS)
