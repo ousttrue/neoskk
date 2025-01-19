@@ -106,6 +106,7 @@ function SkkMachine.clear_conv(self)
   return conv_feed
 end
 
+---@return CompletionItem
 local function copy_item(src)
   local dst = {}
   for k, v in pairs(src) do
@@ -118,8 +119,9 @@ end
 ---@param key string
 ---@param okuri string?
 ---@param xszd table<string, string>?
+---@param goma table<string, string>?
 ---@return CompletionItem[]
-local function filter_jisyo(jisyo, key, okuri, xszd)
+local function filter_jisyo(jisyo, key, okuri, xszd, goma)
   local items = {}
   for k, v in pairs(jisyo) do
     if k == key then
@@ -129,6 +131,14 @@ local function filter_jisyo(jisyo, key, okuri, xszd)
           local info = xszd[copy.word]
           if info then
             copy.info = info
+          end
+        end
+        if goma then
+          for _, goma_item in ipairs(goma) do
+            if goma_item.user_data.replace == copy.word then
+              copy.menu = goma_item.word:sub(2)
+              break
+            end
           end
         end
         if okuri then
@@ -151,12 +161,12 @@ function SkkMachine.input_char(self, lhs)
       self.input_mode = HIRAKANA
     end
     return ""
-  elseif lhs == 'l' then
+  elseif lhs == "l" then
     return "<C-^>"
   end
 
   local kana, feed =
-    MachedKanaRule.conv(KanaRules, self.kana_feed .. lhs, MachedKanaRule.new(KanaRules, self.kana_feed))
+      MachedKanaRule.conv(KanaRules, self.kana_feed .. lhs, MachedKanaRule.new(KanaRules, self.kana_feed))
   self.kana_feed = feed
   if self.input_mode == KATAKANA then
     kana = util.str_to_katakana(kana)
@@ -256,7 +266,7 @@ function SkkMachine:_input(lhs, dict)
     if lhs == " " then
       if dict then
         local conv_feed = self:clear_conv()
-        local items = filter_jisyo(dict.jisyo, conv_feed, nil, dict.chars)
+        local items = filter_jisyo(dict.jisyo, conv_feed, nil, dict.chars, dict.goma)
         self.conv_mode = RAW
         return conv_feed, "", Completion.new(items)
       end
