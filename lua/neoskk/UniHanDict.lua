@@ -13,6 +13,7 @@ local util = require "neoskk.util"
 ---@field chuon string? 注音符号 TODO
 ---@field flag integer TODO 新字体 簡体字 国字 常用漢字
 ---@field indices string 康煕字典
+---@field ref string?
 local UniHanChar = {}
 
 ---@param item UniHanChar
@@ -185,6 +186,9 @@ function UniHanDict:load_skk(path)
             new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
           else
             new_item.abbr = new_item.abbr .. " " .. "    "
+            if item.ref then
+              new_item.menu = "[=>" .. item.ref .. "]"
+            end
           end
           if item.pinyin then
             new_item.abbr = new_item.abbr .. " " .. item.pinyin
@@ -313,6 +317,9 @@ local function to_completion(ch, item)
     new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
   else
     new_item.abbr = new_item.abbr .. " " .. "    "
+    if item.ref then
+      new_item.menu = "[=>" .. item.ref .. "]"
+    end
   end
   if item.pinyin then
     new_item.abbr = new_item.abbr .. " " .. item.pinyin
@@ -332,6 +339,52 @@ function UniHanDict:filter_goma(n)
     end
   end
   return Completion.new(items, Completion.FUZZY_OPTS)
+end
+
+---支那漢
+---@param path string
+function UniHanDict:load_chinadat(path)
+  --01: 文字……Unicodeに存在しないものは大漢和辞典コードを5桁(5桁に満たないものは頭に0をつけて必ず5桁にしています)で記しています。(1)、(2)などの印がある場合は区切り文字なしにそのまま後につけています。
+  --02: 参照文字……簡体字や日本新字の元の字、支那漢本文で参照されている字など、青矢印()で表示されるリンクの字です。Unicodeにないものの扱いは上記「文字」同様です。複数ある場合は区切り文字なしに列挙しています。
+  --03: 支那漢のページ
+  --04: 参照文字のページ……上記「参照文字」のページです。ページ数は必ず3桁であり、3桁に満たない場合は頭に0をつけています。また前々項の参照文字が複数ある場合は参照文字の順にページを区切りなしに列挙しています。
+  --05: 部首コード……部首をコードであらわしています。そのコードの意味は下の「部首コード表ダウンロード」で部首コード表ファイルをダウンロードして参照ください。
+  -- 部首コード表ファイルはUnicodeのCSVファイルで、書式は「部首コード, 部首文字, 画数, 元部首コード,」です。行末にもカンマがついていることに注意してください。「元部首」というのはたとえば「氵」に対する「水」のようなものです。
+  --06: 部首内画数
+  --07: 総画数
+  --08: 四角号碼……先頭と末尾に区切り文字としての'+'をつけています。コード化の変種がある場合は「+コード1+コード2」のように間に'+'をはさみながら列挙していますが、一番左のものが当サイトで正式と認めているものです。各コードは必ず5桁です。
+  -- ※四角号碼の変種の入力は現在進行中です。 よってこの記述が消えるまでは、変種の入力は完全ではありません。
+  --09: ピンイン……先頭に区切り文字としての'/'をつけています(末尾にはついていません)。複数の音がある場合は、「/音1/音2/音3」のように間に'/'をはさみながら列挙しています。また新華字典に存在する発音はおしまいに'*'をつけています。
+  -- ※新華字典による校正は現在進行中です。 よってこの記述が消えるまでは、上記'*'印の入力は完全ではありません。
+  --10: 日本語音訓……音はカタカナ、訓はひらがなであり、前後に区切り文字としての'1'をつけてあります。旧仮名・新仮名の関係は「1ケフ1(1キョウ1)」などのように記しています。
+  local data = readFileSync(path)
+  if data then
+    -- 亜,亞,,009,7,5,7,+10106+,/ya3/ya4*,1ア1つぐ1,
+    local i = 1
+    for line in string.gmatch(data, "([^\n]+)\r") do
+      local cols = util.split(line, ",")
+      -- 伝(1),傳,,026,9,4,6,+21231+,/chuan2,1テン1デン1つたふ1(1つたう1)1つたへる1(1つたえる1)1つたはる1(1つたわる1)1つて1,
+      local ch = cols[1]
+      local s, e = ch:find "%(%d+%)"
+      if s then
+        if ch:sub(s + 1, e - 1) == "1" then
+          ch = ch:sub(1, s - 1)
+        else
+          ch = nil
+        end
+      end
+
+      if ch then
+        local item = self:get(ch)
+        assert(item)
+        if #cols[2] > 0 then
+          item.ref = cols[2]
+          -- print(vim.inspect(cols))
+          -- break
+        end
+      end
+    end
+  end
 end
 
 return UniHanDict

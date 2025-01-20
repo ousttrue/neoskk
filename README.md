@@ -18,6 +18,7 @@ preedit を extmark で表示します.
       unihan_dir = vim.fn.expand "~/unihan",
       xszd = vim.fn.expand "~/.skk/xszd.txt",
       emoji = vim.fn.expand "~/.skk/emoji-data.txt",
+      chinadat = vim.fn.expand "~/.skk/chinadat.csv",
     }
     local opts = {
       remap = false,
@@ -35,15 +36,17 @@ preedit を extmark で表示します.
 },
 ```
 
-四角号碼と pinyin を表示。
+四角号碼と かな と 反切 と pinyin を表示。
 
 ```
-  件$
-~ *件                          2520.0 jiàn   -技演切(Chien)上聲
-~ *券                          9022.7 quàn
-~  県                          2690.1 xiàn
-~  剣                          8250.0 jiàn
-~ *兼                          8023.7 jiān
+  点$
+~ 点 2133.6 テン      diǎn                           [=>點]
+~ 店 0026.1 テン 都念 diàn                           [康煕]+
+~ 天 1043.0 テン 他前 tiān                           [康煕]+
+~ 転 5103.1 テン      zhuǎn                          [=>轉]
+~ 展 7723.2 テン 知演 zhǎn                           [康煕]+
+~ 貂 2726.2 チョウ 都聊 diāo                         [康煕]+
+~ 典 5580.1 テン 多殄 diǎn                           [康煕]+
 ```
 
 學生字典から info を表示。

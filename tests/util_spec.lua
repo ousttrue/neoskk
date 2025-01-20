@@ -12,6 +12,7 @@ describe("Utility", function()
 
   it("split", function()
     assert.same({ "a", "c" }, util.split("abc", "b"))
+    assert.same({ "1", "", "3" }, util.split("1,,3", ","))
     assert.same(
       { "hoge", "huga" },
       util.split [[hoge

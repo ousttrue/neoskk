@@ -115,16 +115,13 @@ function M.split(str, ts, plain)
   local i = 1
   while i <= #str do
     local s, e = string.find(str, ts, i, plain)
-    if not s then
+    if s then
+      table.insert(t, str:sub(i, s - 1))
+      i = e + 1
+    else
+      table.insert(t, str:sub(i))
       break
     end
-    if i ~= s then
-      table.insert(t, str:sub(i, s - 1))
-    end
-    i = e + 1
-  end
-  if i <= #str then
-    table.insert(t, str:sub(i))
   end
 
   return t
