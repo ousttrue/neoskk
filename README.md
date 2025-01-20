@@ -169,7 +169,7 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - [x] `<BS>`
 - [x] 変換モード`<Space>`: completion
 - [x] `<Enter>` で変換モード脱出(変換しなかったかなを確定)
-- [ ] ひらがな片仮名変換除外 `ー` 
+- [ ] ひらがな片仮名変換除外 `ー`
 - [x] l: ASCIIモード
 - [ ] completion キャンセルで conv_feed 化する
 - [ ] visual mode 選択を conv_feed 化する
@@ -201,12 +201,9 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - http://openlab.ring.gr.jp/skk/wiki/wiki.cgi?page=SKK%BC%AD%BD%F1
 - https://github.com/skk-dict/jisyo
 
-### unicode
+#### Unicode
 
-- https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
-
-#### Unihan
-
+- https://www.unicode.org/reports/tr38/
 - https://www.unicode.org/Public/UCD/latest/ucd/
   - https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
 - https://hexdocs.pm/unicode_unihan/dictionary_like_data.html#content
@@ -215,14 +212,18 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - Unihan_Readings.txt 字音, pinyin etc...
 - Unihan_Variants.txt 異字体, kSimplifiedVariant, kTraditionalVariant
 
+- https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
+
 ### 漢字
 
-- WEB支那漢 日本語音訓 
+- WEB支那漢 日本語音訓
   - https://www.seiwatei.net/info/dnchina.htm
 - https://github.com/cjkvi/cjkvi-dict
+
   - 學生字典 Text Data (xszd.txt)
 
 - 常用漢字
+
   - https://x0213.org/joyo-kanji-code/
 
 - https://github.com/rime-aca/character_set

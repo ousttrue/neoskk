@@ -1,5 +1,6 @@
 local utf8 = require "neoskk.utf8"
 local Completion = require "neoskk.Completion"
+local util = require "neoskk.util"
 
 --- 単漢字
 ---@class UniHanChar
@@ -7,6 +8,8 @@ local Completion = require "neoskk.Completion"
 ---@field xszd string? 學生字典
 ---@field qieyun string? 切韻 TODO
 ---@field pinyin string? pinyin
+---@field fanqie string[] 反切
+---@field kana string[] よみかな
 ---@field chuon string? 注音符号 TODO
 ---@field flag integer TODO 新字体 簡体字 国字 常用漢字
 ---@field indices string 康煕字典
@@ -86,7 +89,10 @@ function UniHanDict:get(char)
     -- if utf8.len ~= 1 then
     --   return
     -- end
-    item = {}
+    item = {
+      fanqie = {},
+      kana = {},
+    }
     self.map[char] = item
   end
   return item
@@ -172,6 +178,14 @@ function UniHanDict:load_skk(path)
           if item.goma then
             new_item.abbr = new_item.abbr .. " " .. item.goma
           end
+          if #item.kana > 0 then
+            new_item.abbr = new_item.abbr .. " " .. item.kana[1]
+          end
+          if #item.fanqie > 0 then
+            new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
+          else
+            new_item.abbr = new_item.abbr .. " " .. "    "
+          end
           if item.pinyin then
             new_item.abbr = new_item.abbr .. " " .. item.pinyin
           end
@@ -230,12 +244,20 @@ function UniHanDict:load_unihan_readings(path)
   local data = readFileSync(path)
   if data then
     -- U+3400	kMandarin	qiū
-    for unicode, pinyin in string.gmatch(data, "U%+([A-F0-9]+)\tkMandarin\t([%S%.]+)") do
+    -- U+3401	kFanqie	他紺 他念
+    -- U+3400	kJapanese	キュウ おか
+    for unicode, k, value in string.gmatch(data, "U%+([A-F0-9]+)\t(k%w+)\t([^\n]+)") do
       local codepoint = tonumber(unicode, 16)
       local ch = utf8.char(codepoint)
       local item = self:get(ch)
       assert(item)
-      item.pinyin = pinyin
+      if k == "kMandarin" then
+        item.pinyin = value
+      elseif k == "kFanqie" then
+        item.fanqie = util.split(value)
+      elseif k == "kJapanese" then
+        item.kana = util.split(value)
+      end
     end
   end
 end
@@ -284,6 +306,14 @@ local function to_completion(ch, item)
     },
     info = item.xszd,
   }
+  if #item.kana > 0 then
+    new_item.abbr = new_item.abbr .. " " .. item.kana[1]
+  end
+  if #item.fanqie > 0 then
+    new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
+  else
+    new_item.abbr = new_item.abbr .. " " .. "    "
+  end
   if item.pinyin then
     new_item.abbr = new_item.abbr .. " " .. item.pinyin
   end
