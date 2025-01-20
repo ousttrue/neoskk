@@ -22,6 +22,8 @@ local function get_prefix(item)
   local prefix = ""
   if item.indices then
     prefix = "康煕"
+  elseif item.ref then
+    prefix = "=>" .. item.ref
   else
     prefix = "    "
   end
@@ -186,9 +188,6 @@ function UniHanDict:load_skk(path)
             new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
           else
             new_item.abbr = new_item.abbr .. " " .. "    "
-            if item.ref then
-              new_item.menu = "[=>" .. item.ref .. "]"
-            end
           end
           if item.pinyin then
             new_item.abbr = new_item.abbr .. " " .. item.pinyin
@@ -317,9 +316,6 @@ local function to_completion(ch, item)
     new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
   else
     new_item.abbr = new_item.abbr .. " " .. "    "
-    if item.ref then
-      new_item.menu = "[=>" .. item.ref .. "]"
-    end
   end
   if item.pinyin then
     new_item.abbr = new_item.abbr .. " " .. item.pinyin
@@ -361,7 +357,7 @@ function UniHanDict:load_chinadat(path)
   if data then
     -- 亜,亞,,009,7,5,7,+10106+,/ya3/ya4*,1ア1つぐ1,
     local i = 1
-    for line in string.gmatch(data, "([^\n]+)\r") do
+    for line in string.gmatch(data, "([^\n]+)\r\n") do
       local cols = util.split(line, ",")
       -- 伝(1),傳,,026,9,4,6,+21231+,/chuan2,1テン1デン1つたふ1(1つたう1)1つたへる1(1つたえる1)1つたはる1(1つたわる1)1つて1,
       local ch = cols[1]
@@ -381,6 +377,11 @@ function UniHanDict:load_chinadat(path)
           item.ref = cols[2]
           -- print(vim.inspect(cols))
           -- break
+        end
+        if #cols[10] > 0 then
+          local kana = util.split(cols[10], "1")
+          table.remove(kana, 1)
+          item.kana = kana
         end
       end
     end
