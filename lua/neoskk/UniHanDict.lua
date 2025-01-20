@@ -1,6 +1,7 @@
 local utf8 = require "neoskk.utf8"
 local Completion = require "neoskk.Completion"
 local util = require "neoskk.util"
+local pinyin = require "neoskk.pinyin"
 
 --- 単漢字
 ---@class UniHanChar
@@ -190,7 +191,7 @@ function UniHanDict:load_skk(path)
             new_item.abbr = new_item.abbr .. " " .. "    "
           end
           if item.pinyin then
-            new_item.abbr = new_item.abbr .. " " .. item.pinyin
+            new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
           end
         end
         if annotation then
@@ -318,7 +319,7 @@ local function to_completion(ch, item)
     new_item.abbr = new_item.abbr .. " " .. "    "
   end
   if item.pinyin then
-    new_item.abbr = new_item.abbr .. " " .. item.pinyin
+    new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
   end
 
   return new_item
