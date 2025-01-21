@@ -209,11 +209,9 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - https://www.unicode.org/reports/tr38/
 - https://www.unicode.org/Public/UCD/latest/ucd/
   - https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
-- https://hexdocs.pm/unicode_unihan/dictionary_like_data.html#content
-
-- Unihan_DictionaryLikeData.txt 四角号碼 etc...
-- Unihan_Readings.txt 字音, pinyin etc...
-- Unihan_Variants.txt 異字体, kSimplifiedVariant, kTraditionalVariant
+    - Unihan_DictionaryLikeData.txt 四角号碼 etc...
+    - Unihan_Readings.txt かな, pinyin, 反切 etc...
+    - Unihan_Variants.txt 異字体, kSimplifiedVariant, kTraditionalVariant
 
 - https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
 
@@ -230,6 +228,13 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
   - https://x0213.org/joyo-kanji-code/
 
 - https://github.com/rime-aca/character_set
+
+- [有女同車《〈廣韻〉全字表》原表](https://github.com/syimyuzya/guangyun0704)
+- https://github.com/kanripo/KR1j0054
+- https://github.com/rime-aca/rime-middle-chinese-phonetics?tab=readme-ov-file
+- https://github.com/sozysozbot/zyegnio_xrynmu/tree/master
+- https://ytenx.org/
+- https://github.com/pujdict/pujdict
 
 ### pinyin
 

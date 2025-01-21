@@ -300,6 +300,8 @@ function M.NeoSkk.map(self)
           self.has_backspace = true
         elseif lhs == "\n" or alt == "\n" then
           return "<C-y>"
+        elseif lhs == " " then
+          return "<C-n>"
         end
       end
 
