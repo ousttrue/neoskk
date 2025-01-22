@@ -236,6 +236,11 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - https://ytenx.org/
 - https://github.com/pujdict/pujdict
 
+玉篇
+- https://www.kanripo.org/
+- https://github.com/kanripo/KR1j0056
+- https://github.com/kanripo/KR1j0022
+
 ### pinyin
 
 - https://github.com/ZSaberLv0/ZFVimIM_pinyin_base/tree/master/misc

@@ -357,10 +357,12 @@ function UniHanDict:load_chinadat(path)
   local data = readFileSync(path)
   if data then
     -- 亜,亞,,009,7,5,7,+10106+,/ya3/ya4*,1ア1つぐ1,
+    -- 伝(1),傳,,026,9,4,6,+21231+,/chuan2,1テン1デン1つたふ1(1つたう1)1つたへる1(1つたえる1)1つたはる1(1つたわる1)1つて1,
+    -- 余(1),,017,,9,5,7,+80904+,/yu2,1ヨ1われ1,
+    -- 余(2),餘,017,621,9,5,7,+80904+,/yu2,1ヨ1あまる1あます1われ1あまり1のこる1,
     local i = 1
     for line in string.gmatch(data, "([^\n]+)\r\n") do
       local cols = util.split(line, ",")
-      -- 伝(1),傳,,026,9,4,6,+21231+,/chuan2,1テン1デン1つたふ1(1つたう1)1つたへる1(1つたえる1)1つたはる1(1つたわる1)1つて1,
       local ch = cols[1]
       local s, e = ch:find "%(%d+%)"
       if s then
