@@ -11,13 +11,32 @@ describe("Utility", function()
   end)
 
   it("split", function()
-    assert.same({ "a", "c" }, util.split("abc", "b"))
-    assert.same({ "1", "", "3" }, util.split("1,,3", ","))
+    assert.same({ "a", "c" }, util.splited("abc", "b"))
+    assert.same({ "1", "", "3" }, util.splited("1,,3", ","))
     assert.same(
       { "hoge", "huga" },
-      util.split [[hoge
+      util.splited [[hoge
 huga
 ]]
+    )
+  end)
+
+  it("to_list", function()
+    assert.same({ 1, 2, 3 }, util.to_list(next, { 1, 2, 3 }))
+    assert.same({ 1, 2, 3 }, util.to_list(pairs { 1, 2, 3 }))
+    assert.same({ 1, 2, 3 }, util.to_list(ipairs { 1, 2, 3 }))
+    assert.same({ a = 1, b = 2, c = 3 }, util.to_list(next, { a = 1, b = 2, c = 3 }))
+    assert.same({ a = 1, b = 2, c = 3 }, util.to_list(pairs { a = 1, b = 2, c = 3 }))
+
+    assert.same(
+      { 1, 2, 3 },
+      util.to_list(function(_, n)
+        if not n then
+          return 1, 1
+        elseif n < 3 then
+          return n + 1, n + 1
+        end
+      end)
     )
   end)
 end)

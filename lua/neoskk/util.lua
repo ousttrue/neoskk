@@ -104,7 +104,7 @@ end
 ---@param str string
 ---@param ts string?
 ---@param plain boolean?
-function M.split(str, ts, plain)
+function M.splited(str, ts, plain)
   -- 引数がないときは空tableを返す
   assert(str)
   if not ts then
@@ -125,6 +125,21 @@ function M.split(str, ts, plain)
   end
 
   return t
+end
+
+function M.to_list(iter, immutable, mutable)
+  local list = {}
+  -- while true do
+  --   local v = iter()
+  --   if v then
+  --     table.insert(v)
+  --   end
+  -- end
+  for k, v in iter, immutable, mutable do
+    -- table.insert(list, v)
+    list[k] = v
+  end
+  return list
 end
 
 return M

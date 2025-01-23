@@ -3,6 +3,8 @@ local Completion = require "neoskk.Completion"
 local util = require "neoskk.util"
 local pinyin = require "neoskk.pinyin"
 
+---@class Yin
+
 --- 単漢字
 ---@class UniHanChar
 ---@field goma string? 四角号碼
@@ -258,9 +260,9 @@ function UniHanDict:load_unihan_readings(path)
       if k == "kMandarin" then
         item.pinyin = value
       elseif k == "kFanqie" then
-        item.fanqie = util.split(value)
+        item.fanqie = util.splited(value)
       elseif k == "kJapanese" then
-        item.kana = util.split(value)
+        item.kana = util.splited(value)
       end
     end
   end
@@ -362,7 +364,7 @@ function UniHanDict:load_chinadat(path)
     -- 余(2),餘,017,621,9,5,7,+80904+,/yu2,1ヨ1あまる1あます1われ1あまり1のこる1,
     local i = 1
     for line in string.gmatch(data, "([^\n]+)\r\n") do
-      local cols = util.split(line, ",")
+      local cols = util.splited(line, ",")
       local ch = cols[1]
       local s, e = ch:find "%(%d+%)"
       if s then
@@ -382,12 +384,19 @@ function UniHanDict:load_chinadat(path)
           -- break
         end
         if #cols[10] > 0 then
-          local kana = util.split(cols[10], "1")
+          local kana = util.splited(cols[10], "1")
           table.remove(kana, 1)
           item.kana = kana
         end
       end
     end
+  end
+end
+
+function UniHanDict:load_quangyun(path)
+  local data = readFileSync(path)
+  if data then
+    -- 1;1;德紅;東菄鶇䍶𠍀倲𩜍𢘐涷蝀凍鯟𢔅崠埬𧓕䰤;17;.;1.01東;1;端;開;一;東;平;tung;tung;;;;;
   end
 end
 
