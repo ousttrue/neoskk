@@ -19,6 +19,11 @@ local pinyin = require "neoskk.pinyin"
 ---@field ref string?
 local UniHanChar = {}
 
+--- 反切
+---@class Fanqie
+---@field koe string 聲紐
+---@field moku string 韻目
+
 ---@param item UniHanChar
 ---@return string
 local function get_prefix(item)
@@ -74,6 +79,7 @@ end
 ---@field map table<string, UniHanChar>
 ---@field jisyo table<string, CompletionItem[]>
 ---@field simple_map table<string, string>
+---@field fanqie_map table<string, Fanqie>
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
 ---@return UniHanDict
@@ -82,6 +88,7 @@ function UniHanDict.new()
     map = {},
     jisyo = {},
     simple_map = {},
+    fanqie_map = {},
   }, UniHanDict)
   return self
 end
@@ -189,8 +196,12 @@ function UniHanDict:load_skk(path)
           end
           if #item.fanqie > 0 then
             new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
+            local fanqie = self.fanqie_map[item.fanqie[1]]
+            if fanqie then
+              new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
+            end
           else
-            new_item.abbr = new_item.abbr .. " " .. "    "
+            new_item.abbr = new_item.abbr .. " " .. "         "
           end
           if item.pinyin then
             new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
@@ -300,7 +311,7 @@ end
 ---@param ch string
 ---@param item UniHanChar
 ---@return CompletionItem
-local function to_completion(ch, item)
+local function to_completion(ch, item, fanqie_map)
   local prefix = get_prefix(item)
   local new_item = {
     word = "g" .. item.goma,
@@ -317,8 +328,12 @@ local function to_completion(ch, item)
   end
   if #item.fanqie > 0 then
     new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
+    local fanqie = fanqie_map[item.fanqie[1]]
+    if fanqie then
+      new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
+    end
   else
-    new_item.abbr = new_item.abbr .. " " .. "    "
+    new_item.abbr = new_item.abbr .. " " .. "         "
   end
   if item.pinyin then
     new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
@@ -334,7 +349,7 @@ function UniHanDict:filter_goma(n)
   local items = {}
   for ch, item in pairs(self.map) do
     if item.goma and item.goma:match(n) then
-      table.insert(items, to_completion(ch, item))
+      table.insert(items, to_completion(ch, item, self.fanqie_map))
     end
   end
   return Completion.new(items, Completion.FUZZY_OPTS)
@@ -362,7 +377,6 @@ function UniHanDict:load_chinadat(path)
     -- 伝(1),傳,,026,9,4,6,+21231+,/chuan2,1テン1デン1つたふ1(1つたう1)1つたへる1(1つたえる1)1つたはる1(1つたわる1)1つて1,
     -- 余(1),,017,,9,5,7,+80904+,/yu2,1ヨ1われ1,
     -- 余(2),餘,017,621,9,5,7,+80904+,/yu2,1ヨ1あまる1あます1われ1あまり1のこる1,
-    local i = 1
     for line in string.gmatch(data, "([^\n]+)\r\n") do
       local cols = util.splited(line, ",")
       local ch = cols[1]
@@ -396,7 +410,34 @@ end
 function UniHanDict:load_quangyun(path)
   local data = readFileSync(path)
   if data then
+    -- 字段(fields)由「;」分隔，内容由左至右依次爲
+    -- 1、舊版(unicode3.1字符集第一版)小韻總序號。缺錄:丑戾切、no=2381，烏懈切、no=2455，他德切、no=3728，盧合、no=3784四小韻。
+    -- 2、刊正小韻總序號
+    -- 3、反切
+    -- 4、小韻内辭目（headwords）
+    -- 5、小韻所收辭目數
+    -- 6、校驗表記
+    -- 7、韻目。阿拉伯數碼「X.XX」，小數點前一位爲卷號，小數點後兩位爲韻目。如「4.11暮」意爲「第四卷去聲、十一暮韻」。
+    -- 8、小韻在韻中的序號。如「『德紅切』『東』爲『東』韻第一小韻，『薄紅切』『蓬』爲『東』韻第三十一小韻。」古書向無頁碼，兼且版本紛紜卷帙雜沓難於取捨，故此僅錄標目序號不記頁碼。
+    -- 9、聲紐
+    -- 10、呼（開合口）
+    -- 11、等
+    -- 12、韻部（四聲劃一）
+    -- 13、聲調
+    -- 14、Polyhedron擬羅馬字
+    -- 15、有女同車擬羅馬字
+    -- 16、舊版備註
+    -- 17、本次復校備註
+    -- 18、特殊小韻韻目歸屬說明
+    -- 19、見於廣韻辭條中的辭目重文、取自集韻的增補和異體字、等價異形字、備考新字等
+    -- 20、unicode3.1未收字的準IDS（Ideographic Desciption Characters）描述：H=⿰、Z=⿱、P=⿸、E=⿳、V=某字unicode缺載之變體
     -- 1;1;德紅;東菄鶇䍶𠍀倲𩜍𢘐涷蝀凍鯟𢔅崠埬𧓕䰤;17;.;1.01東;1;端;開;一;東;平;tung;tung;;;;;
+    for line in string.gmatch(data, "([^\n]+)\n") do
+      local cols = util.splited(line, ";")
+      if #cols > 5 then
+        self.fanqie_map[cols[3]] = { moku = cols[12], koe = cols[9] }
+      end
+    end
   end
 end
 

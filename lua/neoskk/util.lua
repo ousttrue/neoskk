@@ -101,10 +101,12 @@ function M.str_toggle_kana(src)
   return dst
 end
 
+---@generic IMMUTABLE
+---@generic MUTABLE
 ---@generic T
----@param iter fun(immutable, mutable: integer):[integer, T]?
----@param immutable any
----@param mutable integer
+---@param iter fun(immutable: IMMUTABLE, mutable: MUTABLE):MUTABLE?, T?
+---@param immutable IMMUTABLE?
+---@param mutable MUTABLE?
 ---@return T[]
 function M.to_list(iter, immutable, mutable)
   local list = {}

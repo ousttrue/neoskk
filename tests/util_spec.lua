@@ -32,13 +32,39 @@ huga
 
     assert.same(
       { 1, 2, 3 },
-      util.to_list(function(_, n)
-        if not n then
-          return 1, 1
-        elseif n < 3 then
-          return n + 1, n + 1
+      util.to_list(
+        ---@param _ any
+        ---@param n integer?
+        function(_, n)
+          if not n then
+            return 1, 1
+          elseif n < 3 then
+            return n + 1, n + 1
+          end
         end
-      end)
+      )
     )
+  end)
+
+  it("utf8", function()
+    assert.same({
+      "東",
+      "菄",
+      "鶇",
+      "䍶",
+      "𠍀",
+      "倲",
+      "𩜍",
+      "𢘐",
+      "涷",
+      "蝀",
+      "凍",
+      "鯟",
+      "𢔅",
+      "崠",
+      "埬",
+      "𧓕",
+      "䰤",
+    }, util.to_list(utf8.codes "東菄鶇䍶𠍀倲𩜍𢘐涷蝀凍鯟𢔅崠埬𧓕䰤"))
   end)
 end)
