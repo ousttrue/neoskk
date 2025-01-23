@@ -19,14 +19,16 @@ describe("Utility", function()
 huga
 ]]
     )
+
+    assert.same({ "a", "c" }, util.to_list(util.split, { "abc", "b" }))
   end)
 
   it("to_list", function()
     assert.same({ 1, 2, 3 }, util.to_list(next, { 1, 2, 3 }))
-    assert.same({ 1, 2, 3 }, util.to_list(pairs { 1, 2, 3 }))
     assert.same({ 1, 2, 3 }, util.to_list(ipairs { 1, 2, 3 }))
-    assert.same({ a = 1, b = 2, c = 3 }, util.to_list(next, { a = 1, b = 2, c = 3 }))
-    assert.same({ a = 1, b = 2, c = 3 }, util.to_list(pairs { a = 1, b = 2, c = 3 }))
+    assert.same({ 1, 2, 3 }, util.to_list(pairs { 1, 2, 3 }))
+    -- assert.same({ a = 1, b = 2, c = 3 }, util.to_list(next, { a = 1, b = 2, c = 3 }))
+    -- assert.same({ a = 1, b = 2, c = 3 }, util.to_list(pairs { a = 1, b = 2, c = 3 }))
 
     assert.same(
       { 1, 2, 3 },

@@ -101,45 +101,85 @@ function M.str_toggle_kana(src)
   return dst
 end
 
----@param str string
----@param ts string?
----@param plain boolean?
-function M.splited(str, ts, plain)
-  -- 引数がないときは空tableを返す
-  assert(str)
-  if not ts then
-    ts = "%s"
-  end
-
-  local t = {}
-  local i = 1
-  while i <= #str do
-    local s, e = string.find(str, ts, i, plain)
-    if s then
-      table.insert(t, str:sub(i, s - 1))
-      i = e + 1
-    else
-      table.insert(t, str:sub(i))
-      break
-    end
-  end
-
-  return t
-end
-
+---@generic T
+---@param iter fun(immutable, mutable: integer):[integer, T]?
+---@param immutable any
+---@param mutable integer
+---@return T[]
 function M.to_list(iter, immutable, mutable)
   local list = {}
-  -- while true do
-  --   local v = iter()
-  --   if v then
-  --     table.insert(v)
-  --   end
-  -- end
-  for k, v in iter, immutable, mutable do
-    -- table.insert(list, v)
-    list[k] = v
+  for _, v in iter, immutable, mutable do
+    table.insert(list, v)
   end
   return list
 end
+
+---@param immutable[string, string, boolean?] str, delimiter, is_plain
+---@param init integer? last delimiter end
+---@return integer? next delimiter end
+---@return string? token
+function M.split(immutable, init)
+  local str, ts, plain = unpack(immutable)
+  assert(str)
+
+  if not init then
+    init = 0
+  end
+
+  if init < #str then
+    local s, e = string.find(str, ts, init + 1, plain)
+    if s then
+      return e, str:sub(init + 1, s - 1)
+    else
+      return #str, str:sub(init + 1)
+    end
+  end
+end
+
+---@param str string
+---@param ts string?
+---@param plain boolean?
+---@return string[]
+function M.splited(str, ts, plain)
+  if not ts then
+    if plain then
+      ts = " "
+    else
+      ts = "%s"
+    end
+  end
+  return M.to_list(M.split, { str, ts, plain })
+end
+
+-- ---@param str string
+-- ---@param ts string?
+-- ---@param plain boolean?
+-- ---@return string[]
+-- function M.splited(str, ts, plain)
+--   -- 引数がないときは空tableを返す
+--   assert(str)
+--   if not ts then
+--     if plain then
+--       ts = " "
+--     else
+--       ts = "%s"
+--     end
+--   end
+--
+--   local t = {}
+--   local i = 1
+--   while i <= #str do
+--     local s, e = string.find(str, ts, i, plain)
+--     if s then
+--       table.insert(t, str:sub(i, s - 1))
+--       i = e + 1
+--     else
+--       table.insert(t, str:sub(i))
+--       break
+--     end
+--   end
+--
+--   return t
+-- end
 
 return M
