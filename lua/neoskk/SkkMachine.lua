@@ -214,6 +214,9 @@ end
 function SkkMachine:_input(lhs, dict)
   if lhs:match "^[A-Z]$" then
     lhs = string.lower(lhs)
+    -- if not self.okuri_feed then
+      self.okuri_feed = lhs
+    -- end
     self:_upper()
   end
 
@@ -248,9 +251,6 @@ function SkkMachine:_input(lhs, dict)
     local out = self:input_char(lhs)
     return out, self.kana_feed
   elseif self.conv_mode == CONV then
-    if not self.okuri_feed then
-      self.okuri_feed = lhs
-    end
     -- conv
     if lhs == "q" then
       self.conv_feed = util.str_toggle_kana(self.conv_feed)
