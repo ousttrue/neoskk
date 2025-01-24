@@ -153,6 +153,16 @@ function M.splited(str, ts, plain)
   return M.to_list(M.split, { str, ts, plain })
 end
 
+---@param src string
+---@return string
+function M.strip(src)
+  local hs, be = src:find "^%s*"
+
+  local ts, te = src:find "%s*$"
+
+  return src:sub(be + 1, ts - 1)
+end
+
 -- ---@param str string
 -- ---@param ts string?
 -- ---@param plain boolean?

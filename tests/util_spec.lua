@@ -23,6 +23,18 @@ huga
     assert.same({ "a", "c" }, util.to_list(util.split, { "abc", "b" }))
   end)
 
+  it("strip", function()
+    assert.equal("a", util.strip " a ")
+    assert.equal("a", util.strip "a ")
+    assert.equal("a", util.strip " a")
+    local b, e = string.find("a", "^%s*")
+    assert.equal(1, b)
+    assert.equal(0, e)
+    local b, e = string.find("a", "%s*$")
+    assert.equal(2, b)
+    assert.equal(1, e)
+  end)
+
   it("to_list", function()
     assert.same({ 1, 2, 3 }, util.to_list(next, { 1, 2, 3 }))
     assert.same({ 1, 2, 3 }, util.to_list(ipairs { 1, 2, 3 }))

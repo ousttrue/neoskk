@@ -12,6 +12,7 @@ local pinyin = require "neoskk.pinyin"
 ---@field qieyun string? 切韻 TODO
 ---@field pinyin string? pinyin
 ---@field fanqie string[] 反切
+---@field chou string 声調
 ---@field kana string[] よみかな
 ---@field chuon string? 注音符号 TODO
 ---@field flag integer TODO 新字体 簡体字 国字 常用漢字
@@ -196,6 +197,9 @@ function UniHanDict:load_skk(path)
           end
           if #item.fanqie > 0 then
             new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
+            if item.chou then
+              new_item.abbr = new_item.abbr .. item.chou
+            end
             local fanqie = self.fanqie_map[item.fanqie[1]]
             if fanqie then
               new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
@@ -223,6 +227,11 @@ function UniHanDict:load_kangxi(path)
   if data then
     -- KX0075.001	一
     for kx, ch in string.gmatch(data, "(KX%d%d%d%d%.%d%d%d)\t([^\n]+)\n") do
+      local item = self:get(ch)
+      assert(item)
+      item.indices = kx
+
+      -- 簡体字
       local t = self.simple_map[ch]
       if t then
         -- print(t, ch)
@@ -328,6 +337,9 @@ local function to_completion(ch, item, fanqie_map)
   end
   if #item.fanqie > 0 then
     new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
+    if item.chou then
+      new_item.abbr = new_item.abbr .. item.chou
+    end
     local fanqie = fanqie_map[item.fanqie[1]]
     if fanqie then
       new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
@@ -435,7 +447,15 @@ function UniHanDict:load_quangyun(path)
     for line in string.gmatch(data, "([^\n]+)\n") do
       local cols = util.splited(line, ";")
       if #cols > 5 then
-        self.fanqie_map[cols[3]] = { moku = cols[12], koe = cols[9] }
+        self.fanqie_map[cols[3]] = {
+          moku = cols[12],
+          koe = cols[9],
+        }
+        for i, ch in utf8.codes(cols[4]) do
+          local item = self:get(ch)
+          assert(item)
+          item.chou = cols[13]
+        end
       end
     end
   end
