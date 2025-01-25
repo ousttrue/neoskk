@@ -1,6 +1,7 @@
 local MachedKanaRule = require "neoskk.tables.MachedKanaRule"
 local KanaRules = require "neoskk.tables.KanaRules"
 local Completion = require "neoskk.Completion"
+local CompletionItem = require "neoskk.CompletionItem"
 local util = require "neoskk.util"
 local utf8 = require "neoskk.utf8"
 
@@ -106,35 +107,6 @@ function SkkMachine.clear_conv(self)
   return conv_feed
 end
 
----@return CompletionItem
-local function copy_item(src)
-  local dst = {}
-  for k, v in pairs(src) do
-    dst[k] = v
-  end
-  return dst
-end
-
----@param dict UniHanDict
----@param key string
----@param okuri string?
----@return CompletionItem[]
-local function filter_jisyo(dict, key, okuri)
-  local items = {}
-  for k, v in pairs(dict.jisyo) do
-    if k == key then
-      for _, item in ipairs(v) do
-        local copy = copy_item(item)
-        if okuri then
-          copy.word = copy.word .. okuri
-        end
-        table.insert(items, copy)
-      end
-    end
-  end
-  return items
-end
-
 ---@param lhs string
 ---@return string
 function SkkMachine.input_char(self, lhs)
@@ -234,7 +206,6 @@ function SkkMachine:_input(lhs, dict)
     -- raw
     local out = self:input_char(lhs)
     return out, self.kana_feed
-
   elseif self.conv_mode == CONV then
     -- conv
     if lhs == "q" then
@@ -251,7 +222,7 @@ function SkkMachine:_input(lhs, dict)
     if lhs == " " then
       if dict then
         local conv_feed = self:clear_conv()
-        local items = filter_jisyo(dict, conv_feed, nil)
+        local items = dict:filter_jisyo(conv_feed, nil)
         self.conv_mode = RAW
         return conv_feed, "", Completion.new(items)
       end
@@ -271,21 +242,18 @@ function SkkMachine:_input(lhs, dict)
       end
     end
     return "", preedit
-
   elseif self.conv_mode == OKURI then
     -- okuri
     local out = self:input_char(lhs)
     if #out > 0 then
       if dict then
         local conv_feed = self:clear_conv()
-        local items = filter_jisyo(dict, conv_feed .. self.okuri_feed, out)
+        local items = dict:filter_jisyo(conv_feed .. self.okuri_feed, out)
         return conv_feed .. out, "", Completion.new(items)
       end
     end
     return "", self.conv_feed .. self.kana_feed
-
   else
-
     assert(false)
     return "", ""
   end

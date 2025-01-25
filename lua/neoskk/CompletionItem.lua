@@ -1,4 +1,5 @@
 local pinyin = require "neoskk.pinyin"
+local utf8 = require "neoskk.utf8"
 
 ---@class CompletionItem
 ---@field word string the text that will be inserted, mandatory
@@ -48,6 +49,7 @@ function CompletionItem.from_word(w, item, dict)
     word = w,
     abbr = w,
     menu = prefix,
+    dup = true,
   }
   if item then
     new_item.info = item.xszd

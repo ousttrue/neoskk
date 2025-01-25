@@ -124,9 +124,6 @@ function UniHanDict:get_prefix(ch, item)
   if item.xszd then
     prefix = prefix .. "+"
   end
-  if prefix == ">18153+" then
-    print(ch, traditional, item.ref)
-  end
   return prefix
 end
 
@@ -183,13 +180,7 @@ function UniHanDict:load_skk(path)
   for _, l in ipairs(vim.split(data, "\n")) do
     local word, values = parse_line(l)
     if word and values then
-      -- print(("[%s][%s]"):format(word, values))
-      ---@type CompletionItem[]
-      local items = self.jisyo[word]
-      if not items then
-        items = {}
-        self.jisyo[word] = items
-      end
+      local has_okuri = word:find "%a$"
       for w in values:gmatch "[^/]+" do
         local annotation_index = w:find(";", nil, true)
         local annotation = ""
@@ -197,14 +188,31 @@ function UniHanDict:load_skk(path)
           annotation = w:sub(annotation_index + 1)
           w = w:sub(1, annotation_index - 1)
         end
-        local item = self:get(w)
-        local new_item = CompletionItem.from_word(w, item, self)
-        if annotation then
-          new_item.abbr = new_item.abbr .. " " .. annotation
+        local item = self.map[w]
+        if not has_okuri and item then
+          -- 単漢字
+          item.annotation = annotation
+          table.insert(item.kana, word)
+        else
+          -- 単語
+          -- local new_item = CompletionItem.from_word(w, nil, self)
+          local new_item = {
+            word = w,
+            abbr = w,
+            menu = "[単語]",
+            dup = true,
+          }
+          if annotation then
+            new_item.abbr = new_item.abbr .. " " .. annotation
+          end
+          local items = self.jisyo[word]
+          if not items then
+            items = {}
+            self.jisyo[word] = items
+          end
+          table.insert(items, new_item)
         end
-        table.insert(items, new_item)
       end
-      -- break
     end
   end
 end
@@ -340,7 +348,6 @@ function UniHanDict:filter_goma(n)
     if item.goma and item.goma:match(n) then
       local new_item = CompletionItem.from_word(ch, item, self)
       new_item.word = "g" .. item.goma
-      new_item.dup = true
       new_item.user_data = {
         replace = ch,
       }
@@ -348,6 +355,64 @@ function UniHanDict:filter_goma(n)
     end
   end
   return Completion.new(items, Completion.FUZZY_OPTS)
+end
+
+---@return CompletionItem
+local function copy_item(src)
+  local dst = {}
+  for k, v in pairs(src) do
+    dst[k] = v
+  end
+  return dst
+end
+
+---@param key string
+---@param okuri string?
+---@return CompletionItem[]
+function UniHanDict:filter_jisyo(key, okuri)
+  local items = {}
+  -- 単語
+  for k, v in pairs(self.jisyo) do
+    if k == key then
+      for _, item in ipairs(v) do
+        local new_item = copy_item(item)
+        if okuri then
+          new_item.word = new_item.word .. okuri
+          new_item.menu = "[送り]"
+        end
+        table.insert(items, new_item)
+      end
+    end
+  end
+
+  -- 単漢字
+  key = util.str_to_hirakana(key)
+  if not okuri then
+    for k, item in pairs(self.map) do
+      if item.indices or item.fanqie or item.xszd or item.annotation then
+        for _, kana in ipairs(item.kana) do
+          if util.str_to_hirakana(kana) == key then
+            local new_item = CompletionItem.from_word(k, item, self)
+            if okuri then
+              new_item.word = new_item.word .. okuri
+            end
+
+            -- debug
+            -- new_item.abbr = ("%d:").format(utf8.codepoint(new_item.word)) .. new_item.abbr
+
+            table.insert(items, new_item)
+            break
+          end
+        end
+      end
+    end
+  end
+
+  table.sort(items, function(a, b)
+    return utf8.codepoint(a.word) < utf8.codepoint(b.word)
+  end)
+
+  return items
 end
 
 ---支那漢
@@ -398,15 +463,22 @@ function UniHanDict:load_chinadat(path)
           -- break
         end
         if #cols[10] > 0 then
-          local kana = util.splited(cols[10], "1")
-          table.remove(kana, 1)
-          item.kana = kana
+          local _kana = util.splited(cols[10], "1")
+          item.kana = {}
+          for i = #_kana, 1, -1 do
+            local kana = _kana[i]
+            if #kana > 0 and kana ~= "(" and kana ~= ")" then
+              table.insert(item.kana, 1, kana)
+            end
+          end
         end
       end
     end
   end
 end
 
+---廣韻
+---@param path string
 function UniHanDict:load_quangyun(path)
   local data = readFileSync(path)
   if data then

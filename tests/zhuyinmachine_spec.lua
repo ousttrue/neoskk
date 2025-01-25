@@ -16,7 +16,7 @@ describe("ZhuyinMachine", function()
     local _out, _feed, completion = engine:input(" ", dict)
 
     assert.are.equal("ㄏㄠ", _out)
-    assert.are.equal(Completion.new { "好" }, completion)
+    assert.are.equal("好", completion.items[1].user_data.replace)
   end)
 
   it("変換 enter", function()

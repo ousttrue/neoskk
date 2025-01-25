@@ -240,10 +240,14 @@ function M.NeoSkk:input(bufnr, lhs)
 
   local out, preedit, completion = self.state:input(lhs, self.dict, vim.fn.pumvisible() == 1)
   if vim.fn.pumvisible() == 1 and #preedit > 0 then
-    -- completion 中に未確定の仮名入力が発生。
-    -- 1文字出して消すことで completion を確定終了させる
-    out = " \b" .. out
-    -- TODO: redraw preedit
+    if getmetatable(self.state) == SkkMachine then
+      -- completion 中に未確定の仮名入力が発生。
+      -- 1文字出して消すことで completion を確定終了させる
+      out = " \b" .. out
+      -- TODO: redraw preedit
+    else
+      out = "<C-y>" .. out
+    end
   end
   self.preedit:highlight(self.bufnr, preedit)
 
@@ -267,7 +271,9 @@ end
 
 ---@param completion Completion
 function M.NeoSkk:raise_completion(completion)
-  if completion.opts == Completion.FUZZY_OPTS then
+  if getmetatable(self.state) == ZhuyinMachine then
+    self.last_completion = completion
+  elseif completion.opts == Completion.FUZZY_OPTS then
     self.last_completion = completion
   else
     self.last_completion = nil
