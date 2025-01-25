@@ -35,32 +35,14 @@ function CompletionItem.new(src)
   return self
 end
 
----@param item UniHanChar
----@return string
-local function get_prefix(item)
-  local prefix = ""
-  if item.indices then
-    prefix = "康煕"
-  elseif item.ref then
-    prefix = "=>" .. item.ref
-  else
-    prefix = "    "
-  end
-  prefix = "[" .. prefix .. "]"
-  if item.xszd then
-    prefix = prefix .. "+"
-  end
-  return prefix
-end
-
 ---@param w string word
 ---@param item UniHanChar? 単漢字情報
----@param fanqie_map table<string, Fanqie>
+---@param dict UniHanDict
 ---@return CompletionItem
-function CompletionItem.from_word(w, item, fanqie_map)
+function CompletionItem.from_word(w, item, dict)
   local prefix = " "
   if item then
-    prefix = get_prefix(item)
+    prefix = dict:get_prefix(w, item)
   end
   local new_item = {
     word = w,
@@ -80,12 +62,12 @@ function CompletionItem.from_word(w, item, fanqie_map)
       if item.chou then
         new_item.abbr = new_item.abbr .. item.chou
       end
-      local fanqie = fanqie_map[item.fanqie[1]]
+      local fanqie = dict.fanqie_map[item.fanqie[1]]
       if fanqie then
-        new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
+        new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku .. "(" .. fanqie.roma .. ")"
       end
     else
-      new_item.abbr = new_item.abbr .. " " .. "         "
+      -- new_item.abbr = new_item.abbr .. " " .. "         "
     end
     if item.pinyin then
       new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)

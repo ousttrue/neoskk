@@ -37,7 +37,7 @@ M.to_ascii = {
   ["ḿ"] = "m",
 }
 
-local pinyin = [[
+local PINYIN = [[
       ,  ㄅ  ,  ㄆ  ,  ㄇ  , ㄈ   ,  ㄉ  ,  ㄊ  ,  ㄋ  ,  ㄌ  ,  ㄍ  ,  ㄎ  ,  ㄏ  ,  ㄐ  ,  ㄑ  ,  ㄒ  ,  ㄓ  ,   ㄔ ,  ㄕ  ,  ㄖ  ,  ㄗ  ,  ㄘ  ,  ㄙ
       ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,zhi   ,chi   ,shi   ,ri    ,zi    ,ci    ,si    ,
       ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,ㄓ    ,ㄔ    ,ㄕ    ,ㄖ    ,ㄗ    ,ㄘ    ,ㄙ    ,
@@ -121,29 +121,28 @@ yong  ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,   
 ㄩㄥ  ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,      ,ㄐㄩㄥ,ㄑㄩㄥ,ㄒㄩㄥ,      ,      ,      ,      ,      ,      ,      ,
 ]]
 
+---@type table<string, string>
 M.pinyin2zhuyin = {}
 
 local lines = {}
-for l in string.gmatch(pinyin, "[^\n]+") do
+for l in string.gmatch(PINYIN, "[^\n]+") do
   table.insert(lines, l)
 end
-for i =2, #lines, 2 do
+for i = 2, #lines, 2 do
   local ks = util.splited(lines[i], ",")
-  local vs = util.splited(lines[i+1], ",")
+  local vs = util.splited(lines[i + 1], ",")
   -- print(#cols)
   for j = 1, 22 do
-    local k = ks[j]
-    local v = vs[j]
-    if k and v then
-      M.pinyin2zhuyin[util.strip(k)] = v
+    local k = util.strip(ks[j])
+    local v = util.strip(vs[j])
+    if #k > 0 and #v > 0 then
+      M.pinyin2zhuyin[k] = v
     end
   end
 end
 
----@type table<string, string>
-
---@param string
---@return string
+---@param pinyin string
+---@return string
 function M:to_zhuyin(pinyin)
   -- remove 声調
   for from, to in pairs(self.to_ascii) do

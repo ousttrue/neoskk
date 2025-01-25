@@ -13,11 +13,11 @@ local pinyin = require "neoskk.pinyin"
 ---@field qieyun string? 切韻 TODO
 ---@field pinyin string? pinyin
 ---@field fanqie string[] 反切
----@field chou string 声調
+---@field chou string? 声調
 ---@field kana string[] よみかな
 ---@field chuon string? 注音符号 TODO
----@field flag integer TODO 新字体 簡体字 国字 常用漢字
----@field indices string 康煕字典
+---@field flag integer? TODO 新字体 簡体字 国字 常用漢字
+---@field indices string? 康煕字典
 ---@field ref string?
 local UniHanChar = {}
 
@@ -25,6 +25,7 @@ local UniHanChar = {}
 ---@class Fanqie
 ---@field koe string 聲紐
 ---@field moku string 韻目
+---@field roma string Polyhedron擬羅馬字
 
 ---@param path string
 ---@param from string?
@@ -95,6 +96,37 @@ function UniHanDict:get(char)
   return item
 end
 
+---@param ch string
+---@param item UniHanChar
+---@return string
+function UniHanDict:get_prefix(ch, item)
+  local prefix = ""
+  local traditional = self.simple_map[ch]
+  assert(traditional ~= ch)
+  if traditional then
+    prefix = ">" .. traditional
+    local ref = self:get(traditional)
+    if ref and ref.goma then
+      prefix = prefix .. ":" .. ref.goma
+    end
+  elseif item.ref then
+    prefix = ">" .. item.ref
+    local ref = self:get(item.ref)
+    if ref and ref.goma then
+      prefix = prefix .. ":" .. ref.goma
+    end
+  elseif item.indices then
+    prefix = "[康煕]"
+  end
+  if item.xszd then
+    prefix = prefix .. "+"
+  end
+  if prefix == ">18153+" then
+    print(ch, traditional, item.ref)
+  end
+  return prefix
+end
+
 --- 學生字典(XueShengZiDian)
 ---@param path string
 function UniHanDict:load_xszd(path)
@@ -110,31 +142,32 @@ function UniHanDict:load_xszd(path)
   -- --或然之詞。如萬一、一旦。
   -- --專也。如一味、一意。
 
-  local pos = 1
-  local char
-  local last_char
-  while pos do
-    local s, e = data:find("\n%*%*[^\n]+\n", pos)
+  -- local pos = 1
+  local last_s = 0
+  while last_s <= #data do
+    local s = data:find("%*%*", last_s + 1)
     if s then
-      if char and last_char then
+      if last_s > 0 then
+        local codepoint = utf8.codepoint(data, last_s + 2)
+        local char = utf8.char(codepoint)
         local item = self:get(char)
         if item then
-          item.xszd = data:sub(last_char, s)
+          item.xszd = util.strip(data:sub(last_s, s - 1))
         end
       end
-      char = data:sub(s + 3, e - 1)
-      last_char = e + 1
+      last_s = s
     else
       -- last one
-      if char and last_char then
+      if last_s > 0 then
+        local codepoint = utf8.codepoint(data, last_s + 2)
+        local char = utf8.char(codepoint)
         local item = self:get(char)
         if item then
-          item.xszd = data:sub(last_char)
+          item.xszd = util.strip(data:sub(last_s))
         end
       end
       break
     end
-    pos = e + 1
   end
 end
 
@@ -162,7 +195,7 @@ function UniHanDict:load_skk(path)
           w = w:sub(1, annotation_index - 1)
         end
         local item = self:get(w)
-        local new_item = CompletionItem.from_word(w, item, self.fanqie_map)
+        local new_item = CompletionItem.from_word(w, item, self)
         if annotation then
           new_item.abbr = new_item.abbr .. " " .. annotation
         end
@@ -258,12 +291,16 @@ function UniHanDict:load_unihan_variants(path)
   local data = readFileSync(path)
   if data then
     -- U+346E	kSimplifiedVariant	U+2B748
-    for traditional, simple in string.gmatch(data, "U%+([A-F0-9]+)\tkSimplifiedVariant\tU%+([A-F0-9]+)") do
-      local s_codepoint = tonumber(simple, 16)
-      local s_ch = utf8.char(s_codepoint)
-      local t_codepoint = tonumber(traditional, 16)
-      local t_ch = utf8.char(t_codepoint)
-      self.simple_map[s_ch] = t_ch
+    for src, k, dst in string.gmatch(data, "U%+([A-F0-9]+)\t(k%w+)\tU%+([A-F0-9]+)") do
+      if k == "kSimplifiedVariant" then
+        local d_codepoint = tonumber(dst, 16)
+        local d_ch = utf8.char(d_codepoint)
+        local s_codepoint = tonumber(src, 16)
+        local s_ch = utf8.char(s_codepoint)
+        if d_ch ~= s_ch then
+          self.simple_map[d_ch] = s_ch
+        end
+      end
     end
   end
 end
@@ -275,7 +312,7 @@ function UniHanDict:filter_goma(n)
   local items = {}
   for ch, item in pairs(self.map) do
     if item.goma and item.goma:match(n) then
-      local new_item = CompletionItem.from_word(ch, item, self.fanqie_map)
+      local new_item = CompletionItem.from_word(ch, item, self)
       new_item.word = "g" .. item.goma
       new_item.dup = true
       new_item.user_data = {
@@ -325,7 +362,12 @@ function UniHanDict:load_chinadat(path)
         local item = self:get(ch)
         assert(item)
         if #cols[2] > 0 then
-          item.ref = cols[2]
+          local ref = cols[2]
+          if ref:find "%d+" then
+            -- 漢,18153
+          else
+            item.ref = cols[2]
+          end
           -- print(vim.inspect(cols))
           -- break
         end
@@ -370,6 +412,7 @@ function UniHanDict:load_quangyun(path)
         self.fanqie_map[cols[3]] = {
           moku = cols[12],
           koe = cols[9],
+          roma = cols[14],
         }
         for i, ch in utf8.codes(cols[4]) do
           local item = self:get(ch)

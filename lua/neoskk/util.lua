@@ -156,6 +156,9 @@ end
 ---@param src string
 ---@return string
 function M.strip(src)
+  if not src then
+    return ""
+  end
   local hs, be = src:find "^%s*"
 
   local ts, te = src:find "%s*$"
