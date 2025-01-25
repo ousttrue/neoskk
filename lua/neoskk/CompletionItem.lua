@@ -15,6 +15,7 @@ local pinyin = require "neoskk.pinyin"
 local CompletionItem = {}
 CompletionItem.__index = CompletionItem
 
+---for test
 ---@param src {word:string?, abbr:string?, menu:string?, info:string?, kind:string?, equal: boolean?, dup:boolean?, empty: boolean?, user_data: any, abbr_hlgroup:string?, kind_hlgroup:string? }?
 function CompletionItem.new(src)
   local self = setmetatable({}, CompletionItem)
@@ -52,43 +53,10 @@ local function get_prefix(item)
   return prefix
 end
 
----@param ch string 単漢字
----@param item UniHanChar 単漢字情報
+---@param w string word
+---@param item UniHanChar? 単漢字情報
+---@param fanqie_map table<string, Fanqie>
 ---@return CompletionItem
-function CompletionItem.from_ch(ch, item, fanqie_map)
-  local prefix = get_prefix(item)
-  local new_item = {
-    word = "g" .. item.goma,
-    abbr = ch .. " " .. item.goma,
-    menu = prefix,
-    dup = true,
-    user_data = {
-      replace = ch,
-    },
-    info = item.xszd,
-  }
-  if #item.kana > 0 then
-    new_item.abbr = new_item.abbr .. " " .. item.kana[1]
-  end
-  if #item.fanqie > 0 then
-    new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
-    if item.chou then
-      new_item.abbr = new_item.abbr .. item.chou
-    end
-    local fanqie = fanqie_map[item.fanqie[1]]
-    if fanqie then
-      new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
-    end
-  else
-    new_item.abbr = new_item.abbr .. " " .. "         "
-  end
-  if item.pinyin then
-    new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
-  end
-
-  return new_item
-end
-
 function CompletionItem.from_word(w, item, fanqie_map)
   local prefix = " "
   if item then

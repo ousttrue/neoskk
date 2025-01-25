@@ -275,7 +275,13 @@ function UniHanDict:filter_goma(n)
   local items = {}
   for ch, item in pairs(self.map) do
     if item.goma and item.goma:match(n) then
-      table.insert(items, CompletionItem.from_ch(ch, item, self.fanqie_map))
+      local new_item = CompletionItem.from_word(ch, item, self.fanqie_map)
+      new_item.word = "g" .. item.goma
+      new_item.dup = true
+      new_item.user_data = {
+        replace = ch,
+      }
+      table.insert(items, new_item)
     end
   end
   return Completion.new(items, Completion.FUZZY_OPTS)
