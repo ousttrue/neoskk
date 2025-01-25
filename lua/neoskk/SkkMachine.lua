@@ -171,12 +171,12 @@ function SkkMachine:input(lhs, dict)
 
     if key == " " then
       -- 一文字投入して "n" を "ん" に確定させる
-      out_tmp, preedit, completion = self:_input("-", dict)
+      out_tmp, preedit, _ = self:_input("-", dict)
       if out_tmp then
         out = out .. out_tmp
       end
       -- 削る
-      out_tmp, preedit, completion = self:_input("\b", dict)
+      out_tmp, preedit, _ = self:_input("\b", dict)
       if out_tmp then
         out = out .. out_tmp
       end
@@ -234,6 +234,7 @@ function SkkMachine:_input(lhs, dict)
     -- raw
     local out = self:input_char(lhs)
     return out, self.kana_feed
+
   elseif self.conv_mode == CONV then
     -- conv
     if lhs == "q" then
@@ -270,6 +271,7 @@ function SkkMachine:_input(lhs, dict)
       end
     end
     return "", preedit
+
   elseif self.conv_mode == OKURI then
     -- okuri
     local out = self:input_char(lhs)
@@ -280,9 +282,10 @@ function SkkMachine:_input(lhs, dict)
         return conv_feed .. out, "", Completion.new(items)
       end
     end
-
     return "", self.conv_feed .. self.kana_feed
+
   else
+
     assert(false)
     return "", ""
   end

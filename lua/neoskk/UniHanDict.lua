@@ -1,5 +1,6 @@
 local utf8 = require "neoskk.utf8"
 local Completion = require "neoskk.Completion"
+local CompletionItem = require "neoskk.CompletionItem"
 local util = require "neoskk.util"
 local pinyin = require "neoskk.pinyin"
 
@@ -24,24 +25,6 @@ local UniHanChar = {}
 ---@class Fanqie
 ---@field koe string 聲紐
 ---@field moku string 韻目
-
----@param item UniHanChar
----@return string
-local function get_prefix(item)
-  local prefix = ""
-  if item.indices then
-    prefix = "康煕"
-  elseif item.ref then
-    prefix = "=>" .. item.ref
-  else
-    prefix = "    "
-  end
-  prefix = "[" .. prefix .. "]"
-  if item.xszd then
-    prefix = prefix .. "+"
-  end
-  return prefix
-end
 
 ---@param path string
 ---@param from string?
@@ -165,6 +148,7 @@ function UniHanDict:load_skk(path)
     local word, values = parse_line(l)
     if word and values then
       -- print(("[%s][%s]"):format(word, values))
+      ---@type CompletionItem[]
       local items = self.jisyo[word]
       if not items then
         items = {}
@@ -178,43 +162,10 @@ function UniHanDict:load_skk(path)
           w = w:sub(1, annotation_index - 1)
         end
         local item = self:get(w)
-        local prefix = " "
-        if item then
-          prefix = get_prefix(item)
-        end
-        local new_item = {
-          word = w,
-          abbr = w,
-          menu = prefix,
-        }
-        if item then
-          new_item.info = item.xszd
-          if item.goma then
-            new_item.abbr = new_item.abbr .. " " .. item.goma
-          end
-          if #item.kana > 0 then
-            new_item.abbr = new_item.abbr .. " " .. item.kana[1]
-          end
-          if #item.fanqie > 0 then
-            new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
-            if item.chou then
-              new_item.abbr = new_item.abbr .. item.chou
-            end
-            local fanqie = self.fanqie_map[item.fanqie[1]]
-            if fanqie then
-              new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
-            end
-          else
-            new_item.abbr = new_item.abbr .. " " .. "         "
-          end
-          if item.pinyin then
-            new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
-          end
-        end
+        local new_item = CompletionItem.from_word(w, item, self.fanqie_map)
         if annotation then
           new_item.abbr = new_item.abbr .. " " .. annotation
         end
-
         table.insert(items, new_item)
       end
       -- break
@@ -317,43 +268,6 @@ function UniHanDict:load_unihan_variants(path)
   end
 end
 
----@param ch string
----@param item UniHanChar
----@return CompletionItem
-local function to_completion(ch, item, fanqie_map)
-  local prefix = get_prefix(item)
-  local new_item = {
-    word = "g" .. item.goma,
-    abbr = ch .. " " .. item.goma,
-    menu = prefix,
-    dup = true,
-    user_data = {
-      replace = ch,
-    },
-    info = item.xszd,
-  }
-  if #item.kana > 0 then
-    new_item.abbr = new_item.abbr .. " " .. item.kana[1]
-  end
-  if #item.fanqie > 0 then
-    new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
-    if item.chou then
-      new_item.abbr = new_item.abbr .. item.chou
-    end
-    local fanqie = fanqie_map[item.fanqie[1]]
-    if fanqie then
-      new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
-    end
-  else
-    new_item.abbr = new_item.abbr .. " " .. "         "
-  end
-  if item.pinyin then
-    new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
-  end
-
-  return new_item
-end
-
 ---@param n string %d
 ---@return Completion
 function UniHanDict:filter_goma(n)
@@ -361,7 +275,7 @@ function UniHanDict:filter_goma(n)
   local items = {}
   for ch, item in pairs(self.map) do
     if item.goma and item.goma:match(n) then
-      table.insert(items, to_completion(ch, item, self.fanqie_map))
+      table.insert(items, CompletionItem.from_ch(ch, item, self.fanqie_map))
     end
   end
   return Completion.new(items, Completion.FUZZY_OPTS)

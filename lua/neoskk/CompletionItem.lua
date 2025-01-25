@@ -1,3 +1,5 @@
+local pinyin = require "neoskk.pinyin"
+
 ---@class CompletionItem
 ---@field word string the text that will be inserted, mandatory
 ---@field abbr string? abbreviation of "word"; when not empty it is used in the menu instead of "word"
@@ -30,6 +32,98 @@ function CompletionItem.new(src)
     self.kind_hlgroup = src.kind_hlgroup or ""
   end
   return self
+end
+
+---@param item UniHanChar
+---@return string
+local function get_prefix(item)
+  local prefix = ""
+  if item.indices then
+    prefix = "康煕"
+  elseif item.ref then
+    prefix = "=>" .. item.ref
+  else
+    prefix = "    "
+  end
+  prefix = "[" .. prefix .. "]"
+  if item.xszd then
+    prefix = prefix .. "+"
+  end
+  return prefix
+end
+
+---@param ch string 単漢字
+---@param item UniHanChar 単漢字情報
+---@return CompletionItem
+function CompletionItem.from_ch(ch, item, fanqie_map)
+  local prefix = get_prefix(item)
+  local new_item = {
+    word = "g" .. item.goma,
+    abbr = ch .. " " .. item.goma,
+    menu = prefix,
+    dup = true,
+    user_data = {
+      replace = ch,
+    },
+    info = item.xszd,
+  }
+  if #item.kana > 0 then
+    new_item.abbr = new_item.abbr .. " " .. item.kana[1]
+  end
+  if #item.fanqie > 0 then
+    new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
+    if item.chou then
+      new_item.abbr = new_item.abbr .. item.chou
+    end
+    local fanqie = fanqie_map[item.fanqie[1]]
+    if fanqie then
+      new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
+    end
+  else
+    new_item.abbr = new_item.abbr .. " " .. "         "
+  end
+  if item.pinyin then
+    new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
+  end
+
+  return new_item
+end
+
+function CompletionItem.from_word(w, item, fanqie_map)
+  local prefix = " "
+  if item then
+    prefix = get_prefix(item)
+  end
+  local new_item = {
+    word = w,
+    abbr = w,
+    menu = prefix,
+  }
+  if item then
+    new_item.info = item.xszd
+    if item.goma then
+      new_item.abbr = new_item.abbr .. " " .. item.goma
+    end
+    if #item.kana > 0 then
+      new_item.abbr = new_item.abbr .. " " .. item.kana[1]
+    end
+    if #item.fanqie > 0 then
+      new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
+      if item.chou then
+        new_item.abbr = new_item.abbr .. item.chou
+      end
+      local fanqie = fanqie_map[item.fanqie[1]]
+      if fanqie then
+        new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku
+      end
+    else
+      new_item.abbr = new_item.abbr .. " " .. "         "
+    end
+    if item.pinyin then
+      new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
+    end
+  end
+  return new_item
 end
 
 ---@param a CompletionItem

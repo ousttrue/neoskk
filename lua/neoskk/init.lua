@@ -240,7 +240,8 @@ function M.NeoSkk:input(bufnr, lhs)
 
   local out, preedit, completion = self.state:input(lhs, self.dict)
   if vim.fn.pumvisible() and #preedit > 0 then
-    -- completion を確定する
+    -- completion 中に未確定の仮名入力が発生。
+    -- 1文字出して消すことで completion を確定終了させる
     out = " \b" .. out
   end
   self.preedit:highlight(self.bufnr, preedit)
