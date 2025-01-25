@@ -115,32 +115,16 @@ local function copy_item(src)
   return dst
 end
 
----@param jisyo table<string, CompletionItem[]>
+---@param dict UniHanDict
 ---@param key string
 ---@param okuri string?
----@param xszd table<string, string>?
----@param goma table<string, string>?
 ---@return CompletionItem[]
-local function filter_jisyo(jisyo, key, okuri, xszd, goma)
+local function filter_jisyo(dict, key, okuri)
   local items = {}
-  for k, v in pairs(jisyo) do
+  for k, v in pairs(dict.jisyo) do
     if k == key then
       for _, item in ipairs(v) do
         local copy = copy_item(item)
-        if xszd then
-          local info = xszd[copy.word]
-          if info then
-            copy.info = info
-          end
-        end
-        if goma then
-          for _, goma_item in ipairs(goma) do
-            if goma_item.user_data.replace == copy.word then
-              copy.menu = goma_item.word:sub(2)
-              break
-            end
-          end
-        end
         if okuri then
           copy.word = copy.word .. okuri
         end
@@ -215,7 +199,7 @@ function SkkMachine:_input(lhs, dict)
   if lhs:match "^[A-Z]$" then
     lhs = string.lower(lhs)
     -- if not self.okuri_feed then
-      self.okuri_feed = lhs
+    self.okuri_feed = lhs
     -- end
     self:_upper()
   end
@@ -266,7 +250,7 @@ function SkkMachine:_input(lhs, dict)
     if lhs == " " then
       if dict then
         local conv_feed = self:clear_conv()
-        local items = filter_jisyo(dict.jisyo, conv_feed, nil, dict.chars, dict.goma)
+        local items = filter_jisyo(dict, conv_feed, nil)
         self.conv_mode = RAW
         return conv_feed, "", Completion.new(items)
       end
@@ -292,7 +276,7 @@ function SkkMachine:_input(lhs, dict)
     if #out > 0 then
       if dict then
         local conv_feed = self:clear_conv()
-        local items = filter_jisyo(dict.jisyo, conv_feed .. self.okuri_feed, out, dict.chars)
+        local items = filter_jisyo(dict, conv_feed .. self.okuri_feed, out)
         return conv_feed .. out, "", Completion.new(items)
       end
     end

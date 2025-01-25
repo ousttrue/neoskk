@@ -77,10 +77,10 @@ local function parse_line(l)
 end
 
 ---@class UniHanDict
----@field map table<string, UniHanChar>
----@field jisyo table<string, CompletionItem[]>
----@field simple_map table<string, string>
----@field fanqie_map table<string, Fanqie>
+---@field map table<string, UniHanChar> 単漢字辞書
+---@field jisyo table<string, CompletionItem[]> SKK辞書
+---@field simple_map table<string, string> 簡体字マップ
+---@field fanqie_map table<string, Fanqie> 反切マップ
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
 ---@return UniHanDict
