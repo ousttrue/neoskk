@@ -70,7 +70,8 @@ function CompletionItem.from_word(w, item, dict)
       -- new_item.abbr = new_item.abbr .. " " .. "         "
     end
     if item.pinyin then
-      new_item.abbr = new_item.abbr .. " " .. pinyin:to_zhuyin(item.pinyin)
+      local zhuyin = pinyin:to_zhuyin(item.pinyin)
+      new_item.abbr = new_item.abbr .. " " .. (zhuyin and zhuyin or item.pinyin)
     end
   end
   return new_item

@@ -26,6 +26,14 @@ function Completion.new(items, opts)
   return self
 end
 
+function Completion:__tostring()
+  local s = "<Completion>"
+  for _, item in ipairs(self.items) do
+    s = s .. ";" .. item.word
+  end
+  return s
+end
+
 function Completion.__eq(a, b)
   if #a ~= #b then
     return false

@@ -142,7 +142,7 @@ for i = 2, #lines, 2 do
 end
 
 ---@param pinyin string
----@return string
+---@return string?
 function M:to_zhuyin(pinyin)
   -- remove 声調
   for from, to in pairs(self.to_ascii) do
@@ -152,8 +152,6 @@ function M:to_zhuyin(pinyin)
   local zhuyin = self.pinyin2zhuyin[pinyin]
   if zhuyin then
     return zhuyin
-  else
-    return pinyin
   end
 end
 

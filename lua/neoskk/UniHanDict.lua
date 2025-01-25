@@ -65,6 +65,7 @@ end
 ---@field jisyo table<string, CompletionItem[]> SKK辞書
 ---@field simple_map table<string, string> 簡体字マップ
 ---@field fanqie_map table<string, Fanqie> 反切マップ
+---@field zhuyin_map table<string, string[]> 注音辞書
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
 ---@return UniHanDict
@@ -74,6 +75,7 @@ function UniHanDict.new()
     jisyo = {},
     simple_map = {},
     fanqie_map = {},
+    zhuyin_map = {},
   }, UniHanDict)
   return self
 end
@@ -236,16 +238,20 @@ function UniHanDict:load_unihan(dir)
   self:load_unihan_variants(dir .. "/Unihan_Variants.txt")
 end
 
+local UNIHAN_PATTERN = "U%+([A-F0-9]+)\t(k%w+)\t([^\n]+)\n"
+
 function UniHanDict:load_unihan_likedata(path)
   local data = readFileSync(path)
   if data then
     -- U+5650	kFourCornerCode	6666.1
-    for unicode, goma in string.gmatch(data, "U%+([A-F0-9]+)\tkFourCornerCode\t([%d%.]+)") do
+    for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
       local codepoint = tonumber(unicode, 16)
       local ch = utf8.char(codepoint)
       local item = self:get(ch)
-      assert(item)
-      item.goma = goma
+      -- assert(item)
+      if k == "kFourCornerCode" then
+        item.goma = v
+      end
     end
   end
 end
@@ -256,49 +262,67 @@ function UniHanDict:load_unihan_readings(path)
     -- U+3400	kMandarin	qiū
     -- U+3401	kFanqie	他紺 他念
     -- U+3400	kJapanese	キュウ おか
-    for unicode, k, value in string.gmatch(data, "U%+([A-F0-9]+)\t(k%w+)\t([^\n]+)") do
+    for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
       local codepoint = tonumber(unicode, 16)
       local ch = utf8.char(codepoint)
       local item = self:get(ch)
-      assert(item)
+      -- assert(item)
       if k == "kMandarin" then
-        item.pinyin = value
+        item.pinyin = v
+        -- zhuyin
+        local zhuyin = pinyin:to_zhuyin(v)
+        if zhuyin then
+          local list = self.zhuyin_map[zhuyin]
+          if not list then
+            list = {}
+            self.zhuyin_map[zhuyin] = list
+          end
+          table.insert(list, ch)
+        end
       elseif k == "kFanqie" then
-        item.fanqie = util.splited(value)
+        item.fanqie = util.splited(v)
       elseif k == "kJapanese" then
-        item.kana = util.splited(value)
+        item.kana = util.splited(v)
       end
     end
   end
 end
 
 -- 新字体とか最近の文字も含まれてたー
-function UniHanDict:load_unihan_indices(path)
-  local data = readFileSync(path)
-  if data then
-    -- U+3400	kKangXi	0078.010
-    for unicode, kangxi in string.gmatch(data, "U%+([A-F0-9]+)\tkIRGKangXi\t([%S%.]+)") do
-      local codepoint = tonumber(unicode, 16)
-      local ch = utf8.char(codepoint)
-      local item = self:get(ch)
-      assert(item)
-      item.indices = kangxi
-    end
-  end
-end
+-- function UniHanDict:load_unihan_indices(path)
+--   local data = readFileSync(path)
+--   if data then
+--     -- U+3400	kKangXi	0078.010
+--     for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+--       local codepoint = tonumber(unicode, 16)
+--       local ch = utf8.char(codepoint)
+--       local item = self:get(ch)
+--       assert(item)
+--       if k == "kKangXi" then
+--         print(v)
+--         item.indices = v
+--         break
+--       end
+--     end
+--   end
+-- end
 
 function UniHanDict:load_unihan_variants(path)
   local data = readFileSync(path)
   if data then
     -- U+346E	kSimplifiedVariant	U+2B748
-    for src, k, dst in string.gmatch(data, "U%+([A-F0-9]+)\t(k%w+)\tU%+([A-F0-9]+)") do
+    for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+      local codepoint = tonumber(unicode, 16)
+      local ch = utf8.char(codepoint)
+      local item = self:get(ch)
+      -- assert(item)
       if k == "kSimplifiedVariant" then
-        local d_codepoint = tonumber(dst, 16)
-        local d_ch = utf8.char(d_codepoint)
-        local s_codepoint = tonumber(src, 16)
-        local s_ch = utf8.char(s_codepoint)
-        if d_ch ~= s_ch then
-          self.simple_map[d_ch] = s_ch
+        local v_codepoint = tonumber(v, 16)
+        local v_ch = utf8.char(v_codepoint)
+        -- local s_codepoint = tonumber(src, 16)
+        -- local s_ch = utf8.char(s_codepoint)
+        if ch ~= v_ch then
+          self.simple_map[v_ch] = ch
         end
       end
     end

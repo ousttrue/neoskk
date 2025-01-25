@@ -9,7 +9,7 @@ dict.jisyo = {
   ["あるk"] = { { word = "歩" } },
 }
 
-describe("Tests for 変換モード", function()
+describe("SkkMachine", function()
   it("q", function()
     local engine = SkkMachine.new()
     assert.are.equal(SkkMachine.HIRAKANA, engine.input_mode)

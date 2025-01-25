@@ -243,6 +243,7 @@ function M.NeoSkk:input(bufnr, lhs)
     -- completion 中に未確定の仮名入力が発生。
     -- 1文字出して消すことで completion を確定終了させる
     out = " \b" .. out
+    -- TODO: redraw preedit
   end
   self.preedit:highlight(self.bufnr, preedit)
 
@@ -254,6 +255,9 @@ function M.NeoSkk:input(bufnr, lhs)
       out = item.word
     else
       -- completion
+      if getmetatable(self.state) == ZhuyinMachine then
+        self.conv_col = vim.fn.col "."
+      end
       self:raise_completion(completion)
     end
   end
