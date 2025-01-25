@@ -72,6 +72,9 @@ function CompletionItem.from_word(w, item, dict)
     if item.pinyin then
       local zhuyin = pinyin:to_zhuyin(item.pinyin)
       new_item.abbr = new_item.abbr .. " " .. (zhuyin and zhuyin or item.pinyin)
+      if item.tiao then
+        new_item.abbr = new_item.abbr .. ("%d"):format(item.tiao)
+      end
     end
   end
   return new_item

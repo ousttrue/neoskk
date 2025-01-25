@@ -1,40 +1,42 @@
 local util = require "neoskk.util"
 local M = {}
 
+---@type table<string, [string, integer]>
 M.to_ascii = {
   --a
-  ["ā"] = "a",
-  ["á"] = "a",
-  ["ǎ"] = "a",
-  ["à"] = "a",
+  ["ā"] = { "a", 1 },
+  ["á"] = { "a", 2 },
+  ["ǎ"] = { "a", 3 },
+  ["à"] = { "a", 4 },
   --e
-  ["ē"] = "e",
-  ["é"] = "e",
-  ["ě"] = "e",
-  ["è"] = "e",
+  ["ē"] = { "e", 1 },
+  ["é"] = { "e", 2 },
+  ["ě"] = { "e", 3 },
+  ["è"] = { "e", 4 },
   --i
-  ["ī"] = "i",
-  ["í"] = "i",
-  ["ǐ"] = "i",
-  ["ì"] = "i",
+  ["ī"] = { "i", 1 },
+  ["í"] = { "i", 2 },
+  ["ǐ"] = { "i", 3 },
+  ["ì"] = { "i", 4 },
   --o
-  ["ō"] = "o",
-  ["ó"] = "o",
-  ["ǒ"] = "o",
-  ["ò"] = "o",
+  ["ō"] = { "o", 1 },
+  ["ó"] = { "o", 2 },
+  ["ǒ"] = { "o", 3 },
+  ["ò"] = { "o", 4 },
   --u
-  ["ū"] = "u",
-  ["ú"] = "u",
-  ["ǔ"] = "u",
-  ["ù"] = "u",
+  ["ū"] = { "u", 1 },
+  ["ú"] = { "u", 2 },
+  ["ǔ"] = { "u", 3 },
+  ["ù"] = { "u", 4 },
   --
-  ["üè"] = "üe",
-  ["ǘ"] = "ü",
-  ["ǚ"] = "ü",
-  ["ǜ"] = "ü",
-  ["ň"] = "n",
-  ["ǹ"] = "n",
-  ["ḿ"] = "m",
+  ["ǖ"] = { "ü", 1 },
+  ["ǘ"] = { "ü", 2 },
+  ["ǚ"] = { "ü", 3 },
+  ["ǜ"] = { "ü", 4 },
+  --
+  ["ň"] = { "n", 3 },
+  ["ǹ"] = { "n", 4 },
+  ["ḿ"] = { "m", 2 },
 }
 
 local PINYIN = [[
@@ -143,15 +145,24 @@ end
 
 ---@param pinyin string
 ---@return string?
+---@return integer?
 function M:to_zhuyin(pinyin)
   -- remove 声調
-  for from, to in pairs(self.to_ascii) do
-    pinyin = pinyin:gsub(from, to)
+  local n = nil
+  for from, _to in pairs(self.to_ascii) do
+    local to, _n = unpack(_to)
+    local _pinyin = pinyin:gsub(from, to)
+    if _pinyin ~= pinyin then
+      pinyin = _pinyin
+      if _n then
+        n = _n
+      end
+    end
   end
 
   local zhuyin = self.pinyin2zhuyin[pinyin]
   if zhuyin then
-    return zhuyin
+    return zhuyin, n
   end
 end
 

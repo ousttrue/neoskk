@@ -2,8 +2,9 @@ local CompletionItem = require "neoskk.CompletionItem"
 
 local SKK_OPTS = 0
 local FUZZY_OPTS = 1
+local ZHUYIN_OPTS = 2
 
----@alias COMPLETION_OPTS `SKK_OPTS` | `FUZZY_OPTS`
+---@alias COMPLETION_OPTS `SKK_OPTS` | `FUZZY_OPTS` | `ZHUYIN_OPTS`
 
 ---@class Completion
 ---@field items CompletionItem[]
@@ -12,6 +13,7 @@ local FUZZY_OPTS = 1
 local Completion = {
   SKK_OPTS = SKK_OPTS,
   FUZZY_OPTS = FUZZY_OPTS,
+  ZHUYIN_OPTS = ZHUYIN_OPTS,
 }
 Completion.__index = Completion
 

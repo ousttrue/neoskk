@@ -86,10 +86,15 @@ end
 
 ---@param lhs string
 ---@param dict UniHanDict
+---@param is_pum boolean
 ---@return string out
 ---@return string preedit
 ---@return Completion?
-function ZhuyinMachine:input(lhs, dict)
+function ZhuyinMachine:input(lhs, dict, is_pum)
+  if is_pum and lhs:match "^%d$" then
+    return lhs, ""
+  end
+
   local out_tmp, preedit, completion
   local out = ""
   for key in lhs:gmatch "." do
@@ -112,17 +117,25 @@ local function copy_item(src)
 end
 
 ---@param dict UniHanDict
----@param key string
+---@param zhuyin string
 ---@return CompletionItem[]
-local function filter_jisyo(dict, key)
+local function filter_jisyo(dict, zhuyin)
   local items = {}
   for k, v in pairs(dict.zhuyin_map) do
-    if k == key then
+    if k == zhuyin then
       for _, ch in ipairs(v) do
-        -- local item =
-        local zhuyin_item = CompletionItem.from_word(ch, dict:get(ch), dict)
-        zhuyin_item.equal = true
-        table.insert(items, zhuyin_item)
+        local item = dict:get(ch)
+        assert(item)
+        local new_item = CompletionItem.from_word(ch, item, dict)
+        new_item.word = zhuyin
+        new_item.dup = true
+        new_item.user_data = {
+          replace = ch,
+        }
+        if item.tiao then
+          new_item.word = new_item.word .. ("%d").format(item.tiao)
+        end
+        table.insert(items, new_item)
       end
     end
   end
@@ -161,7 +174,7 @@ function ZhuyinMachine:_input(lhs, dict)
     if dict then
       local conv_feed = self:clear_conv()
       local items = filter_jisyo(dict, conv_feed)
-      return conv_feed, "", Completion.new(items)
+      return conv_feed, "", Completion.new(items, Completion.ZHUYIN_OPTS)
     end
   end
 
@@ -181,13 +194,6 @@ end
 ---@param lhs string
 ---@return string
 function ZhuyinMachine.input_char(self, lhs)
-  -- local kana, feed =
-  --     MachedKanaRule.conv(KanaRules, self.kana_feed .. lhs, MachedKanaRule.new(KanaRules, self.kana_feed))
-  -- self.kana_feed = feed
-  -- if self.input_mode == KATAKANA then
-  --   kana = util.str_to_katakana(kana)
-  -- end
-  -- return kana
   local tmp = rules[lhs]
   if tmp then
     return tmp

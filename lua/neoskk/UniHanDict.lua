@@ -12,6 +12,7 @@ local pinyin = require "neoskk.pinyin"
 ---@field xszd string? 學生字典
 ---@field qieyun string? 切韻 TODO
 ---@field pinyin string? pinyin
+---@field tiao integer? 四声
 ---@field fanqie string[] 反切
 ---@field chou string? 声調
 ---@field kana string[] よみかな
@@ -270,7 +271,7 @@ function UniHanDict:load_unihan_readings(path)
       if k == "kMandarin" then
         item.pinyin = v
         -- zhuyin
-        local zhuyin = pinyin:to_zhuyin(v)
+        local zhuyin, tiao = pinyin:to_zhuyin(v)
         if zhuyin then
           local list = self.zhuyin_map[zhuyin]
           if not list then
@@ -278,6 +279,7 @@ function UniHanDict:load_unihan_readings(path)
             self.zhuyin_map[zhuyin] = list
           end
           table.insert(list, ch)
+          item.tiao = tiao
         end
       elseif k == "kFanqie" then
         item.fanqie = util.splited(v)

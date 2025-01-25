@@ -181,9 +181,9 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - [ ] 絵文字 https://www.unicode.org/Public/emoji/1.0/emoji-data.txt
 - Unihan_DictionaryLikeData.txt
   - [x] 四角号碼 G1234 のように入力する
-  - [ ] 音読み
-  - [ ] pinyin => (注音符号) => 漢字
-- [ ] WEB支那漢 日本語音訓 https://www.seiwatei.net/info/dnchina.htm
+  - [x] 音読み
+  - [x] pinyin => (注音符号) => 漢字
+- [x] WEB支那漢 日本語音訓 https://www.seiwatei.net/info/dnchina.htm
 - [x] 學生字典から completion info
 - [ ] 常用漢字などハイライトする
 

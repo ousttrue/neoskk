@@ -238,8 +238,8 @@ function M.NeoSkk:input(bufnr, lhs)
     end
   end
 
-  local out, preedit, completion = self.state:input(lhs, self.dict)
-  if vim.fn.pumvisible() and #preedit > 0 then
+  local out, preedit, completion = self.state:input(lhs, self.dict, vim.fn.pumvisible() == 1)
+  if vim.fn.pumvisible() == 1 and #preedit > 0 then
     -- completion 中に未確定の仮名入力が発生。
     -- 1文字出して消すことで completion を確定終了させる
     out = " \b" .. out
@@ -280,6 +280,8 @@ function M.NeoSkk:raise_completion(completion)
       vim.opt.completeopt = { "menuone", "popup" }
     elseif completion.opts == Completion.FUZZY_OPTS then
       vim.opt.completeopt = { "menuone", "popup", "fuzzy", "noselect", "noinsert" }
+    elseif completion.opts == Completion.ZHUYIN_OPTS then
+      vim.opt.completeopt = { "menuone", "popup", "noselect", "noinsert" }
     else
       --
     end
