@@ -80,6 +80,6 @@ describe("SkkMachine", function()
     local engine = SkkMachine.new()
     local out, feed = engine:input "A"
     out, feed = engine:input "\n"
-    assert.are.equal("あ\n", out)
+    assert.are.equal("あ", out)
   end)
 end)

@@ -122,7 +122,7 @@ function SkkMachine.input_char(self, lhs)
   end
 
   local kana, feed =
-      MachedKanaRule.conv(KanaRules, self.kana_feed .. lhs, MachedKanaRule.new(KanaRules, self.kana_feed))
+    MachedKanaRule.conv(KanaRules, self.kana_feed .. lhs, MachedKanaRule.new(KanaRules, self.kana_feed))
   self.kana_feed = feed
   if self.input_mode == KATAKANA then
     kana = util.str_to_katakana(kana)
@@ -199,7 +199,11 @@ function SkkMachine:_input(lhs, dict)
 
   if lhs == "\n" then
     local out = self:flush()
-    return out .. "\n", ""
+    if #out > 0 then
+      return out, ""
+    else
+      return "\n", ""
+    end
   end
 
   if self.conv_mode == RAW then

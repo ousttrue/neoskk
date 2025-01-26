@@ -7,6 +7,11 @@ local ColorMap = {
   },
   NeoSkkHira = {
     fg = "#eeeeee",
+    bg = "#cc2222",
+    force = true,
+  },
+  NeoSkkZhuyin = {
+    fg = "#eeeeee",
     bg = "#2222ff",
     force = true,
   },
@@ -221,6 +226,8 @@ function Indicator.set(content, hl)
   if not hl then
     if content:find "^平" then
       hl = "NeoSkkHira"
+    elseif content:find "ㄅ" then
+      hl = "NeoSkkZhuyin"
     end
   end
 

@@ -253,10 +253,10 @@ function M.NeoSkk:input(bufnr, lhs)
 
   if completion then
     if not completion.items or #completion.items == 0 then
-    elseif #completion.items == 1 then
-      -- 確定
-      local item = completion.items[1]
-      out = item.word
+    -- elseif #completion.items == 1 then
+    --   -- 確定
+    --   local item = completion.items[1]
+    --   out = item.word
     else
       -- completion
       if getmetatable(self.state) == ZhuyinMachine then

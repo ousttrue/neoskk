@@ -206,6 +206,10 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 
 #### Unicode
 
+- https://www.unicode.org/Public/UNIDATA/
+  - Blocks.txt
+  - UnicodeData.txt
+
 - https://www.unicode.org/reports/tr38/
 - https://www.unicode.org/Public/UCD/latest/ucd/
   - https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip

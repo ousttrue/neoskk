@@ -1,5 +1,6 @@
 local pinyin = require "neoskk.pinyin"
 local utf8 = require "neoskk.utf8"
+local util = require "neoskk.util"
 
 ---@class CompletionItem
 ---@field word string the text that will be inserted, mandatory
@@ -56,9 +57,6 @@ function CompletionItem.from_word(w, item, dict)
     if item.goma then
       new_item.abbr = new_item.abbr .. " " .. item.goma
     end
-    if #item.kana > 0 then
-      new_item.abbr = new_item.abbr .. " " .. item.kana[1]
-    end
     if #item.fanqie > 0 then
       new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
       if item.chou then
@@ -77,6 +75,9 @@ function CompletionItem.from_word(w, item, dict)
       if item.tiao then
         new_item.abbr = new_item.abbr .. ("%d"):format(item.tiao)
       end
+    end
+    if #item.kana > 0 then
+      new_item.abbr = new_item.abbr .. " " .. util.join(item.kana, ",")
     end
   end
   return new_item

@@ -84,6 +84,10 @@ end
 ---@param char string 漢字
 ---@return UniHanChar?
 function UniHanDict:get(char)
+  if char:find "^%w+$" then
+    assert(false, char)
+  end
+
   ---@type UniHanChar?
   local item = self.map[char]
   if not item then
@@ -195,13 +199,11 @@ function UniHanDict:load_skk(path)
           table.insert(item.kana, word)
         else
           -- 単語
-          -- local new_item = CompletionItem.from_word(w, nil, self)
-          local new_item = {
-            word = w,
-            abbr = w,
-            menu = "[単語]",
-            dup = true,
-          }
+          local new_item = CompletionItem.from_word(w, item, self)
+          -- local new_item = {
+          -- word = w,
+          -- abbr = w,
+          new_item.menu = "[単語]"
           if annotation then
             new_item.abbr = new_item.abbr .. " " .. annotation
           end
@@ -449,7 +451,7 @@ function UniHanDict:load_chinadat(path)
         end
       end
 
-      if ch then
+      if ch and not ch:find "^%w+$" then
         local item = self:get(ch)
         assert(item)
         if #cols[2] > 0 then
@@ -511,6 +513,7 @@ function UniHanDict:load_quangyun(path)
           moku = cols[12],
           koe = cols[9],
           roma = cols[14],
+          -- roma = cols[15],
         }
         for i, ch in utf8.codes(cols[4]) do
           local item = self:get(ch)

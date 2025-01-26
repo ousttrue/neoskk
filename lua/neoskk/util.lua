@@ -116,6 +116,22 @@ function M.to_list(iter, immutable, mutable)
   return list
 end
 
+---@param list string[]
+---@param delimiter string?
+function M.join(list, delimiter)
+  local t = ""
+  if not delimiter then
+    delimiter = ""
+  end
+  for i, v in ipairs(list) do
+    if i > 1 then
+      t = t .. delimiter
+    end
+    t = t .. v
+  end
+  return t
+end
+
 ---@param immutable[string, string, boolean?] str, delimiter, is_plain
 ---@param init integer? last delimiter end
 ---@return integer? next delimiter end

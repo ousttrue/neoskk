@@ -45,8 +45,8 @@ huga
     assert.same(
       { 1, 2, 3 },
       util.to_list(
-        ---@param _ any
-        ---@param n integer?
+      ---@param _ any
+      ---@param n integer?
         function(_, n)
           if not n then
             return 1, 1
@@ -78,5 +78,11 @@ huga
       "𧓕",
       "䰤",
     }, util.to_list(utf8.codes "東菄鶇䍶𠍀倲𩜍𢘐涷蝀凍鯟𢔅崠埬𧓕䰤"))
+  end)
+
+  it("join", function()
+    assert.Equal("ab", util.join { "a", "b" })
+    assert.Equal("a,b", util.join({ "a", "b" }, ","))
+    assert.Equal("ab", util.join { "a", "b" }, "")
   end)
 end)
