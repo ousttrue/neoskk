@@ -53,7 +53,12 @@ function CompletionItem.from_word(w, item, dict)
     dup = true,
   }
   if item then
-    new_item.info = item.xszd
+    if #item.kana > 0 then
+      new_item.info = util.join(item.kana, ",")
+    end
+    if item.xszd then
+      new_item.info = (new_item.info or "") .. "\n" .. item.xszd
+    end
     if item.goma then
       new_item.abbr = new_item.abbr .. " " .. item.goma
     end
@@ -76,8 +81,8 @@ function CompletionItem.from_word(w, item, dict)
         new_item.abbr = new_item.abbr .. ("%d"):format(item.tiao)
       end
     end
-    if #item.kana > 0 then
-      new_item.abbr = new_item.abbr .. " " .. util.join(item.kana, ",")
+    if item.annotation then
+      new_item.abbr = new_item.abbr .. " " .. item.annotation
     end
   end
   return new_item

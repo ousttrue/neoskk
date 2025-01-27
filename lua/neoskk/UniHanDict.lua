@@ -4,10 +4,10 @@ local CompletionItem = require "neoskk.CompletionItem"
 local util = require "neoskk.util"
 local pinyin = require "neoskk.pinyin"
 
---- TODO
---- # sort/filter
---- english
---- joyo
+--- # filter
+--- - 常用漢字
+--- - 學生字典
+--- - not 英単語
 
 --- 単漢字
 ---@class UniHanChar
@@ -20,7 +20,7 @@ local pinyin = require "neoskk.pinyin"
 ---@field chou string? 声調
 ---@field kana string[] よみかな
 ---@field chuon string? 注音符号 TODO
----@field flag integer? TODO 新字体 簡体字 国字 常用漢字
+---@field flag "joyo" | nil
 ---@field indices string? 康煕字典
 ---@field ref string?
 local UniHanChar = {}
@@ -68,7 +68,7 @@ end
 --   UniHanDict:load_skk
 -- # Unicode Han Database https://www.unicode.org/reports/tr38/
 --   UniHanDict:load_unihan
--- # 学生字典
+-- # 學生字典
 --   UniHanDict:load_xszd
 -- # 康煕字典
 --   UniHanDict:load_kangxi
@@ -132,13 +132,13 @@ function UniHanDict:get_prefix(ch, item)
   assert(traditional ~= ch)
   if traditional then
     prefix = ">" .. traditional
-    local ref = self:get_or_create(traditional)
+    local ref = self.map[traditional]
     if ref and ref.goma then
       prefix = prefix .. ":" .. ref.goma
     end
   elseif item.ref then
     prefix = ">" .. item.ref
-    local ref = self:get_or_create(item.ref)
+    local ref = self.map[item.ref]
     if ref and ref.goma then
       prefix = prefix .. ":" .. ref.goma
     end
@@ -206,8 +206,8 @@ function UniHanDict:load_skk(path)
     local word, values = parse_line(l)
 
     if word and values then
-      local has_okuri = word:find "%a$"
       for w in values:gmatch "[^/]+" do
+        -- annotation を 分離
         local annotation_index = w:find(";", nil, true)
         local annotation = ""
         if annotation_index then
@@ -215,32 +215,36 @@ function UniHanDict:load_skk(path)
           w = w:sub(1, annotation_index - 1)
         end
 
+        -- 文字数判定
         local last_pos = 0
         for i in utf8.codes(w) do
           last_pos = i
         end
 
-        local item = self.map[w]
-        if last_pos == 1 and item then
-          -- 単漢字
-          item.annotation = annotation
-          table.insert(item.kana, word)
+        if last_pos == 1 then
+          local item = self.map[w]
+          if item then
+            -- 単漢字
+            item.annotation = annotation
+            table.insert(item.kana, word)
+          end
         else
-          -- 単語
-          local new_item = CompletionItem.from_word(w, item, self)
-          -- local new_item = {
-          -- word = w,
-          -- abbr = w,
-          new_item.menu = "[単語]"
-          if annotation then
-            new_item.abbr = new_item.abbr .. " " .. annotation
+          if w:match "^%w+$" then
+            -- skip
+          else
+            -- 単語
+            local new_item = CompletionItem.from_word(w, nil, self)
+            new_item.menu = "[単語]"
+            if annotation then
+              new_item.abbr = new_item.abbr .. " " .. annotation
+            end
+            local items = self.jisyo[word]
+            if not items then
+              items = {}
+              self.jisyo[word] = items
+            end
+            table.insert(items, new_item)
           end
-          local items = self.jisyo[word]
-          if not items then
-            items = {}
-            self.jisyo[word] = items
-          end
-          table.insert(items, new_item)
         end
       end
     end
@@ -290,6 +294,7 @@ function UniHanDict:load_unihan(dir)
   self:load_unihan_readings(dir .. "/Unihan_Readings.txt")
   -- self:load_unihan_indices(dir .. "/Unihan_DictionaryIndices.txt")
   self:load_unihan_variants(dir .. "/Unihan_Variants.txt")
+  self:load_unihan_othermappings(dir .. "/Unihan_OtherMappings.txt")
 end
 
 local UNIHAN_PATTERN = "U%+([A-F0-9]+)\t(k%w+)\t([^\n]+)\n"
@@ -384,6 +389,48 @@ function UniHanDict:load_unihan_variants(path)
   end
 end
 
+-- # This file contains data on the following fields from the Unihan database:
+-- #	kBigFive
+-- #	kCCCII
+-- #	kCNS1986
+-- #	kCNS1992
+-- #	kEACC
+-- #	kGB0
+-- #	kGB1
+-- #	kGB3
+-- #	kGB5
+-- #	kGB7
+-- #	kGB8
+-- #	kIBMJapan
+-- #	kJa
+-- #	kJinmeiyoKanji
+-- #	kJis0
+-- #	kJis1
+-- #	kJIS0213
+-- #	kJoyoKanji
+-- #	kKoreanEducationHanja
+-- #	kKoreanName
+-- #	kMainlandTelegraph
+-- #	kPseudoGB1
+-- #	kTaiwanTelegraph
+-- #	kTGH
+-- #	kXerox
+---@param path string Unihan_OtherMappings.txt
+function UniHanDict:load_unihan_othermappings(path)
+  local data = readFileSync(path)
+  if data then
+    for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+      local codepoint = tonumber(unicode, 16)
+      local ch = utf8.char(codepoint)
+      local item = self:get_or_create(ch)
+      assert(item)
+      if k == "kJoyoKanji" then
+        item.flag = "joyo"
+      end
+    end
+  end
+end
+
 ---@param n string %d
 ---@return Completion
 function UniHanDict:filter_goma(n)
@@ -434,19 +481,21 @@ function UniHanDict:filter_jisyo(key, okuri)
   key = util.str_to_hirakana(key)
   if not okuri then
     for k, item in pairs(self.map) do
-      if item.indices or item.fanqie or item.xszd or item.annotation then
-        for _, kana in ipairs(item.kana) do
-          if util.str_to_hirakana(kana) == key then
-            local new_item = CompletionItem.from_word(k, item, self)
-            if okuri then
-              new_item.word = new_item.word .. okuri
+      if item.flag == "joyo" or item.xszd then
+        if item.indices or item.fanqie or item.xszd or item.annotation then
+          for _, kana in ipairs(item.kana) do
+            if util.str_to_hirakana(kana) == key then
+              local new_item = CompletionItem.from_word(k, item, self)
+              if okuri then
+                new_item.word = new_item.word .. okuri
+              end
+
+              -- debug
+              -- new_item.abbr = ("%d:").format(utf8.codepoint(new_item.word)) .. new_item.abbr
+
+              table.insert(items, new_item)
+              break
             end
-
-            -- debug
-            -- new_item.abbr = ("%d:").format(utf8.codepoint(new_item.word)) .. new_item.abbr
-
-            table.insert(items, new_item)
-            break
           end
         end
       end
