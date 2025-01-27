@@ -222,9 +222,9 @@ function UniHanDict:load_skk(path)
         end
 
         if last_pos == 1 then
+          -- 単漢字
           local item = self.map[w]
           if item then
-            -- 単漢字
             item.annotation = annotation
             table.insert(item.kana, word)
           end
@@ -479,23 +479,22 @@ function UniHanDict:filter_jisyo(key, okuri)
 
   -- 単漢字
   key = util.str_to_hirakana(key)
-  if not okuri then
-    for k, item in pairs(self.map) do
-      if item.flag == "joyo" or item.xszd then
-        if item.indices or item.fanqie or item.xszd or item.annotation then
-          for _, kana in ipairs(item.kana) do
-            if util.str_to_hirakana(kana) == key then
-              local new_item = CompletionItem.from_word(k, item, self)
-              if okuri then
-                new_item.word = new_item.word .. okuri
-              end
-
-              -- debug
-              -- new_item.abbr = ("%d:").format(utf8.codepoint(new_item.word)) .. new_item.abbr
-
-              table.insert(items, new_item)
-              break
+  for k, item in pairs(self.map) do
+    if item.flag == "joyo" or item.xszd then
+      if item.indices or item.fanqie or item.xszd or item.annotation then
+        for _, kana in ipairs(item.kana) do
+          if util.str_to_hirakana(kana) == key then
+            local new_item = CompletionItem.from_word(k, item, self)
+            if okuri then
+              new_item.word = new_item.word .. okuri
+              new_item.menu = "[送り]"
             end
+
+            -- debug
+            -- new_item.abbr = ("%d:").format(utf8.codepoint(new_item.word)) .. new_item.abbr
+
+            table.insert(items, new_item)
+            break
           end
         end
       end
