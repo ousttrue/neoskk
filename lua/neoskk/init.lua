@@ -27,6 +27,7 @@ local M = {
 ---@field kangxi string? kx2ucs.txt from https://github.com/cjkvi/cjkvi-dict
 ---@field chinadat string? path to chinadat.csv from https://www.seiwatei.net/info/dnchina.htm
 ---@field guangyun string? path to Kuankhiunn0704-semicolon.txt from https://github.com/syimyuzya/guangyun0704
+---@field user string? path to user_dict.json
 local NeoSkkOpts = {}
 
 ---@class NeoSkk
@@ -253,10 +254,10 @@ function M.NeoSkk:input(bufnr, lhs)
 
   if completion then
     if not completion.items or #completion.items == 0 then
-    -- elseif #completion.items == 1 then
-    --   -- 確定
-    --   local item = completion.items[1]
-    --   out = item.word
+      -- elseif #completion.items == 1 then
+      --   -- 確定
+      --   local item = completion.items[1]
+      --   out = item.word
     else
       -- completion
       if getmetatable(self.state) == ZhuyinMachine then
@@ -439,6 +440,10 @@ function M.setup(opts)
 
   if opts.jisyo then
     skk.dict:load_skk(opts.jisyo)
+  end
+
+  if opts.user then
+    skk.dict:load_user(opts.user, vim.json.decode)
   end
 end
 

@@ -151,6 +151,29 @@ function UniHanDict:get_prefix(ch, item)
   return prefix
 end
 
+function UniHanDict:load_user(path, parse_json)
+  local data = readFileSync(path)
+  if not data then
+    return
+  end
+
+  local json = parse_json(data)
+
+  for word, v in pairs(json) do
+    local last_pos = 1
+    for i in utf8.codes(word) do
+      last_pos = i
+    end
+    if last_pos == 1 then
+      assert(false, "todo")
+    else
+      for i, kana in ipairs(v.kana) do
+        self:add_word(word, kana, v.annotation)
+      end
+    end
+  end
+end
+
 -- 學生字典(XueShengZiDian)
 -- **一
 -- -衣悉切(I)入聲
@@ -203,52 +226,59 @@ function UniHanDict:load_skk(path)
     return
   end
   for _, l in ipairs(vim.split(data, "\n")) do
-    local word, values = parse_line(l)
+    local kana, values = parse_line(l)
 
-    if word and values then
-      for w in values:gmatch "[^/]+" do
+    if kana and values then
+      for word in values:gmatch "[^/]+" do
         -- annotation を 分離
-        local annotation_index = w:find(";", nil, true)
+        local annotation_index = word:find(";", nil, true)
         local annotation = ""
         if annotation_index then
-          annotation = w:sub(annotation_index + 1)
-          w = w:sub(1, annotation_index - 1)
+          annotation = word:sub(annotation_index + 1)
+          word = word:sub(1, annotation_index - 1)
         end
 
         -- 文字数判定
         local last_pos = 0
-        for i in utf8.codes(w) do
+        for i in utf8.codes(word) do
           last_pos = i
         end
 
         if last_pos == 1 then
           -- 単漢字
-          local item = self.map[w]
+          local item = self.map[word]
           if item then
             item.annotation = annotation
-            table.insert(item.kana, word)
+            table.insert(item.kana, kana)
           end
         else
-          if w:match "^%w+$" then
+          if word:match "^%w+$" then
             -- skip
           else
             -- 単語
-            local new_item = CompletionItem.from_word(w, nil, self)
-            new_item.menu = "[単語]"
-            if annotation then
-              new_item.abbr = new_item.abbr .. " " .. annotation
-            end
-            local items = self.jisyo[word]
-            if not items then
-              items = {}
-              self.jisyo[word] = items
-            end
-            table.insert(items, new_item)
+            self:add_word(word, kana, annotation)
           end
         end
       end
     end
   end
+end
+
+---@param kana string
+---@param word string
+---@param annotation string?
+function UniHanDict:add_word(word, kana, annotation)
+  local new_item = CompletionItem.from_word(word, nil, self)
+  new_item.menu = "[単語]"
+  if annotation then
+    new_item.abbr = new_item.abbr .. " " .. annotation
+  end
+  local items = self.jisyo[kana]
+  if not items then
+    items = {}
+    self.jisyo[kana] = items
+  end
+  table.insert(items, new_item)
 end
 
 ---@param path string kx2ucs.txt
