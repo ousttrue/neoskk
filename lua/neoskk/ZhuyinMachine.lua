@@ -124,7 +124,7 @@ local function filter_jisyo(dict, zhuyin)
   for k, v in pairs(dict.zhuyin_map) do
     if k == zhuyin then
       for _, ch in ipairs(v) do
-        local item = dict:get(ch)
+        local item = dict:get_or_create(ch)
         assert(item)
         local new_item = CompletionItem.from_word(ch, item, dict)
         new_item.word = zhuyin
