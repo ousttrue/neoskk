@@ -646,4 +646,53 @@ function UniHanDict:load_quangyun(path)
   end
 end
 
+---@param ch string
+---@return string[]?
+function UniHanDict:hover(ch)
+  local item = self.map[ch]
+  if item then
+    -- local lines = {}
+    -- return lines
+    local lines = {}
+    -- item.xszd and util.splited(item.xszd) or {}
+    if #item.kana > 0 then
+      table.insert(lines, util.join(item.kana, ","))
+    end
+    if item.goma then
+      table.insert(lines, item.goma)
+    end
+    if #item.fanqie > 0 then
+      for _, f in ipairs(item.fanqie) do
+        table.insert(lines, f)
+      end
+      if item.chou then
+        table.insert(lines, item.chou)
+      end
+      local fanqie = self.fanqie_map[item.fanqie[1]]
+      if fanqie then
+        table.insert(lines, fanqie.koe)
+        table.insert(lines, fanqie.moku)
+        table.insert(lines, fanqie.roma)
+      end
+    end
+    if item.pinyin then
+      local zhuyin = pinyin:to_zhuyin(item.pinyin)
+      table.insert(lines, zhuyin)
+      -- new_item.abbr = new_item.abbr .. " " .. (zhuyin and zhuyin or item.pinyin)
+      -- if item.tiao then
+      --   new_item.abbr = new_item.abbr .. ("%d"):format(item.tiao)
+      -- end
+    end
+    if item.annotation then
+      table.insert(lines, item.annotation)
+    end
+    if item.xszd then
+      for i, l in util.split, { item.xszd, "\n" } do
+        table.insert(lines, l)
+      end
+    end
+    return lines
+  end
+end
+
 return UniHanDict

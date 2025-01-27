@@ -386,6 +386,15 @@ function M.NeoSkk:update_indicator()
   end, 1)
 end
 
+function M.NeoSkk:hover()
+  if self.dict then
+    local ch = vim.fn.matchstr(vim.fn.getline ".", ".", vim.fn.col "." - 1)
+    if ch then
+      return self.dict:hover(ch)
+    end
+  end
+end
+
 ---@param mode STATE_MODE?
 function M.toggle(mode)
   M.instance:update_indicator()
@@ -444,6 +453,13 @@ function M.setup(opts)
 
   if opts.user then
     skk.dict:load_user(opts.user, vim.json.decode)
+  end
+end
+
+function M.hover()
+  local skk = M.instance
+  if skk then
+    return skk:hover()
   end
 end
 
