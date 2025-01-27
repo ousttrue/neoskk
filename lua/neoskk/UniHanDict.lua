@@ -646,6 +646,7 @@ function UniHanDict:load_quangyun(path)
   end
 end
 
+--- 士
 ---@param ch string
 ---@return string[]?
 function UniHanDict:hover(ch)
@@ -655,38 +656,34 @@ function UniHanDict:hover(ch)
     -- return lines
     local lines = {}
     -- item.xszd and util.splited(item.xszd) or {}
-    if #item.kana > 0 then
-      table.insert(lines, util.join(item.kana, ","))
-    end
     if item.goma then
-      table.insert(lines, item.goma)
+      table.insert(lines, "四角号碼:" .. item.goma)
     end
     if #item.fanqie > 0 then
       for _, f in ipairs(item.fanqie) do
-        table.insert(lines, f)
+        local line = f .. "切"
+        local fanqie = self.fanqie_map[f]
+        if fanqie then
+          line = line .. ("%s韻(%s)"):format(fanqie.moku, fanqie.roma)
+        end
+        table.insert(lines, line)
       end
-      if item.chou then
-        table.insert(lines, item.chou)
-      end
-      local fanqie = self.fanqie_map[item.fanqie[1]]
-      if fanqie then
-        table.insert(lines, fanqie.koe)
-        table.insert(lines, fanqie.moku)
-        table.insert(lines, fanqie.roma)
-      end
+      -- if item.chou then
+      --   line = line .. " " .. item.chou .. "聲"
+      -- end
     end
     if item.pinyin then
       local zhuyin = pinyin:to_zhuyin(item.pinyin)
-      table.insert(lines, zhuyin)
-      -- new_item.abbr = new_item.abbr .. " " .. (zhuyin and zhuyin or item.pinyin)
-      -- if item.tiao then
-      --   new_item.abbr = new_item.abbr .. ("%d"):format(item.tiao)
-      -- end
+      table.insert(lines, zhuyin .. (item.tiao and ("%d"):format(item.tiao) or ""))
     end
-    if item.annotation then
+    if #item.kana > 0 then
+      table.insert(lines, util.join(item.kana, ","))
+    end
+    if item.annotation and #item.annotation > 0 then
       table.insert(lines, item.annotation)
     end
     if item.xszd then
+      table.insert(lines, "")
       for i, l in util.split, { item.xszd, "\n" } do
         table.insert(lines, l)
       end

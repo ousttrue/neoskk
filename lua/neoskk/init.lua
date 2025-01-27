@@ -31,6 +31,7 @@ local M = {
 local NeoSkkOpts = {}
 
 ---@class NeoSkk
+---@field opts NeoSkkOpts
 ---@field bufnr integer 対象のbuf。変わったら状態をクリアする
 ---@field state SkkMachine | ZhuyinMachine | nil 状態管理
 ---@field conv_col integer 漢字変換を開始した col
@@ -395,6 +396,38 @@ function M.NeoSkk:hover()
   end
 end
 
+function M.NeoSkk:load_dict()
+  self.dict = UniHanDict.new()
+
+  if self.opts.unihan_dir then
+    self.dict:load_unihan(self.opts.unihan_dir)
+  end
+
+  if self.opts.guangyun then
+    self.dict:load_quangyun(self.opts.guangyun)
+  end
+
+  if self.opts.kangxi then
+    self.dict:load_kangxi(self.opts.kangxi)
+  end
+
+  if self.opts.xszd then
+    self.dict:load_xszd(self.opts.xszd)
+  end
+
+  if self.opts.chinadat then
+    self.dict:load_chinadat(self.opts.chinadat)
+  end
+
+  if self.opts.jisyo then
+    self.dict:load_skk(self.opts.jisyo)
+  end
+
+  if self.opts.user then
+    self.dict:load_user(self.opts.user, vim.json.decode)
+  end
+end
+
 ---@param mode STATE_MODE?
 function M.toggle(mode)
   M.instance:update_indicator()
@@ -426,40 +459,20 @@ end
 ---@param opts NeoSkkOpts
 function M.setup(opts)
   local skk = M.NeoSkk.new(opts)
-
-  if opts.unihan_dir then
-    skk.dict:load_unihan(opts.unihan_dir)
-  end
-
-  if opts.guangyun then
-    skk.dict:load_quangyun(opts.guangyun)
-  end
-
-  if opts.kangxi then
-    skk.dict:load_kangxi(opts.kangxi)
-  end
-
-  if opts.xszd then
-    skk.dict:load_xszd(opts.xszd)
-  end
-
-  if opts.chinadat then
-    skk.dict:load_chinadat(opts.chinadat)
-  end
-
-  if opts.jisyo then
-    skk.dict:load_skk(opts.jisyo)
-  end
-
-  if opts.user then
-    skk.dict:load_user(opts.user, vim.json.decode)
-  end
+  skk:load_dict()
 end
 
 function M.hover()
   local skk = M.instance
   if skk then
     return skk:hover()
+  end
+end
+
+function M.reload_dict()
+  local skk = M.instance
+  if skk then
+    return skk:load_dict()
   end
 end
 
