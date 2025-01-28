@@ -10,6 +10,7 @@ local SkkMachine = require "neoskk.SkkMachine"
 local ZhuyinMachine = require "neoskk.ZhuyinMachine"
 local Completion = require "neoskk.Completion"
 local Indicator = require "neoskk.Indicator"
+local util = require "neoskk.util"
 
 local STATE_MODE_SKK = "skk"
 local STATE_MODE_ZHUYIN = "zhuyin"
@@ -25,18 +26,8 @@ local M = {
 ---@param to string?
 ---@param opts table? vim.iconv opts
 ---@return string?
-local function readFileSync(path, from, to, opts)
-  if not vim.uv.fs_stat(path) then
-    return
-  end
-  local fd = assert(vim.uv.fs_open(path, "r", 438))
-  local stat = assert(vim.uv.fs_fstat(fd))
-  local data = assert(vim.uv.fs_read(fd, stat.size, 0))
-  assert(vim.uv.fs_close(fd))
-  if from and to then
-    data = assert(vim.iconv(data, from, to, opts))
-  end
-  return data
+local function readFileSync(...)
+  return util.readfile_sync(vim.uv, ...)
 end
 
 ---@class NeoSkkOpts

@@ -219,4 +219,23 @@ end
 --   return t
 -- end
 
+---@param path string
+---@param from string?
+---@param to string?
+---@param opts table? vim.iconv opts
+---@return string?
+function M.readfile_sync(uv, path, from, to, opts)
+  if not uv.fs_stat(path) then
+    return
+  end
+  local fd = assert(uv.fs_open(path, "r", 438))
+  local stat = assert(uv.fs_fstat(fd))
+  local data = assert(uv.fs_read(fd, stat.size, 0))
+  assert(uv.fs_close(fd))
+  if from and to then
+    data = assert(vim.iconv(data, from, to, opts))
+  end
+  return data
+end
+
 return M
