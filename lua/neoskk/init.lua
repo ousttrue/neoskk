@@ -20,6 +20,25 @@ local M = {
   state_mode = STATE_MODE_SKK,
 }
 
+---@param path string
+---@param from string?
+---@param to string?
+---@param opts table? vim.iconv opts
+---@return string?
+local function readFileSync(path, from, to, opts)
+  if not vim.uv.fs_stat(path) then
+    return
+  end
+  local fd = assert(vim.uv.fs_open(path, "r", 438))
+  local stat = assert(vim.uv.fs_fstat(fd))
+  local data = assert(vim.uv.fs_read(fd, stat.size, 0))
+  assert(vim.uv.fs_close(fd))
+  if from and to then
+    data = assert(vim.iconv(data, from, to, opts))
+  end
+  return data
+end
+
 ---@class NeoSkkOpts
 ---@field jisyo string? path to SKK-JISYO.L from https://github.com/skk-dict/jisyo
 ---@field unihan_dir string? path to dir. Extracted https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
@@ -400,31 +419,65 @@ function M.NeoSkk:load_dict()
   self.dict = UniHanDict.new()
 
   if self.opts.unihan_dir then
-    self.dict:load_unihan(self.opts.unihan_dir)
+    local data = readFileSync(self.opts.unihan_dir .. "/Unihan_DictionaryLikeData.txt")
+    if data then
+      self.dict:load_unihan_likedata(data)
+    end
+    data = readFileSync(self.opts.unihan_dir .. "/Unihan_Readings.txt")
+    if data then
+      self.dict:load_unihan_readings(data)
+    end
+    data = readFileSync(self.opts.unihan_dir .. "/Unihan_Variants.txt")
+    if data then
+      self.dict:load_unihan_variants(data)
+    end
+    data = readFileSync(self.opts.unihan_dir .. "/Unihan_OtherMappings.txt")
+    if data then
+      self.dict:load_unihan_othermappings(data)
+    end
   end
 
   if self.opts.guangyun then
-    self.dict:load_quangyun(self.opts.guangyun)
+    local data = readFileSync(self.opts.guangyun)
+    if data then
+      self.dict:load_quangyun(data)
+    end
   end
 
   if self.opts.kangxi then
-    self.dict:load_kangxi(self.opts.kangxi)
+    local data = readFileSync(self.opts.kangxi)
+    if data then
+      self.dict:load_kangxi(data)
+    end
   end
 
   if self.opts.xszd then
-    self.dict:load_xszd(self.opts.xszd)
+    local data = readFileSync(self.opts.xszd)
+    if data then
+      self.dict:load_xszd(data)
+    end
   end
 
   if self.opts.chinadat then
-    self.dict:load_chinadat(self.opts.chinadat)
+    local data = readFileSync(self.opts.chinadat)
+    if data then
+      self.dict:load_chinadat(data)
+    end
   end
 
   if self.opts.jisyo then
-    self.dict:load_skk(self.opts.jisyo)
+    local data = readFileSync(self.opts.jisyo, "euc-jp", "utf-8", {})
+    if data then
+      self.dict:load_skk(data)
+    end
   end
 
   if self.opts.user then
-    self.dict:load_user(self.opts.user, vim.json.decode)
+    local data = readFileSync(self.opts.user)
+    if data then
+      local json = vim.json.decode(data)
+      self.dict:load_user(json)
+    end
   end
 end
 

@@ -37,19 +37,29 @@ function CompletionItem.new(src)
   return self
 end
 
+---@param src CompletionItem
+---@return CompletionItem
+function CompletionItem.copy(src)
+  local dst = {}
+  for k, v in pairs(src) do
+    dst[k] = v
+  end
+  return dst
+end
+
 ---@param w string word
 ---@param item UniHanChar? 単漢字情報
 ---@param dict UniHanDict
 ---@return CompletionItem
 function CompletionItem.from_word(w, item, dict)
-  local prefix = " "
+  local menu = " "
   if item then
-    prefix = dict:get_prefix(w, item)
+    menu = dict:get_label(w, item)
   end
   local new_item = {
     word = w,
     abbr = w,
-    menu = prefix,
+    menu = menu,
     dup = true,
   }
   if item then

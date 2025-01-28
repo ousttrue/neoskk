@@ -3,27 +3,13 @@ local Completion = require "neoskk.Completion"
 local CompletionItem = require "neoskk.CompletionItem"
 local util = require "neoskk.util"
 local pinyin = require "neoskk.pinyin"
+local yun = require "neoskk.yun"
 
---- # filter
---- - 常用漢字
---- - 學生字典
---- - not 英単語
-
---- 単漢字
----@class UniHanChar
----@field annotation string?
----@field goma string? 四角号碼
----@field xszd string? 學生字典
----@field pinyin string? pinyin
+--- 読
+---@class UniHanReading
+---@field pinyin string pinyin
+---@field zhuyin string? 注音符号
 ---@field tiao integer? 四声
----@field fanqie string[] 反切
----@field chou string? 声調
----@field kana string[] よみかな
----@field chuon string? 注音符号 TODO
----@field flag "joyo" | nil
----@field indices string? 康煕字典
----@field ref string?
-local UniHanChar = {}
 
 --- 反切
 ---@class Fanqie
@@ -31,43 +17,27 @@ local UniHanChar = {}
 ---@field moku string 韻目
 ---@field roma string Polyhedron擬羅馬字
 
----@param path string
----@param from string?
----@param to string?
----@param opts table? vim.iconv opts
----@return string?
-local function readFileSync(path, from, to, opts)
-  if not vim.uv.fs_stat(path) then
-    return
-  end
-  local fd = assert(vim.uv.fs_open(path, "r", 438))
-  local stat = assert(vim.uv.fs_fstat(fd))
-  local data = assert(vim.uv.fs_read(fd, stat.size, 0))
-  assert(vim.uv.fs_close(fd))
-  if from and to then
-    data = assert(vim.iconv(data, from, to, opts))
-  end
-  return data
-end
+--- 支那漢
+---@class ChinaKan
+---@field kana string[] よみかな
 
----@param l string
----@return string? key
----@return string? body
-local function parse_line(l)
-  if vim.startswith(l, ";") then
-    return
-  end
-
-  local s, e = l:find "%s+/"
-  if s and e then
-    return l:sub(1, s - 1), l:sub(e)
-  end
-end
+--- 単漢字
+---@class UniHanChar
+---@field annotation string?
+---@field goma string? 四角号碼
+---@field xszd string? 學生字典
+---@field readings UniHanReading[] 読み
+---@field fanqie [Fanqie, string][] 反切と声調
+---@field kana string[] よみかな
+---@field flag "joyo" | nil
+---@field indices string? 康煕字典
+---@field ref string? 別字参照
 
 -- # SKK https://github.com/skk-dev/dict
 --   UniHanDict:load_skk
--- # Unicode Han Database https://www.unicode.org/reports/tr38/
---   UniHanDict:load_unihan
+-- # Unicode Han Database
+--   https://www.unicode.org/reports/tr38/
+--   https://github.com/unicode-org/unihan-database
 -- # 學生字典
 --   UniHanDict:load_xszd
 -- # 康煕字典
@@ -96,12 +66,10 @@ function UniHanDict.new()
   return self
 end
 
+---単漢字登録
 ---@param char string 漢字
----@return UniHanChar?
+---@return UniHanChar
 function UniHanDict:get_or_create(char)
-  -- if char:find "^%w+$" then
-  --   assert(false, char)
-  -- end
   local i
   for _i in utf8.codes(char) do
     i = _i
@@ -117,48 +85,49 @@ function UniHanDict:get_or_create(char)
     item = {
       fanqie = {},
       kana = {},
+      readings = {},
     }
     self.map[char] = item
   end
   return item
 end
 
+--- completion item の menu 文字列を作る
 ---@param ch string
 ---@param item UniHanChar
 ---@return string
-function UniHanDict:get_prefix(ch, item)
-  local prefix = ""
+function UniHanDict:get_label(ch, item)
+  local label = ""
   local traditional = self.simple_map[ch]
   assert(traditional ~= ch)
   if traditional then
-    prefix = ">" .. traditional
+    label = ">" .. traditional
     local ref = self.map[traditional]
     if ref and ref.goma then
-      prefix = prefix .. ":" .. ref.goma
+      label = label .. ":" .. ref.goma
     end
   elseif item.ref then
-    prefix = ">" .. item.ref
+    label = ">" .. item.ref
     local ref = self.map[item.ref]
     if ref and ref.goma then
-      prefix = prefix .. ":" .. ref.goma
+      label = label .. ":" .. ref.goma
     end
   elseif item.indices then
-    prefix = "[康煕]"
+    label = "[康煕]"
   end
   if item.xszd then
-    prefix = prefix .. "+"
+    label = label .. "+"
   end
-  return prefix
+  return label
 end
 
-function UniHanDict:load_user(path, parse_json)
-  local data = readFileSync(path)
-  if not data then
-    return
-  end
+---@class UserDictItem
+---@field kana string[]
+---@field annotation string?
 
-  local json = parse_json(data)
-
+---User辞書
+---@param json table<string, UserDictItem>
+function UniHanDict:load_user(json)
   for word, v in pairs(json) do
     local last_pos = 1
     for i in utf8.codes(word) do
@@ -168,7 +137,7 @@ function UniHanDict:load_user(path, parse_json)
       assert(false, "todo")
     else
       for i, kana in ipairs(v.kana) do
-        self:add_word(word, kana, v.annotation)
+        self:add_word(word, kana, "[USER]", v.annotation)
       end
     end
   end
@@ -182,14 +151,8 @@ end
 -- --統括之詞。如一切、一概。
 -- --或然之詞。如萬一、一旦。
 -- --專也。如一味、一意。
----@param path string xszd.txt
-function UniHanDict:load_xszd(path)
-  local data = readFileSync(path)
-  if not data then
-    return
-  end
-
-  -- local pos = 1
+---@param data string xszd.txt
+function UniHanDict:load_xszd(data)
   local last_s = 0
   while last_s <= #data do
     local s = data:find("%*%*", last_s + 1)
@@ -218,13 +181,23 @@ function UniHanDict:load_xszd(path)
   end
 end
 
---- SKK辞書
----@param path string
-function UniHanDict:load_skk(path)
-  local data = readFileSync(path, "euc-jp", "utf-8", {})
-  if not data then
-    return
+---SKK辞書
+---@param data string
+function UniHanDict:load_skk(data)
+  ---@param l string
+  ---@return string? key
+  ---@return string? body
+  local function parse_line(l)
+    if vim.startswith(l, ";") then
+      return
+    end
+
+    local s, e = l:find "%s+/"
+    if s and e then
+      return l:sub(1, s - 1), l:sub(e)
+    end
   end
+
   for _, l in ipairs(vim.split(data, "\n")) do
     local kana, values = parse_line(l)
 
@@ -256,7 +229,7 @@ function UniHanDict:load_skk(path)
             -- skip
           else
             -- 単語
-            self:add_word(word, kana, annotation)
+            self:add_word(word, kana, "[単語]", annotation)
           end
         end
       end
@@ -264,101 +237,105 @@ function UniHanDict:load_skk(path)
   end
 end
 
+---単語登録
 ---@param kana string
 ---@param word string
+---@param menu string?
 ---@param annotation string?
-function UniHanDict:add_word(word, kana, annotation)
-  local new_item = CompletionItem.from_word(word, nil, self)
-  new_item.menu = "[単語]"
-  if annotation then
-    new_item.abbr = new_item.abbr .. " " .. annotation
-  end
+function UniHanDict:add_word(word, kana, menu, annotation)
   local items = self.jisyo[kana]
   if not items then
     items = {}
     self.jisyo[kana] = items
   end
+  for _, item in ipairs(items) do
+    if item.word == word then
+      -- 重複
+      return
+    end
+  end
+
+  local new_item = CompletionItem.from_word(word, nil, self)
+  if menu then
+    new_item.menu = menu
+  end
+  if annotation then
+    new_item.abbr = new_item.abbr .. " " .. annotation
+  end
   table.insert(items, new_item)
 end
 
----@param path string kx2ucs.txt
-function UniHanDict:load_kangxi(path)
-  local data = readFileSync(path)
-  if data then
-    -- KX0075.001	一
-    for kx, chs in string.gmatch(data, "(KX%d%d%d%d%.%d%d%d)\t([^%*%s]+)") do
-      for _, ch in utf8.codes(chs) do
-        local item = self:get_or_create(ch)
-        assert(item)
-        item.indices = kx
+---康煕字典
+---含まれていない字は新しい字である可能性。
+---新字体、簡体字 etc
+---@param data string kx2ucs.txt
+function UniHanDict:load_kangxi(data)
+  -- KX0075.001	一
+  for kx, chs in string.gmatch(data, "(KX%d%d%d%d%.%d%d%d)\t([^%*%s]+)") do
+    for _, ch in utf8.codes(chs) do
+      local item = self:get_or_create(ch)
+      assert(item)
+      item.indices = kx
 
-        -- 簡体字
-        local t = self.simple_map[ch]
-        if t then
-          -- print(t, ch)
-          ch = t
-        end
-        local item = self:get_or_create(ch)
-        assert(item)
-        item.indices = kx
-
-        -- use only first codepoint
-        break
+      -- 簡体字
+      local t = self.simple_map[ch]
+      if t then
+        -- print(t, ch)
+        ch = t
       end
+      local item = self:get_or_create(ch)
+      assert(item)
+      item.indices = kx
+
+      -- use only first codepoint
+      break
     end
   end
 end
 
+-- unicode
+--
 -- https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
 -- Unihan_DictionaryIndices.txt
--- Unihan_DictionaryLikeData.txt
 -- Unihan_IRGSources.txt
 -- Unihan_NumericValues.txt
--- Unihan_OtherMappings.txt
 -- Unihan_RadicalStrokeCounts.txt
--- Unihan_Readings.txt
--- Unihan_Variants.txt
----@param dir string
-function UniHanDict:load_unihan(dir)
-  self:load_unihan_likedata(dir .. "/Unihan_DictionaryLikeData.txt")
-  self:load_unihan_readings(dir .. "/Unihan_Readings.txt")
-  -- self:load_unihan_indices(dir .. "/Unihan_DictionaryIndices.txt")
-  self:load_unihan_variants(dir .. "/Unihan_Variants.txt")
-  self:load_unihan_othermappings(dir .. "/Unihan_OtherMappings.txt")
-end
+-- local data = readFileSync(path)
+-- local data = readFileSync(path)
 
 local UNIHAN_PATTERN = "U%+([A-F0-9]+)\t(k%w+)\t([^\n]+)\n"
 
-function UniHanDict:load_unihan_likedata(path)
-  local data = readFileSync(path)
-  if data then
-    -- U+5650	kFourCornerCode	6666.1
-    for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
-      local codepoint = tonumber(unicode, 16)
-      local ch = utf8.char(codepoint)
-      local item = self:get_or_create(ch)
-      -- assert(item)
-      if k == "kFourCornerCode" then
-        item.goma = v
-      end
+---@param data string Unihan_DictionaryLikeData.txt
+function UniHanDict:load_unihan_likedata(data)
+  -- U+5650	kFourCornerCode	6666.1
+  for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+    local codepoint = tonumber(unicode, 16)
+    local ch = utf8.char(codepoint)
+    local item = self:get_or_create(ch)
+    -- assert(item)
+    if k == "kFourCornerCode" then
+      item.goma = v
     end
   end
 end
 
-function UniHanDict:load_unihan_readings(path)
-  local data = readFileSync(path)
-  if data then
-    -- U+3400	kMandarin	qiū
-    -- U+3401	kFanqie	他紺 他念
-    -- U+3400	kJapanese	キュウ おか
-    for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
-      local codepoint = tonumber(unicode, 16)
-      local ch = utf8.char(codepoint)
-      local item = self:get_or_create(ch)
-      -- assert(item)
-      if k == "kMandarin" then
-        item.pinyin = v
-        -- zhuyin
+---@param data string Unihan_Readings.txt
+function UniHanDict:load_unihan_readings(data)
+  -- U+3401	kFanqie	他紺 他念
+  -- U+6570	kJapanese	スウ ス ショ サク ソク ショク シュク かず かぞえる しばしば せめる
+  -- U+6570	kJapaneseKun	KAZOERU KAZU SEMERU
+  -- U+6570	kJapaneseOn	SUU SHU SU
+  -- U+6570	kMandarin	shù
+  --通用规范汉字字典
+  -- U+6570	kTGHZ2013	342.010:shǔ 342.160:shù 345.150:shuò
+  --现代汉语词典
+  -- U+6570	kXHC1983	1066.040:shǔ 1069.050:shù 1083.010:shuò
+  for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+    local codepoint = tonumber(unicode, 16)
+    local ch = utf8.char(codepoint)
+    local item = self:get_or_create(ch)
+    if k == "kMandarin" then
+      for _, r in util.split, { v, "%s+" } do
         local zhuyin, tiao = pinyin:to_zhuyin(v)
         if zhuyin then
           local list = self.zhuyin_map[zhuyin]
@@ -367,21 +344,26 @@ function UniHanDict:load_unihan_readings(path)
             self.zhuyin_map[zhuyin] = list
           end
           table.insert(list, ch)
-          item.tiao = tiao
         end
-      elseif k == "kFanqie" then
-        item.fanqie = util.splited(v)
-      elseif k == "kJapanese" then
-        item.kana = util.splited(v)
+        ---@type UniHanReading
+        table.insert(item.readings, {
+          pinyin = r,
+          zhuyin = zhuyin,
+          tiao = tiao,
+        })
       end
+    elseif k == "kFanqie" then
+      item.fanqie = util.splited(v)
+    elseif k == "kJapanese" then
+      item.kana = util.splited(v)
     end
   end
 end
 
--- 新字体とか最近の文字も含まれてたー
 -- function UniHanDict:load_unihan_indices(path)
 --   local data = readFileSync(path)
 --   if data then
+--     -- 新字体とか最近の文字も含まれてたー
 --     -- U+3400	kKangXi	0078.010
 --     for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
 --       local codepoint = tonumber(unicode, 16)
@@ -397,28 +379,27 @@ end
 --   end
 -- end
 
-function UniHanDict:load_unihan_variants(path)
-  local data = readFileSync(path)
-  if data then
-    -- U+346E	kSimplifiedVariant	U+2B748
-    for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
-      local codepoint = tonumber(unicode, 16)
-      local ch = utf8.char(codepoint)
-      local item = self:get_or_create(ch)
-      -- assert(item)
-      if k == "kSimplifiedVariant" then
-        local v_codepoint = tonumber(v, 16)
-        local v_ch = utf8.char(v_codepoint)
-        -- local s_codepoint = tonumber(src, 16)
-        -- local s_ch = utf8.char(s_codepoint)
-        if ch ~= v_ch then
-          self.simple_map[v_ch] = ch
-        end
+---@param data string Unihan_Variants.txt
+function UniHanDict:load_unihan_variants(data)
+  -- U+346E	kSimplifiedVariant	U+2B748
+  for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+    local codepoint = tonumber(unicode, 16)
+    local ch = utf8.char(codepoint)
+    local item = self:get_or_create(ch)
+    -- assert(item)
+    if k == "kSimplifiedVariant" then
+      local v_codepoint = tonumber(v, 16)
+      local v_ch = utf8.char(v_codepoint)
+      -- local s_codepoint = tonumber(src, 16)
+      -- local s_ch = utf8.char(s_codepoint)
+      if ch ~= v_ch then
+        self.simple_map[v_ch] = ch
       end
     end
   end
 end
 
+-- Unihan_OtherMappings.txt
 -- # This file contains data on the following fields from the Unihan database:
 -- #	kBigFive
 -- #	kCCCII
@@ -445,22 +426,20 @@ end
 -- #	kTaiwanTelegraph
 -- #	kTGH
 -- #	kXerox
----@param path string Unihan_OtherMappings.txt
-function UniHanDict:load_unihan_othermappings(path)
-  local data = readFileSync(path)
-  if data then
-    for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
-      local codepoint = tonumber(unicode, 16)
-      local ch = utf8.char(codepoint)
-      local item = self:get_or_create(ch)
-      assert(item)
-      if k == "kJoyoKanji" then
-        item.flag = "joyo"
-      end
+---@param data string Unihan_OtherMappings.txt
+function UniHanDict:load_unihan_othermappings(data)
+  for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+    local codepoint = tonumber(unicode, 16)
+    local ch = utf8.char(codepoint)
+    local item = self:get_or_create(ch)
+    assert(item)
+    if k == "kJoyoKanji" then
+      item.flag = "joyo"
     end
   end
 end
 
+---四角号碼
 ---@param n string %d
 ---@return Completion
 function UniHanDict:filter_goma(n)
@@ -479,15 +458,10 @@ function UniHanDict:filter_goma(n)
   return Completion.new(items, Completion.FUZZY_OPTS)
 end
 
----@return CompletionItem
-local function copy_item(src)
-  local dst = {}
-  for k, v in pairs(src) do
-    dst[k] = v
-  end
-  return dst
-end
-
+--- filter
+--- - 常用漢字
+--- - 學生字典
+--- - not 英単語
 ---@param key string
 ---@param okuri string?
 ---@return CompletionItem[]
@@ -497,7 +471,7 @@ function UniHanDict:filter_jisyo(key, okuri)
   for k, v in pairs(self.jisyo) do
     if k == key then
       for _, item in ipairs(v) do
-        local new_item = copy_item(item)
+        local new_item = CompletionItem.copy(item)
         if okuri then
           new_item.word = new_item.word .. okuri
           new_item.menu = "[送り]"
@@ -531,6 +505,8 @@ function UniHanDict:filter_jisyo(key, okuri)
     end
   end
 
+  -- TODO 韻、聲
+  -- TODO 韻目
   table.sort(items, function(a, b)
     return utf8.codepoint(a.word) < utf8.codepoint(b.word)
   end)
@@ -552,47 +528,46 @@ end
 --09: ピンイン……先頭に区切り文字としての'/'をつけています(末尾にはついていません)。複数の音がある場合は、「/音1/音2/音3」のように間に'/'をはさみながら列挙しています。また新華字典に存在する発音はおしまいに'*'をつけています。
 -- ※新華字典による校正は現在進行中です。 よってこの記述が消えるまでは、上記'*'印の入力は完全ではありません。
 --10: 日本語音訓……音はカタカナ、訓はひらがなであり、前後に区切り文字としての'1'をつけてあります。旧仮名・新仮名の関係は「1ケフ1(1キョウ1)」などのように記しています。
----@param path string chinadat.csv
-function UniHanDict:load_chinadat(path)
-  local data = readFileSync(path)
-  if data then
-    -- 亜,亞,,009,7,5,7,+10106+,/ya3/ya4*,1ア1つぐ1,
-    -- 伝(1),傳,,026,9,4,6,+21231+,/chuan2,1テン1デン1つたふ1(1つたう1)1つたへる1(1つたえる1)1つたはる1(1つたわる1)1つて1,
-    -- 余(1),,017,,9,5,7,+80904+,/yu2,1ヨ1われ1,
-    -- 余(2),餘,017,621,9,5,7,+80904+,/yu2,1ヨ1あまる1あます1われ1あまり1のこる1,
-    for line in string.gmatch(data, "([^\n]+)\r\n") do
-      local cols = util.splited(line, ",")
-      local ch = cols[1]
-      local s, e = ch:find "%(%d+%)"
-      if s then
-        if ch:sub(s + 1, e - 1) == "1" then
-          ch = ch:sub(1, s - 1)
-        else
-          ch = nil
-        end
-      end
+---@param data string chinadat.csv
+function UniHanDict:load_chinadat(data)
+  -- 亜,亞,,009,7,5,7,+10106+,/ya3/ya4*,1ア1つぐ1,
+  -- 伝(1),傳,,026,9,4,6,+21231+,/chuan2,1テン1デン1つたふ1(1つたう1)1つたへる1(1つたえる1)1つたはる1(1つたわる1)1つて1,
+  -- 余(1),,017,,9,5,7,+80904+,/yu2,1ヨ1われ1,
+  -- 余(2),餘,017,621,9,5,7,+80904+,/yu2,1ヨ1あまる1あます1われ1あまり1のこる1,
+  for line in string.gmatch(data, "([^\n]+)\r\n") do
+    local cols = util.splited(line, ",")
 
-      if ch and not ch:find "^%w+$" then
-        local item = self:get_or_create(ch)
-        assert(item)
-        if #cols[2] > 0 then
-          local ref = cols[2]
-          if ref:find "%d+" then
-            -- 漢,18153
-          else
-            item.ref = cols[2]
-          end
-          -- print(vim.inspect(cols))
-          -- break
+    -- TODO
+    local ch = cols[1]
+    local s, e = ch:find "%(%d+%)"
+    if s then
+      if ch:sub(s + 1, e - 1) == "1" then
+        ch = ch:sub(1, s - 1)
+      else
+        ch = nil
+      end
+    end
+
+    if ch and not ch:find "^%w+$" then
+      local item = self:get_or_create(ch)
+      assert(item)
+      if #cols[2] > 0 then
+        local ref = cols[2]
+        if ref:find "%d+" then
+          -- 漢,18153
+        else
+          item.ref = cols[2]
         end
-        if #cols[10] > 0 then
-          local _kana = util.splited(cols[10], "1")
-          item.kana = {}
-          for i = #_kana, 1, -1 do
-            local kana = _kana[i]
-            if #kana > 0 and kana ~= "(" and kana ~= ")" then
-              table.insert(item.kana, 1, kana)
-            end
+        -- print(vim.inspect(cols))
+        -- break
+      end
+      if #cols[10] > 0 then
+        local _kana = util.splited(cols[10], "1")
+        item.kana = {}
+        for i = #_kana, 1, -1 do
+          local kana = _kana[i]
+          if #kana > 0 and kana ~= "(" and kana ~= ")" then
+            table.insert(item.kana, 1, kana)
           end
         end
       end
@@ -623,25 +598,17 @@ end
 -- 19、見於廣韻辭條中的辭目重文、取自集韻的增補和異體字、等價異形字、備考新字等
 -- 20、unicode3.1未收字的準IDS（Ideographic Desciption Characters）描述：H=⿰、Z=⿱、P=⿸、E=⿳、V=某字unicode缺載之變體
 -- 1;1;德紅;東菄鶇䍶𠍀倲𩜍𢘐涷蝀凍鯟𢔅崠埬𧓕䰤;17;.;1.01東;1;端;開;一;東;平;tung;tung;;;;;
----@param path string Kuankhiunn0704-semicolon.txt
-function UniHanDict:load_quangyun(path)
-  local data = readFileSync(path)
-  if data then
-    for line in string.gmatch(data, "([^\n]+)\n") do
-      local cols = util.splited(line, ";")
-      if #cols > 5 then
-        self.fanqie_map[cols[3]] = {
-          moku = cols[12],
-          koe = cols[9],
-          roma = cols[14],
-          -- roma = cols[15],
-        }
-        for i, ch in utf8.codes(cols[4]) do
-          local item = self:get_or_create(ch)
-          assert(item)
-          item.chou = cols[13]
-        end
-      end
+---@param data string Kuankhiunn0704-semicolon.txt
+function UniHanDict:load_quangyun(data)
+  for line in string.gmatch(data, "([^\n]+)\n") do
+    local cols = util.splited(line, ";")
+    if #cols > 5 then
+      self.fanqie_map[cols[3]] = {
+        moku = cols[12],
+        koe = cols[9],
+        roma = cols[14],
+        -- roma = cols[15],
+      }
     end
   end
 end
@@ -652,38 +619,48 @@ end
 function UniHanDict:hover(ch)
   local item = self.map[ch]
   if item then
-    -- local lines = {}
-    -- return lines
+    local cp = utf8.codepoint(ch)
     local lines = {}
-    -- item.xszd and util.splited(item.xszd) or {}
+    if item.ref then
+      table.insert(lines, "参照 => " .. item.ref)
+    end
     if item.goma then
-      table.insert(lines, "四角号碼:" .. item.goma)
-    end
-    if #item.fanqie > 0 then
-      for _, f in ipairs(item.fanqie) do
-        local line = f .. "切"
-        local fanqie = self.fanqie_map[f]
-        if fanqie then
-          line = line .. ("%s韻(%s)"):format(fanqie.moku, fanqie.roma)
-        end
-        table.insert(lines, line)
-      end
-      -- if item.chou then
-      --   line = line .. " " .. item.chou .. "聲"
-      -- end
-    end
-    if item.pinyin then
-      local zhuyin = pinyin:to_zhuyin(item.pinyin)
-      table.insert(lines, zhuyin .. (item.tiao and ("%d"):format(item.tiao) or ""))
-    end
-    if #item.kana > 0 then
-      table.insert(lines, util.join(item.kana, ","))
+      table.insert(lines, ("UNICODE:U+%X 四角号碼:%s"):format(cp, item.goma))
     end
     if item.annotation and #item.annotation > 0 then
       table.insert(lines, item.annotation)
     end
+    table.insert(lines, "")
+
+    table.insert(lines, "# 読み")
+    if #item.kana > 0 then
+      table.insert(lines, util.join(item.kana, ","))
+    end
+    for _, r in ipairs(item.readings) do
+      table.insert(lines, r.zhuyin .. (r.tiao and ("%d"):format(r.tiao) or ""))
+    end
+    table.insert(lines, "")
+
+    if #item.fanqie > 0 then
+      table.insert(lines, "# 半切")
+      for _, f in ipairs(item.fanqie) do
+        local line = f .. "切"
+        local fanqie = self.fanqie_map[f]
+        if fanqie then
+          local heisui, heisui_hei = yun.get_heisui(fanqie.moku)
+          if heisui_hei then
+            line = line .. (" %s(平水%s)韻: %s"):format(fanqie.moku, heisui, fanqie.roma)
+          else
+            line = line .. (" %s韻: %s"):format(fanqie.moku, fanqie.roma)
+          end
+        end
+        table.insert(lines, line)
+      end
+    end
+    table.insert(lines, "")
+
     if item.xszd then
-      table.insert(lines, "")
+      table.insert(lines, "# 學生字典")
       for i, l in util.split, { item.xszd, "\n" } do
         table.insert(lines, l)
       end

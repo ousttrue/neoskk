@@ -7,11 +7,13 @@
 ---@field guangyun string[] 廣韻の対応する韻目
 ---@field kana string かな
 ---@field zhuyin string 注音
-local YunMu = {}
+-- local YunMu = {}
+
+local M = {}
 
 --- 平、上、去、入
 ---@type [YunMu?, YunMu?, YunMu?, YunMu?][]
-local M = {
+M.list = {
   {
     { name = "東", kana = "ou", zhuyin = "ㄨㄥ", guangyun = { "東" } }, -- とう
     { name = "董", kana = "ou", zhuyin = "ㄨㄥ", guangyun = { "董" } }, -- とう
@@ -60,6 +62,7 @@ local M = {
     { name = "霽", kana = "ei", zhuyin = "ㄧ", guangyun = { "霽", "祭" } }, -- せい
     nil,
   },
+  ---
   {
     nil,
     nil,
@@ -67,9 +70,9 @@ local M = {
     nil,
   },
   {
-    { name = "佳", kana = "ai", zhuyin = "", guangyun = { "佳", "皆" } }, -- かい
-    { name = "蟹", kana = "ai", zhuyin = "", guangyun = { "蟹", "駭" } }, -- かい
-    { name = "卦", kana = "ai", zhuyin = "", guangyun = { "卦", "怪", "夬" } }, -- くわい
+    { name = "佳", kana = "a", zhuyin = "ㄧㄚ", guangyun = { "佳", "皆" } }, -- かい
+    { name = "蟹", kana = "a", zhuyin = "ㄧㄝ", guangyun = { "蟹", "駭" } }, -- かい
+    { name = "卦", kana = "a", zhuyin = "ㄨㄚ", guangyun = { "卦", "怪", "夬" } }, -- くわい
     nil,
   },
   {
@@ -78,6 +81,7 @@ local M = {
     { name = "隊", kana = "ai", zhuyin = "ㄨㄟ", guangyun = { "隊", "代", "廃" } }, -- たい
     nil,
   },
+  ---
   {
     { name = "真", kana = "in", zhuyin = "ㄭㄣ", guangyun = { "真", "諄", "臻" } }, -- しん
     { name = "軫", kana = "in", zhuyin = "ㄭㄣ", guangyun = { "軫", "準" } }, -- しん
@@ -151,10 +155,10 @@ local M = {
     { name = "藥", kana = "ak", zhuyin = "ㄧㄠ", guangyun = { "薬" } },
   },
   {
-    { name = "庚", kana = "au", zhuyin = "ㄠ", guangyun = { "庚" } },
-    { name = "梗", kana = "au", zhuyin = "ㄠ", guangyun = { "梗" } },
-    { name = "敬", kana = "au", zhuyin = "ㄠ", guangyun = { "敬" } },
-    { name = "陌", kana = "ak", zhuyin = "ㄜ", guangyun = { "陌" } },
+    { name = "庚", kana = "au", zhuyin = "ㄠ", guangyun = { "庚", "耕", "清" } },
+    { name = "梗", kana = "au", zhuyin = "ㄠ", guangyun = { "梗", "耿", "静" } },
+    { name = "敬", kana = "au", zhuyin = "ㄠ", guangyun = { "敬", "諍", "勁" } },
+    { name = "陌", kana = "ak", zhuyin = "ㄜ", guangyun = { "陌", "麦", "昔" } },
   },
   {
     { name = "青", kana = "ei", zhuyin = "ㄧㄥ", guangyun = { "青" } },
@@ -199,5 +203,25 @@ local M = {
     { name = "洽", kana = "ep", zhuyin = "ㄧㄚ", guangyun = { "洽" } },
   },
 }
+
+---@string moku string
+---@return string? 平水韻
+---@return string? 平水韻平聲
+function M.get_heisui(guang)
+  -- 祭A
+  guang = guang:match "^[^%w]+"
+  for _, line in ipairs(M.list) do
+    for _, yun in ipairs(line) do
+      if yun then
+        for _, g in ipairs(yun.guangyun) do
+          if g == guang then
+            return yun.name, line[1] and line[1].name
+          end
+        end
+      end
+    end
+  end
+  --
+end
 
 return M

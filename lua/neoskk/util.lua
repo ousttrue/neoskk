@@ -182,6 +182,12 @@ function M.strip(src)
   return src:sub(be + 1, ts - 1)
 end
 
+---@param i integer
+function M.hex(i)
+  -- return ("%X"):format(i)
+  return ("%x"):format(i)
+end
+
 -- ---@param str string
 -- ---@param ts string?
 -- ---@param plain boolean?
