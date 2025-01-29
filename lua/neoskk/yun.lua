@@ -7,204 +7,266 @@
 ---@field guangyun string[] 廣韻の対応する韻目
 ---@field kana string かな
 ---@field zhuyin string 注音
--- local YunMu = {}
+local YunMu = {}
+YunMu.__index = YunMu
+
+function YunMu.new(kana, zhuyin, ...)
+  local guangyun = { ... }
+  local self = setmetatable({
+    name = guangyun[1],
+    kana = kana,
+    zhuyin,
+    guangyun = guangyun,
+  }, YunMu)
+  return self
+end
+
+---@return string
+function YunMu:__tostring()
+  return ("<%s#%d>"):format(self.guangyun[1], #self.guangyun)
+end
+
+---@param yun string
+---@return boolean
+function YunMu:has(yun)
+  for _, x in ipairs(self.guangyun) do
+    if x == yun then
+      return true
+    end
+  end
+  return false
+end
 
 local M = {}
 
 --- 平、上、去、入
 ---@type [YunMu?, YunMu?, YunMu?, YunMu?][]
 M.list = {
+  -- ng,k
   {
-    { name = "東", kana = "ou", zhuyin = "ㄨㄥ", guangyun = { "東" } }, -- とう
-    { name = "董", kana = "ou", zhuyin = "ㄨㄥ", guangyun = { "董" } }, -- とう
-    { name = "送", kana = "ou", zhuyin = "ㄨㄥ", guangyun = { "送" } }, -- そう
-    { name = "屋", kana = "ok", zhuyin = "ㄨ", guangyun = { "屋" } }, -- おく
+    YunMu.new("ou", "ㄨㄥ", "東"), -- とう
+    YunMu.new("ou", "ㄨㄥ", "董"), -- とう
+    YunMu.new("ou", "ㄨㄥ", "送"), -- そう
+    YunMu.new("ok", "ㄨ", "屋"), -- おく
   },
   {
-    { name = "冬", kana = "ou", zhuyin = "ㄨㄥ", guangyun = { "冬", "鍾" } }, -- とう
-    { name = "腫", kana = "ou", zhuyin = "ㄨㄥ", guangyun = { "腫" } }, -- しょう
-    { name = "宋", kana = "ou", zhuyin = "ㄨㄥ", guangyun = { "宋", "用" } }, -- そう
-    { name = "沃", kana = "ok", zhuyin = "ㄨ", guangyun = { "沃", "燭" } }, -- よく
+    YunMu.new("ou", "ㄨㄥ", "冬", "鍾"), -- とう
+    YunMu.new("ou", "ㄨㄥ", "腫"), -- しょう
+    YunMu.new("ou", "ㄨㄥ", "宋", "用"), -- そう
+    YunMu.new("ok", "ㄨ", "沃", "燭"), -- よく
   },
   {
-    { name = "江", kana = "au", zhuyin = "ㄧㄤ", guangyun = { "江" } }, -- かう
-    { name = "講", kana = "au", zhuyin = "ㄧㄤ", guangyun = { "講" } }, -- かう
-    { name = "絳", kana = "au", zhuyin = "ㄧㄤ", guangyun = { "絳" } }, -- かう
-    { name = "覚", kana = "ak", zhuyin = "ㄝ", guangyun = { "覚" } }, -- かく
+    YunMu.new("au", "ㄧㄤ", "江"), -- かう
+    YunMu.new("au", "ㄧㄤ", "講"), -- かう
+    YunMu.new("au", "ㄧㄤ", "絳"), -- かう
+    YunMu.new("ak", "ㄝ", "覺", "覚"), -- かく
   },
+  -- i
   {
-    { name = "支", kana = "i", zhuyin = "ㄭ", guangyun = { "支", "脂", "之" } }, -- し
-    { name = "紙", kana = "i", zhuyin = "ㄭ", guangyun = { "紙", "旨", "止" } }, -- し
-    { name = "寘", kana = "i", zhuyin = "ㄭ", guangyun = { "寘", "至", "志" } }, -- し
+    YunMu.new("i", "ㄭ", "支", "脂", "之"), -- し
+    YunMu.new("i", "ㄭ", "紙", "旨", "止"), -- し
+    YunMu.new("i", "ㄭ", "寘", "至", "志"), -- し
     nil,
   },
   {
-    { name = "微", kana = "i", zhuyin = "ㄨㄟ", guangyun = { "微" } }, -- び
-    { name = "尾", kana = "i", zhuyin = "ㄨㄟ", guangyun = { "尾" } }, -- び
-    { name = "未", kana = "i", zhuyin = "ㄨㄟ", guangyun = { "未" } }, -- み
+    YunMu.new("i", "ㄨㄟ", "微"), -- び
+    YunMu.new("i", "ㄨㄟ", "尾"), -- び
+    YunMu.new("i", "ㄨㄟ", "未"), -- み
     nil,
   },
   {
-    { name = "魚", kana = "o", zhuyin = "ㄩ", guangyun = { "魚" } }, -- ぎょ
-    { name = "語", kana = "o", zhuyin = "ㄩ", guangyun = { "語" } }, -- ご
-    { name = "御", kana = "o", zhuyin = "ㄩ", guangyun = { "御" } }, -- ご
+    YunMu.new("o", "ㄩ", "魚"), -- ぎょ
+    YunMu.new("o", "ㄩ", "語"), -- ご
+    YunMu.new("o", "ㄩ", "御"), -- ご
     nil,
   },
   {
-    { name = "虞", kana = "u", zhuyin = "ㄩ", guangyun = { "虞", "模" } }, -- ぐ
-    { name = "麌", kana = "u", zhuyin = "ㄩ", guangyun = { "麌", "姥" } }, -- ぐ
-    { name = "遇", kana = "u", zhuyin = "ㄩ", guangyun = { "遇", "暮" } }, -- ぐ
+    YunMu.new("u", "ㄩ", "虞", "模"), -- ぐ
+    YunMu.new("u", "ㄩ", "麌", "姥"), -- ぐ
+    YunMu.new("u", "ㄩ", "遇", "暮"), -- ぐ
     nil,
   },
   {
-    { name = "斉", kana = "ei", zhuyin = "ㄧ", guangyun = { "斉" } }, -- せい
-    { name = "薺", kana = "ei", zhuyin = "ㄧ", guangyun = { "薺" } }, -- せい
-    { name = "霽", kana = "ei", zhuyin = "ㄧ", guangyun = { "霽", "祭" } }, -- せい
+    YunMu.new("ei", "ㄧ", "斉"), -- せい
+    YunMu.new("ei", "ㄧ", "薺"), -- せい
+    YunMu.new("ei", "ㄧ", "霽", "祭"), -- せい
+    nil,
+  },
+  {
+    nil,
+    nil,
+    YunMu.new("ai", "ㄞ", "泰"), -- たい
+    nil,
+  },
+  {
+    YunMu.new("a", "ㄧㄚ", "佳", "皆"), -- かい
+    YunMu.new("a", "ㄧㄝ", "蟹", "駭"), -- かい
+    YunMu.new("a", "ㄨㄚ", "卦", "怪", "夬"), -- くわい
+    nil,
+  },
+  {
+    YunMu.new("ai", "ㄨㄟ", "灰", "咍"), -- はい
+    YunMu.new("ai", "ㄨㄟ", "賄", "海"), -- わい
+    YunMu.new("ai", "ㄨㄟ", "隊", "代", "廃"), -- たい
     nil,
   },
   ---
   {
-    nil,
-    nil,
-    { name = "泰", kana = "ai", zhuyin = "ㄞ", guangyun = {} }, -- たい
-    nil,
+    YunMu.new("in", "ㄭㄣ", "真", "諄", "臻"), -- しん
+    YunMu.new("in", "ㄭㄣ", "軫", "準"), -- しん
+    YunMu.new("in", "ㄭㄣ", "震", "稕"), -- しん
+    YunMu.new("it", "ㄭ", "質", "術", "櫛"), -- しつ
   },
   {
-    { name = "佳", kana = "a", zhuyin = "ㄧㄚ", guangyun = { "佳", "皆" } }, -- かい
-    { name = "蟹", kana = "a", zhuyin = "ㄧㄝ", guangyun = { "蟹", "駭" } }, -- かい
-    { name = "卦", kana = "a", zhuyin = "ㄨㄚ", guangyun = { "卦", "怪", "夬" } }, -- くわい
-    nil,
+    YunMu.new("un", "ㄨㄣ", "文", "欣"), -- ぶん
+    YunMu.new("un", "ㄨㄣ", "吻"), -- ぶん
+    YunMu.new("un", "ㄨㄣ", "問"), -- ぶん
+    YunMu.new("ut", "ㄨ", "物"), -- ぶつ
   },
   {
-    { name = "灰", kana = "ai", zhuyin = "ㄨㄟ", guangyun = { "灰", "咍" } }, -- はい
-    { name = "賄", kana = "ai", zhuyin = "ㄨㄟ", guangyun = { "賄", "海" } }, -- わい
-    { name = "隊", kana = "ai", zhuyin = "ㄨㄟ", guangyun = { "隊", "代", "廃" } }, -- たい
-    nil,
-  },
-  ---
-  {
-    { name = "真", kana = "in", zhuyin = "ㄭㄣ", guangyun = { "真", "諄", "臻" } }, -- しん
-    { name = "軫", kana = "in", zhuyin = "ㄭㄣ", guangyun = { "軫", "準" } }, -- しん
-    { name = "震", kana = "in", zhuyin = "ㄭㄣ", guangyun = { "震", "稕" } }, -- しん
-    { name = "質", kana = "it", zhuyin = "ㄭ", guangyun = { "質", "術", "櫛" } }, -- しつ
+    YunMu.new("en", "ㄩㄢ", "元", "魂", "痕"), -- げん
+    YunMu.new("en", "ㄩㄢ", "阮"),
+    YunMu.new("en", "ㄩㄢ", "願"),
+    YunMu.new("et", "ㄩㄝ", "月"),
   },
   {
-    { name = "文", kana = "un", zhuyin = "ㄨㄣ", guangyun = { "文", "欣" } }, -- ぶん
-    { name = "吻", kana = "un", zhuyin = "ㄨㄣ", guangyun = { "吻" } }, -- ぶん
-    { name = "問", kana = "un", zhuyin = "ㄨㄣ", guangyun = { "問" } }, -- ぶん
-    { name = "物", kana = "ut", zhuyin = "ㄨ", guangyun = { "物" } }, -- ぶつ
+    YunMu.new("an", "ㄢ", "寒", "桓"), -- くわん
+    YunMu.new("an", "ㄢ", "旱"),
+    YunMu.new("an", "ㄢ", "翰"),
+    YunMu.new("at", "ㄜ", "曷"),
   },
   {
-    { name = "元", kana = "en", zhuyin = "ㄩㄢ", guangyun = { "元", "魂", "痕" } }, -- げん
-    { name = "阮", kana = "en", zhuyin = "ㄩㄢ", guangyun = { "阮" } },
-    { name = "願", kana = "en", zhuyin = "ㄩㄢ", guangyun = { "願" } },
-    { name = "月", kana = "et", zhuyin = "ㄩㄝ", guangyun = { "月" } },
+    YunMu.new("an", "ㄢ", "刪", "山"), -- さん
+    YunMu.new("an", "ㄢ", "潸"),
+    YunMu.new("an", "ㄢ", "諫"),
+    YunMu.new("at", "ㄧㄚ", "黠"),
   },
   {
-    { name = "寒", kana = "an", zhuyin = "ㄢ", guangyun = { "寒", "桓" } }, -- くわん
-    { name = "旱", kana = "an", zhuyin = "ㄢ", guangyun = { "旱" } },
-    { name = "翰", kana = "an", zhuyin = "ㄢ", guangyun = { "翰" } },
-    { name = "曷", kana = "at", zhuyin = "ㄜ", guangyun = { "曷" } },
+    YunMu.new("en", "ㄧㄢ", "先"),
+    YunMu.new("en", "ㄧㄢ", "銑"),
+    YunMu.new("en", "ㄧㄢ", "霰"),
+    YunMu.new("et", "ㄧㄝ", "屑"),
   },
   {
-    { name = "刪", kana = "an", zhuyin = "ㄢ", guangyun = { "刪", "山" } }, -- さん
-    { name = "潸", kana = "an", zhuyin = "ㄢ", guangyun = { "潸" } },
-    { name = "諫", kana = "an", zhuyin = "ㄢ", guangyun = { "諫" } },
-    { name = "黠", kana = "at", zhuyin = "ㄧㄚ", guangyun = { "黠" } },
-  },
-  {
-    { name = "先", kana = "en", zhuyin = "ㄧㄢ", guangyun = { "先" } },
-    { name = "銑", kana = "en", zhuyin = "ㄧㄢ", guangyun = { "銑" } },
-    { name = "霰", kana = "en", zhuyin = "ㄧㄢ", guangyun = { "霰" } },
-    { name = "屑", kana = "et", zhuyin = "ㄧㄝ", guangyun = { "屑" } },
-  },
-  {
-    { name = "蕭", kana = "eu", zhuyin = "ㄧㄠ", guangyun = { "蕭" } },
-    { name = "篠", kana = "eu", zhuyin = "ㄧㄠ", guangyun = { "篠" } },
-    { name = "嘯", kana = "eu", zhuyin = "ㄧㄠ", guangyun = { "嘯" } },
+    YunMu.new("eu", "ㄧㄠ", "蕭"),
+    YunMu.new("eu", "ㄧㄠ", "篠"),
+    YunMu.new("eu", "ㄧㄠ", "嘯"),
     nil,
   },
   {
-    { name = "肴", kana = "au", zhuyin = "ㄧㄠ", guangyun = { "肴" } },
-    { name = "巧", kana = "au", zhuyin = "ㄧㄠ", guangyun = { "巧" } },
-    { name = "效", kana = "au", zhuyin = "ㄧㄠ", guangyun = { "效" } },
+    YunMu.new("au", "ㄧㄠ", "肴"),
+    YunMu.new("au", "ㄧㄠ", "巧"),
+    YunMu.new("au", "ㄧㄠ", "效"),
     nil,
   },
   {
-    { name = "豪", kana = "au", zhuyin = "ㄠ", guangyun = { "豪" } },
-    { name = "晧", kana = "au", zhuyin = "ㄠ", guangyun = { "晧" } },
-    { name = "号", kana = "au", zhuyin = "ㄠ", guangyun = { "号" } },
+    YunMu.new("au", "ㄠ", "豪"),
+    YunMu.new("au", "ㄠ", "晧"),
+    YunMu.new("au", "ㄠ", "号"),
     nil,
   },
   {
-    { name = "歌", kana = "a", zhuyin = "ㄜ", guangyun = { "歌" } },
-    { name = "哿", kana = "a", zhuyin = "ㄜ", guangyun = { "哿" } },
-    { name = "箇", kana = "a", zhuyin = "ㄜ", guangyun = { "箇" } },
+    YunMu.new("a", "ㄜ", "歌"),
+    YunMu.new("a", "ㄜ", "哿"),
+    YunMu.new("a", "ㄜ", "箇"),
     nil,
   },
   {
-    { name = "麻", kana = "a", zhuyin = "ㄚ", guangyun = { "麻" } },
-    { name = "馬", kana = "a", zhuyin = "ㄚ", guangyun = { "馬" } },
-    { name = "禡", kana = "a", zhuyin = "ㄚ", guangyun = { "禡" } },
+    YunMu.new("a", "ㄚ", "麻"),
+    YunMu.new("a", "ㄚ", "馬"),
+    YunMu.new("a", "ㄚ", "禡"),
     nil,
   },
   {
-    { name = "陽", kana = "au", zhuyin = "ㄧㄤ", guangyun = { "陽" } },
-    { name = "養", kana = "au", zhuyin = "ㄧㄤ", guangyun = { "養" } },
-    { name = "漾", kana = "au", zhuyin = "ㄧㄤ", guangyun = { "漾" } },
-    { name = "藥", kana = "ak", zhuyin = "ㄧㄠ", guangyun = { "薬" } },
+    YunMu.new("au", "ㄧㄤ", "陽", "唐"),
+    YunMu.new("au", "ㄧㄤ", "養", "蕩"),
+    YunMu.new("au", "ㄧㄤ", "漾", "宕"),
+    YunMu.new("ak", "ㄧㄠ", "薬", "藥", "鐸"),
   },
   {
-    { name = "庚", kana = "au", zhuyin = "ㄠ", guangyun = { "庚", "耕", "清" } },
-    { name = "梗", kana = "au", zhuyin = "ㄠ", guangyun = { "梗", "耿", "静" } },
-    { name = "敬", kana = "au", zhuyin = "ㄠ", guangyun = { "敬", "諍", "勁" } },
-    { name = "陌", kana = "ak", zhuyin = "ㄜ", guangyun = { "陌", "麦", "昔" } },
+    YunMu.new("au", "ㄠ", "庚", "耕", "清"),
+    YunMu.new("au", "ㄠ", "梗", "耿", "静"),
+    YunMu.new("au", "ㄠ", "敬", "諍", "勁"),
+    YunMu.new("ak", "ㄜ", "陌", "麦", "昔"),
   },
   {
-    { name = "青", kana = "ei", zhuyin = "ㄧㄥ", guangyun = { "青" } },
-    { name = "迥", kana = "ei", zhuyin = "ㄧㄥ", guangyun = { "迥" } },
-    { name = "径", kana = "ei", zhuyin = "ㄧㄥ", guangyun = { "径" } },
-    { name = "錫", kana = "ek", zhuyin = "ㄧ", guangyun = { "錫" } },
+    YunMu.new("ei", "ㄧㄥ", "青"),
+    YunMu.new("ei", "ㄧㄥ", "迥"),
+    YunMu.new("ei", "ㄧㄥ", "径"),
+    YunMu.new("ek", "ㄧ", "錫"),
   },
   {
-    { name = "蒸", kana = "ou", zhuyin = "ㄭㄥ", guangyun = { "蒸" } },
+    YunMu.new("ou", "ㄭㄥ", "蒸"),
     nil,
     nil,
-    { name = "職", kana = "ok", zhuyin = "ㄭ", guangyun = { "職" } },
+    YunMu.new("ok", "ㄭ", "職", "德"),
   },
   {
-    { name = "尤", kana = "iu", zhuyin = "ㄧㄡ", guangyun = { "尤" } },
-    { name = "有", kana = "iu", zhuyin = "ㄧㄡ", guangyun = { "有" } },
-    { name = "宥", kana = "iu", zhuyin = "ㄧㄡ", guangyun = { "宥" } },
+    YunMu.new("iu", "ㄧㄡ", "尤"),
+    YunMu.new("iu", "ㄧㄡ", "有"),
+    YunMu.new("iu", "ㄧㄡ", "宥"),
     nil,
   },
   {
-    { name = "侵", kana = "im", zhuyin = "ㄧㄣ", guangyun = { "侵" } },
-    { name = "寢", kana = "im", zhuyin = "ㄧㄣ", guangyun = { "寝" } },
-    { name = "沁", kana = "im", zhuyin = "ㄧㄣ", guangyun = { "沁" } },
-    { name = "緝", kana = "ip", zhuyin = "ㄧ", guangyun = { "緝" } },
+    YunMu.new("im", "ㄧㄣ", "侵"),
+    YunMu.new("im", "ㄧㄣ", "寝"),
+    YunMu.new("im", "ㄧㄣ", "沁"),
+    YunMu.new("ip", "ㄧ", "緝"),
   },
   {
-    { name = "覃", kana = "om", zhuyin = "ㄢ", guangyun = { "覃" } },
-    { name = "感", kana = "om", zhuyin = "ㄢ", guangyun = { "感" } },
-    { name = "勘", kana = "om", zhuyin = "ㄢ", guangyun = { "勘" } },
-    { name = "合", kana = "op", zhuyin = "ㄜ", guangyun = { "合" } },
+    YunMu.new("om", "ㄢ", "覃"),
+    YunMu.new("om", "ㄢ", "感"),
+    YunMu.new("om", "ㄢ", "勘"),
+    YunMu.new("op", "ㄜ", "合"),
   },
   {
-    { name = "鹽", kana = "em", zhuyin = "ㄧㄢ", guangyun = { "塩" } },
-    { name = "琰", kana = "em", zhuyin = "ㄧㄢ", guangyun = { "琰" } },
-    { name = "艶", kana = "em", zhuyin = "ㄧㄢ", guangyun = { "艶" } },
-    { name = "葉", kana = "ep", zhuyin = "ㄧㄝ", guangyun = { "葉" } },
+    YunMu.new("em", "ㄧㄢ", "塩"),
+    YunMu.new("em", "ㄧㄢ", "琰"),
+    YunMu.new("em", "ㄧㄢ", "艶"),
+    YunMu.new("ep", "ㄧㄝ", "葉", "帖", "怗", "業"),
   },
   {
-    { name = "咸", kana = "em", zhuyin = "ㄧㄢ", guangyun = { "咸" } },
-    { name = "豏", kana = "em", zhuyin = "ㄧㄢ", guangyun = { "豏" } },
-    { name = "陥", kana = "em", zhuyin = "ㄧㄢ", guangyun = { "陥" } },
-    { name = "洽", kana = "ep", zhuyin = "ㄧㄚ", guangyun = { "洽" } },
+    YunMu.new("em", "ㄧㄢ", "咸"),
+    YunMu.new("em", "ㄧㄢ", "豏"),
+    YunMu.new("em", "ㄧㄢ", "陥"),
+    YunMu.new("ep", "ㄧㄚ", "洽"),
   },
 }
 
----@string moku string
+-- 攝
+M.she = {
+  ["通"] = { "東", "冬", "鍾" },
+  ["江"] = { "江" },
+  ["止"] = { "支", "脂", "之", "微" },
+  ["遇"] = { "魚", "虞", "模" },
+  ["蟹"] = { "斉", "祭", "泰", "佳", "皆", "夬", "灰", "咍", "廃" },
+  ["臻"] = { "真", "諄", "臻", "文", "欣", "元", "魂", "痕" },
+  ["山"] = { "寒", "桓", "刪", "山", "先", "仙" },
+  ["效"] = { "蕭", "宵", "肴", "豪" },
+  ["果"] = { "歌", "戈" },
+  ["仮"] = { "麻" },
+  ["宕"] = { "陽", "唐" },
+  ["梗"] = { "庚", "耕", "清", "青" },
+  ["曾"] = { "蒸", "登" },
+  ["流"] = { "尤", "侯", "幽" },
+  ["深"] = { "侵" },
+  ["咸"] = { "覃", "談", "鹽", "添", "咸", "銜", "厳", "凡" },
+}
+
+--十六攝
+---@param guang string 廣韻韻目
+---@return string? 攝
+function M.get_she(guang)
+  for k, v in pairs(M.she) do
+    for _, x in ipairs(v) do
+      if x == guang then
+        return k
+      end
+    end
+  end
+end
+
+---@param guang string 廣韻韻目
 ---@return string? 平水韻
 ---@return string? 平水韻平聲
 function M.get_heisui(guang)
@@ -222,6 +284,57 @@ function M.get_heisui(guang)
     end
   end
   --
+end
+
+---@param search string
+---@return string
+function M.get_group(search)
+  for _, group in ipairs(M.list) do
+    -- local a, b, c, d = unpack(group)
+    local a = group[1]
+    local b = group[2]
+    local c = group[3]
+    local d = group[4]
+    -- print(a, b, c, d)
+
+    if a and a:has(search) then
+      return ("`%s`%s%s%s"):format(
+        a and a.name or "〇",
+        b and b.name or "〇",
+        c and c.name or "〇",
+        d and d.name or "〇"
+      )
+    end
+
+    if b and b:has(search) then
+      return ("%s`%s`%s%s"):format(
+        a and a.name or "〇",
+        b and b.name or "〇",
+        c and c.name or "〇",
+        d and d.name or "〇"
+      )
+    end
+
+    if c and c:has(search) then
+      return ("%s%s`%s`%s"):format(
+        a and a.name or "〇",
+        b and b.name or "〇",
+        c and c.name or "〇",
+        d and d.name or "〇"
+      )
+    end
+
+    if d and d:has(search) then
+      return ("%s%s%s`%s`"):format(
+        a and a.name or "〇",
+        b and b.name or "〇",
+        c and c.name or "〇",
+        d and d.name or "〇"
+      )
+    end
+  end
+
+  return search .. " NOT_FOUND"
 end
 
 return M

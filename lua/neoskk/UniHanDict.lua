@@ -27,7 +27,7 @@ local yun = require "neoskk.yun"
 ---@field goma string? 四角号碼
 ---@field xszd string? 學生字典
 ---@field readings UniHanReading[] 読み
----@field fanqie [Fanqie, string][] 反切と声調
+---@field fanqie string[] 反切と声調
 ---@field kana string[] よみかな
 ---@field flag "joyo" | nil
 ---@field indices string? 康煕字典
@@ -351,7 +351,7 @@ function UniHanDict:load_unihan_readings(data)
     local item = self:get_or_create(ch)
     if k == "kMandarin" then
       for _, r in util.split, { v, "%s+" } do
-        local zhuyin, diao = pinyin:to_zhuyin(v)
+        local zhuyin, diao = pinyin:to_zhuyin(r)
         if zhuyin then
           local list = self.zhuyin_map[zhuyin]
           if not list then
@@ -360,7 +360,6 @@ function UniHanDict:load_unihan_readings(data)
           end
           table.insert(list, ch)
         end
-        ---@type UniHanReading
         table.insert(item.readings, {
           pinyin = r,
           zhuyin = zhuyin,
@@ -455,13 +454,24 @@ function UniHanDict:load_unihan_othermappings(data)
 end
 
 ---四角号碼
----@param n string %d
----@return Completion
-function UniHanDict:filter_goma(n)
+---@param a string 0-9 or * wild
+---@param b string 0-9 or * wild
+---@param c string 0-9 or * wild
+---@param d string 0-9 or * wild
+---@return Completion?
+function UniHanDict:filter_goma(a, b, c, d)
   --@type CompletionItem[]
   local items = {}
+
+  local pattern = ("^%s%s%s%s"):format(
+    a ~= "*" and a or ".",
+    b ~= "*" and b or ".",
+    c ~= "*" and c or ".",
+    d ~= "*" and d or "."
+  )
+
   for ch, item in pairs(self.map) do
-    if item.goma and item.goma:match(n) then
+    if item.goma and item.goma:match(pattern) then
       local new_item = CompletionItem.from_word(ch, item, self)
       new_item.word = "g" .. item.goma
       new_item.user_data = {
@@ -470,6 +480,15 @@ function UniHanDict:filter_goma(n)
       table.insert(items, new_item)
     end
   end
+
+  if #items == 0 then
+    return
+  end
+
+  table.sort(items, function(l, r)
+    return l.word < r.word
+  end)
+
   return Completion.new(items, Completion.FUZZY_OPTS)
 end
 
@@ -581,7 +600,10 @@ function UniHanDict:load_chinadat(data)
         item.kana = {}
         for i = #_kana, 1, -1 do
           local kana = _kana[i]
-          if #kana > 0 and kana ~= "(" and kana ~= ")" then
+          if #kana == 0 then
+          elseif kana == "(" then
+          elseif kana == ")" then
+          else
             table.insert(item.kana, 1, kana)
           end
         end
@@ -613,6 +635,7 @@ end
 -- 19、見於廣韻辭條中的辭目重文、取自集韻的增補和異體字、等價異形字、備考新字等
 -- 20、unicode3.1未收字的準IDS（Ideographic Desciption Characters）描述：H=⿰、Z=⿱、P=⿸、E=⿳、V=某字unicode缺載之變體
 -- 1;1;德紅;東菄鶇䍶𠍀倲𩜍𢘐涷蝀凍鯟𢔅崠埬𧓕䰤;17;.;1.01東;1;端;開;一;東;平;tung;tung;;;;;
+-- 3674;3676;都歷;的適嫡甋靮鏑馰滴肑弔芍蹢䶂玓樀𪄱𦉹𥕐𥐝扚𣂉啇魡㣿𨑩杓;26;.;5.23錫;5;端;開;四;青;入;tek;tek;;;;;
 ---@param data string Kuankhiunn0704-semicolon.txt
 function UniHanDict:load_quangyun(data)
   for line in string.gmatch(data, "([^\n]+)\n") do
@@ -625,9 +648,11 @@ function UniHanDict:load_quangyun(data)
         -- roma = cols[15],
       }
 
+      local name = cols[7]:match "^%d+%.%d+(.*)$"
+
       local xiaoyun = {
         fanqie = cols[3],
-        name = cols[7],
+        name = name,
         parent = cols[12],
         diao = cols[13],
         chars = {},
@@ -641,15 +666,51 @@ function UniHanDict:load_quangyun(data)
   end
 end
 
+function UniHanDict:get_xiaoyun(ch)
+  local xiao = self:xiaoyun_from_char(ch)
+  if xiao then
+    return xiao
+  end
+
+  local item = self.map[ch]
+  if item then
+    for _, fanqie in ipairs(item.fanqie) do
+      xiao = self:xiaoyun_from_fanqie(fanqie)
+      if xiao then
+        return xiao
+      end
+    end
+  end
+end
+
 ---@param ch string
 ---@return XiaoYun?
 function UniHanDict:xiaoyun_from_char(ch)
+  for _, x in ipairs(self.xiaoyun_list) do
+    if x.name == ch then
+      return x
+    end
+  end
   for _, x in ipairs(self.xiaoyun_list) do
     for _, y in ipairs(x.chars) do
       if y == ch then
         return x
       end
     end
+  end
+end
+
+---@param fanqie string
+---@return XiaoYun?
+function UniHanDict:xiaoyun_from_fanqie(fanqie)
+  for _, x in ipairs(self.xiaoyun_list) do
+    if x.fanqie == fanqie then
+      return x
+    end
+    --TODO: 反切系聯法
+    -- if x:match_fanqie(fantie) then
+    --   return x
+    -- end
   end
 end
 
@@ -672,36 +733,30 @@ function UniHanDict:hover(ch)
     end
     table.insert(lines, "")
 
-    -- table.insert(lines, "# 読み")
-    -- if #item.kana > 0 then
-    --   table.insert(lines, util.join(item.kana, ","))
-    -- end
-    -- for _, r in ipairs(item.readings) do
-    --   table.insert(lines, r.zhuyin .. (r.diao and ("%d"):format(r.diao) or ""))
-    -- end
-    -- table.insert(lines, "")
-    --
-    -- if #item.fanqie > 0 then
-    --   table.insert(lines, "# 半切")
-    --   for _, f in ipairs(item.fanqie) do
-    --     local line = f .. "切"
-    --     local fanqie = self.fanqie_map[f]
-    --     if fanqie then
-    --       local heisui, heisui_hei = yun.get_heisui(fanqie.moku)
-    --       if heisui_hei then
-    --         line = line .. (" %s(平水%s)韻: %s"):format(fanqie.moku, heisui, fanqie.roma)
-    --       else
-    --         line = line .. (" %s韻: %s"):format(fanqie.moku, fanqie.roma)
-    --       end
-    --     end
-    --     table.insert(lines, line)
-    --   end
-    -- end
-    -- table.insert(lines, "")
+    table.insert(lines, "# 読み")
+    if #item.kana > 0 then
+      table.insert(lines, util.join(item.kana, ","))
+    end
+    table.insert(lines, "")
 
-    local xiao = self:xiaoyun_from_char(ch)
+    local xiao = self:get_xiaoyun(ch)
     if xiao then
-      table.insert(lines, ("# 廣韻: %s目 小韻: %s (%d)"):format(xiao.parent, xiao.name, #xiao.chars))
+      local setsu = yun.get_she(xiao.parent)
+      if setsu then
+        setsu = setsu .. "攝"
+      else
+        setsu = "?攝"
+      end
+      local heisui = yun.get_heisui(xiao.parent)
+      if heisui then
+        heisui = "平水" .. heisui
+      else
+        heisui = "平水?"
+      end
+      table.insert(
+        lines,
+        ("# %s %s %s %s (%d)"):format(setsu, heisui, yun.get_group(xiao.name), xiao.name, #xiao.chars)
+      )
       table.insert(lines, ("%s切%s声 %s"):format(xiao.fanqie, xiao.diao, xiao.roma))
       table.insert(lines, "")
       for _, x in ipairs(xiao.chars) do
@@ -713,8 +768,28 @@ function UniHanDict:hover(ch)
           table.insert(lines, x)
         end
       end
-      table.insert(lines, "")
+    else
+      local line = ""
+      for _, f in ipairs(item.fanqie) do
+        if #line > 0 then
+          line = line .. ","
+        end
+        line = line .. f .. "切"
+      end
+      for _, r in ipairs(item.readings) do
+        if #line > 0 then
+          line = line .. ","
+        end
+        if r.pinyin then
+          line = line .. (r.zhuyin and r.zhuyin or r.pinyin)
+          if r.diao then
+            line = line .. ("%d"):format(r.diao)
+          end
+        end
+      end
+      table.insert(lines, line)
     end
+    table.insert(lines, "")
 
     if item.xszd then
       table.insert(lines, "# 學生字典")

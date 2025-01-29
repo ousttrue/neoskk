@@ -3,7 +3,7 @@
 ---
 local MODULE_NAME = "neoskk"
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
-local KEYS_SYMBOL = vim.split("., :;-+~[](){}<>\b0123456789/", "")
+local KEYS_SYMBOL = vim.split("., :;-+*~[](){}<>\b0123456789/", "")
 local PreEdit = require "neoskk.PreEdit"
 local UniHanDict = require "neoskk.UniHanDict"
 local SkkMachine = require "neoskk.SkkMachine"
@@ -108,24 +108,15 @@ function M.NeoSkk.new(opts)
         -- replace
         self:on_complete_done(ev.buf, item)
       elseif event.reason == "cancel" then
+        local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
+        cursor_row = cursor_row - 1
         if last_completion then
-          local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
-          cursor_row = cursor_row - 1
-          if self.has_backspace and last_completion and cursor_col > self.conv_col then
-            -- 再
-            local current = vim.api.nvim_buf_get_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, {})[1]
-            print(current)
-            if current:match "^%d$" then
-              -- 'g%d'
-              last_completion = self.dict:filter_goma(current:sub(2, 2))
-            end
-            self:raise_completion(last_completion)
-          else
-            -- cancel clear
-            vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
-          end
+          -- 四角号碼?
+          vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
         end
       end
+
+      print(event.reason)
     end,
   })
 

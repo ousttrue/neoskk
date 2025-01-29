@@ -63,32 +63,25 @@ function CompletionItem.from_word(w, item, dict)
     dup = true,
   }
   if item then
+    -- info
     if #item.kana > 0 then
       new_item.info = util.join(item.kana, ",")
     end
     if item.xszd then
       new_item.info = (new_item.info or "") .. "\n" .. item.xszd
     end
+
+    -- abbr
     if item.goma then
       new_item.abbr = new_item.abbr .. " " .. item.goma
     end
-    if #item.fanqie > 0 then
-      new_item.abbr = new_item.abbr .. " " .. item.fanqie[1]
-      if item.chou then
-        new_item.abbr = new_item.abbr .. item.chou
-      end
-      local fanqie = dict.fanqie_map[item.fanqie[1]]
-      if fanqie then
-        new_item.abbr = new_item.abbr .. ":" .. fanqie.koe .. fanqie.moku .. "(" .. fanqie.roma .. ")"
-      end
-    else
-      -- new_item.abbr = new_item.abbr .. " " .. "         "
-    end
-    if item.pinyin then
-      local zhuyin = pinyin:to_zhuyin(item.pinyin)
-      new_item.abbr = new_item.abbr .. " " .. (zhuyin and zhuyin or item.pinyin)
-      if item.tiao then
-        new_item.abbr = new_item.abbr .. ("%d"):format(item.tiao)
+    for i, r in ipairs(item.readings) do
+      new_item.abbr = new_item.abbr .. (i > 1 and "," or " ")
+      if r.pinyin then
+        new_item.abbr = new_item.abbr .. (r.zhuyin and r.zhuyin or r.pinyin)
+        if r.diao then
+          new_item.abbr = new_item.abbr .. ("%d"):format(r.diao)
+        end
       end
     end
     if item.annotation then
