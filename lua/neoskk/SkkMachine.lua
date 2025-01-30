@@ -132,10 +132,11 @@ end
 
 ---@param lhs string
 ---@param dict UniHanDict?
+---@param pumvisible boolean?
 ---@return string out
 ---@return string preedit
 ---@return Completion?
-function SkkMachine:input(lhs, dict)
+function SkkMachine:input(lhs, dict, pumvisible)
   local out = ""
   local out_tmp, preedit, completion
   for key in lhs:gmatch "." do

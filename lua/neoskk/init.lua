@@ -325,6 +325,16 @@ function M.NeoSkk.map(self)
       local bufnr = vim.api.nvim_get_current_buf()
       local win = vim.api.nvim_get_current_win()
       local out = self:input(bufnr, alt and alt or lhs)
+
+      if vim.bo.filetype == "TelescopePrompt" then
+        if out == "\n" then
+          vim.defer_fn(function()
+            require("telescope.actions").select_default(bufnr)
+          end, 1)
+          return
+        end
+      end
+
       self:update_indicator()
       return out
     end, {
