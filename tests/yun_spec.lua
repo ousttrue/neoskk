@@ -28,6 +28,7 @@ describe("韻目", function()
 
     assert.equal("`東`董送屋", yun.get_group "東")
     assert.equal("江講絳`覺`", yun.get_group "覺")
-    assert.equal("蒸〇〇`職`", yun.get_group "德")
+    assert.equal("蒸拯證`職`", yun.get_group "德")
+    assert.equal("真軫震`質`", yun.get_group "質")
   end)
 end)

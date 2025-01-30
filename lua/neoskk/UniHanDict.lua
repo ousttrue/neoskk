@@ -41,6 +41,7 @@ local yun = require "neoskk.yun"
 ---@field roma string
 ---@field diao string
 ---@field chars string[]
+---@field shengniu string 聲紐
 
 -- # SKK https://github.com/skk-dev/dict
 --   UniHanDict:load_skk
@@ -359,6 +360,8 @@ function UniHanDict:load_unihan_readings(data)
             self.zhuyin_map[zhuyin] = list
           end
           table.insert(list, ch)
+        else
+          -- print("no zhuyin", r)
         end
         table.insert(item.readings, {
           pinyin = r,
@@ -657,6 +660,7 @@ function UniHanDict:load_quangyun(data)
         diao = cols[13],
         chars = {},
         roma = cols[14],
+        shengniu = cols[9],
       }
       for _, ch in utf8.codes(cols[4]) do
         table.insert(xiaoyun.chars, ch)
@@ -690,6 +694,9 @@ function UniHanDict:xiaoyun_from_char(ch)
     if x.name == ch then
       return x
     end
+    if x.chars[1] == ch then
+      return x
+    end
   end
   for _, x in ipairs(self.xiaoyun_list) do
     for _, y in ipairs(x.chars) do
@@ -721,15 +728,15 @@ function UniHanDict:hover(ch)
   local item = self.map[ch]
   if item then
     local cp = utf8.codepoint(ch)
-    local lines = {}
+    local lines = { "# " .. ch }
     if item.ref then
       table.insert(lines, "参照 => " .. item.ref)
     end
     if item.goma then
-      table.insert(lines, ("UNICODE:U+%X 四角号碼:%s"):format(cp, item.goma))
+      table.insert(lines, ("UNICODE: U+%X, 四角号碼: %s"):format(cp, item.goma))
     end
     if item.annotation and #item.annotation > 0 then
-      table.insert(lines, item.annotation)
+      table.insert(lines, "備考: " .. item.annotation)
     end
     table.insert(lines, "")
 
@@ -737,28 +744,89 @@ function UniHanDict:hover(ch)
     if #item.kana > 0 then
       table.insert(lines, util.join(item.kana, ","))
     end
+    for _, r in ipairs(item.readings) do
+      table.insert(lines, r.zhuyin .. (r.diao and ("%d"):format(r.diao) or ""))
+    end
     table.insert(lines, "")
 
     local xiao = self:get_xiaoyun(ch)
     if xiao then
-      local setsu = yun.get_she(xiao.parent)
-      if setsu then
-        setsu = setsu .. "攝"
-      else
-        setsu = "?攝"
-      end
-      local heisui = yun.get_heisui(xiao.parent)
-      if heisui then
-        heisui = "平水" .. heisui
-      else
-        heisui = "平水?"
-      end
       table.insert(
         lines,
-        ("# %s %s %s %s (%d)"):format(setsu, heisui, yun.get_group(xiao.name), xiao.name, #xiao.chars)
+        ("# 廣韻 %s, 小韻 %s, %s切%s声 %s"):format(xiao.name, xiao.chars[1], xiao.fanqie, xiao.diao, xiao.roma)
       )
-      table.insert(lines, ("%s切%s声 %s"):format(xiao.fanqie, xiao.diao, xiao.roma))
       table.insert(lines, "")
+
+      -- 聲紐
+      table.insert(lines, "## 聲紐: " .. xiao.shengniu)
+      local line = ""
+      for _, s in
+      utf8.codes "幇滂並明非敷奉微端透定泥知徹澄娘見渓群疑精清従心邪照穿牀審禅影暁匣喩来日"
+      do
+        if s == xiao.shengniu then
+          line = line .. "`" .. s .. "`"
+        else
+          line = line .. s
+        end
+      end
+      table.insert(lines, line)
+      table.insert(lines, "")
+
+      -- 韻
+      local yunshe, yunmu = yun.get_she(xiao.name)
+
+      if yunshe and yunmu then
+        table.insert(lines, ("## %s攝"):format(yunshe.name))
+        table.insert(
+          lines,
+          ("%s %s %s %s"):format(
+            "平" == xiao.diao and "`平`" or "平",
+            "上" == xiao.diao and "`上`" or "上",
+            "去" == xiao.diao and "`去`" or "去",
+            "入" == xiao.diao and "`入`" or "入"
+          )
+        )
+        for _, group in ipairs(yunshe.list) do
+          --平水韻 delimiter
+          table.insert(lines, "-----------")
+
+          local a = group[1]
+          local b = group[2]
+          local c = group[3]
+          local d = group[4]
+
+          local i = 1
+          while
+            (a and i <= #a.guangyun)
+            or (b and i <= #b.guangyun)
+            or (c and i <= #c.guangyun)
+            or (d and i <= #d.guangyun)
+          do
+            local hei = a and (a.guangyun[i] or "〇") or "〇"
+            if hei == xiao.name then
+              hei = "`" .. hei .. "`"
+            end
+            local jou = b and (b.guangyun[i] or "〇") or "〇"
+            if jou == xiao.name then
+              jou = "`" .. jou .. "`"
+            end
+            local kyo = c and (c.guangyun[i] or "〇") or "〇"
+            if kyo == xiao.name then
+              kyo = "`" .. kyo .. "`"
+            end
+            local nyu = d and (d.guangyun[i] or "〇") or "〇"
+            if nyu == xiao.name then
+              nyu = "`" .. nyu .. "`"
+            end
+            table.insert(lines, ("%s %s %s %s"):format(hei, jou, kyo, nyu))
+            i = i + 1
+          end
+        end
+        table.insert(lines, "")
+      end
+
+      -- 字例
+      table.insert(lines, ("## %d字"):format(#xiao.chars))
       for _, x in ipairs(xiao.chars) do
         local y = self.map[x]
         if y and #y.readings > 0 then
@@ -768,6 +836,7 @@ function UniHanDict:hover(ch)
           table.insert(lines, x)
         end
       end
+      table.insert(lines, "")
     else
       local line = ""
       for _, f in ipairs(item.fanqie) do
@@ -776,20 +845,9 @@ function UniHanDict:hover(ch)
         end
         line = line .. f .. "切"
       end
-      for _, r in ipairs(item.readings) do
-        if #line > 0 then
-          line = line .. ","
-        end
-        if r.pinyin then
-          line = line .. (r.zhuyin and r.zhuyin or r.pinyin)
-          if r.diao then
-            line = line .. ("%d"):format(r.diao)
-          end
-        end
-      end
       table.insert(lines, line)
+      table.insert(lines, "")
     end
-    table.insert(lines, "")
 
     if item.xszd then
       table.insert(lines, "# 學生字典")
