@@ -60,7 +60,6 @@ local yun = require "neoskk.yun"
 ---@field map table<string, UniHanChar> 単漢字辞書
 ---@field jisyo table<string, CompletionItem[]> SKK辞書
 ---@field simple_map table<string, string> 簡体字マップ
----@field fanqie_map table<string, Fanqie> 反切マップ
 ---@field zhuyin_map table<string, string[]> 注音辞書
 ---@field xiaoyun_list XiaoYun[] 小韻
 local UniHanDict = {}
@@ -71,7 +70,6 @@ function UniHanDict.new()
     map = {},
     jisyo = {},
     simple_map = {},
-    fanqie_map = {},
     zhuyin_map = {},
     xiaoyun_list = {},
   }, UniHanDict)
@@ -644,13 +642,6 @@ function UniHanDict:load_quangyun(data)
   for line in string.gmatch(data, "([^\n]+)\n") do
     local cols = util.splited(line, ";")
     if #cols > 5 then
-      self.fanqie_map[cols[3]] = {
-        moku = cols[12],
-        koe = cols[9],
-        roma = cols[14],
-        -- roma = cols[15],
-      }
-
       local name = cols[7]:match "^%d+%.%d+(.*)$"
 
       local xiaoyun = {

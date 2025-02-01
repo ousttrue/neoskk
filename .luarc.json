@@ -1,7 +1,7 @@
 {
   "version": "LuaJIT",
   "workspace": {
-    "library": ["lua", "${3rd}/busted/library", "${3rd}/luassert/library"]
+    "library": ["./lua", "${3rd}/busted/library", "${3rd}/luassert/library"]
   },
   "diagnostics": {
     "globals": ["vim"]
