@@ -99,95 +99,31 @@ function XiaoYun:__tostring()
   )
 end
 
----@param ch string
----@param shengniu ShengNiu
----@return string[]
-function XiaoYun:hover(ch, shengniu)
-  local lines = {}
-  table.insert(
-    lines,
-    ("# 廣韻 %s, 小韻 %s, %s切%s声 %s"):format(self.name, self.chars[1], self.fanqie, self.diao, self.roma)
-  )
-  table.insert(lines, "")
-
-  -- 韻
-  local yunshe, yunmu = yun.get_she(self.name)
-
-  if yunshe and yunmu then
-    table.insert(lines, ("## %s攝"):format(yunshe.name))
-    table.insert(
-      lines,
-      ("%s %s %s %s"):format(
-        "平" == self.diao and "`平`" or "平",
-        "上" == self.diao and "`上`" or "上",
-        "去" == self.diao and "`去`" or "去",
-        "入" == self.diao and "`入`" or "入"
-      )
-    )
-    for _, group in ipairs(yunshe.list) do
-      --平水韻 delimiter
-      table.insert(lines, "-----------")
-
-      local a = group[1]
-      local b = group[2]
-      local c = group[3]
-      local d = group[4]
-
-      local i = 1
-      while
-        (a and i <= #a.guangyun)
-        or (b and i <= #b.guangyun)
-        or (c and i <= #c.guangyun)
-        or (d and i <= #d.guangyun)
-      do
-        local hei = a and (a.guangyun[i] or "〇") or "〇"
-        if hei == self.name then
-          hei = "`" .. hei .. "`"
-        end
-        local jou = b and (b.guangyun[i] or "〇") or "〇"
-        if jou == self.name then
-          jou = "`" .. jou .. "`"
-        end
-        local kyo = c and (c.guangyun[i] or "〇") or "〇"
-        if kyo == self.name then
-          kyo = "`" .. kyo .. "`"
-        end
-        local nyu = d and (d.guangyun[i] or "〇") or "〇"
-        if nyu == self.name then
-          nyu = "`" .. nyu .. "`"
-        end
-        table.insert(lines, ("%s %s %s %s"):format(hei, jou, kyo, nyu))
-        i = i + 1
-      end
-    end
-    table.insert(lines, "")
-  end
-
-  -- 聲紐
-  table.insert(lines, "## 聲紐: " .. self.shengniu)
-  local line = ""
-  for _, s in
-  utf8.codes "幇滂並明非敷奉微端透定泥知徹澄娘見渓群疑精清従心邪照穿牀審禅影暁匣喩来日"
-  do
-    if s == self.shengniu then
-      line = line .. "`" .. s .. "`"
-    else
-      line = line .. s
-    end
-  end
-  table.insert(lines, line)
-  table.insert(lines, tostring(shengniu))
-  table.insert(lines, "")
-
-  return lines
-end
-
 ---@alias ShengNiuType "重唇音"|"軽唇音"|"舌頭音"|"舌上音"|"牙音"|"歯頭音"|"正歯音"|"喉音"|"半舌音"|"半歯音"
+local type1 = {
+  ["重唇音"] = "唇",
+  ["軽唇音"] = "唇",
+  ["舌頭音"] = "舌",
+  ["舌上音"] = "舌",
+  ["牙音"] = "牙",
+  ["歯頭音"] = "歯",
+  ["正歯音"] = "歯",
+  ["喉音"] = "喉",
+  ["半舌音"] = "半",
+  ["半歯音"] = "半",
+}
+
 ---@alias ShengNiuSeidaku "清"|"次清"|"濁"|"清濁"
+local seidaku1 = {
+  ["清"] = "清",
+  ["次清"] = "次",
+  ["濁"] = "濁",
+  ["清濁"] = "両",
+}
 
 ---聲紐 字母
 ---@class ShengNiu
----@field name string 字
+---@field names string[] 字
 ---@field type ShengNiuType
 ---@field seidaku ShengNiuSeidaku
 ---@field roma string alphabet
@@ -195,15 +131,16 @@ end
 local ShengNiu = {}
 ShengNiu.__index = ShengNiu
 
----@param name string
----@param type ShengNiuType
+---@param names string[]
+---@param t ShengNiuType
 ---@param seidaku ShengNiuSeidaku
+---@param line integer? 一等四等 or 二等三等 or nil
 ---@param roma string
 ---@return ShengNiu
-function ShengNiu.new(name, type, seidaku, roma)
+function ShengNiu.new(names, t, seidaku, line, roma)
   local self = setmetatable({
-    name = name,
-    type = type,
+    names = names,
+    type = t,
     seidaku = seidaku,
     roma = roma,
     xiaoyun_list = {},
@@ -213,14 +150,25 @@ end
 
 ---@return string
 function ShengNiu:__tostring()
-  return ("%s#%d:(%s) %s"):format(self.name, #self.xiaoyun_list, self.roma, util.join(util.take(self.xiaoyun_list, 10)))
-  -- return ("%s(%s)"):format(self.name, self.roma)
+  return ("%s#%d %s"):format(self.names[1], #self.xiaoyun_list, util.join(util.take(self.xiaoyun_list, 10)))
+  -- return ("%s %s%s (%s)"):format(self.name, self.type, self.seidaku, self.roma)
+end
+
+---@param s string
+---@return boolean
+function ShengNiu:match(s)
+  for _, name in ipairs(self.names) do
+    if name == s then
+      return true
+    end
+  end
+  return false
 end
 
 ---廣韻
 ---@class GuangYun
 ---@field list XiaoYun[] 小韻リスト
----@field sheng_list table<string, string>
+---@field sheng_list ShengNiu[]
 local GuangYun = {}
 GuangYun.__index = GuangYun
 
@@ -230,47 +178,47 @@ function GuangYun.new()
     list = {},
     sheng_list = {
       --唇 p
-      ShengNiu.new("幫", "重唇音", "清", "p"),
-      ShengNiu.new("滂", "重唇音", "次清", "ph"),
-      ShengNiu.new("並", "重唇音", "濁", "b"),
-      ShengNiu.new("明", "重唇音", "清濁", "m"),
-      ShengNiu.new("非", "軽唇音", "次清", "f"),
-      ShengNiu.new("敷", "軽唇音", "濁", "fh"),
-      ShengNiu.new("奉", "軽唇音", "清", "v"),
-      ShengNiu.new("微", "軽唇音", "清濁", ""),
+      ShengNiu.new({ "幫" }, "重唇音", "清", nil, "p"),
+      ShengNiu.new({ "滂" }, "重唇音", "次清", nil, "ph"),
+      ShengNiu.new({ "並" }, "重唇音", "濁", nil, "b"),
+      ShengNiu.new({ "明" }, "重唇音", "清濁", nil, "m"),
+      ShengNiu.new({ "非" }, "軽唇音", "次清", 3, "f"),
+      ShengNiu.new({ "敷" }, "軽唇音", "濁", 3, "fh"),
+      ShengNiu.new({ "奉" }, "軽唇音", "清", 3, "v"),
+      ShengNiu.new({ "微" }, "軽唇音", "清濁", 3, ""),
       --舌 t
-      ShengNiu.new("端", "舌頭音", "清", "t"),
-      ShengNiu.new("透", "舌頭音", "次清", "th"),
-      ShengNiu.new("定", "舌頭音", "濁", "d"),
-      ShengNiu.new("泥", "舌頭音", "清濁", "n"),
-      ShengNiu.new("知", "舌上音", "清", "tr"),
-      ShengNiu.new("徹", "舌上音", "次清", "thr"),
-      ShengNiu.new("澄", "舌上音", "濁", "dr"),
-      ShengNiu.new("娘", "舌上音", "清濁", "nr"),
+      ShengNiu.new({ "端" }, "舌頭音", "清", 1, "t"),
+      ShengNiu.new({ "透" }, "舌頭音", "次清", 1, "th"),
+      ShengNiu.new({ "定" }, "舌頭音", "濁", 1, "d"),
+      ShengNiu.new({ "泥" }, "舌頭音", "清濁", 1, "n"),
+      ShengNiu.new({ "知" }, "舌上音", "清", 2, "tr"),
+      ShengNiu.new({ "徹" }, "舌上音", "次清", 2, "thr"),
+      ShengNiu.new({ "澄" }, "舌上音", "濁", 2, "dr"),
+      ShengNiu.new({ "娘" }, "舌上音", "清濁", 2, "nr"),
       --牙 k
-      ShengNiu.new("見", "牙音", "清", "k"),
-      ShengNiu.new("溪", "牙音", "次清", "kh"),
-      ShengNiu.new("群", "牙音", "濁", "g"),
-      ShengNiu.new("疑", "牙音", "清濁", "ng"),
+      ShengNiu.new({ "見" }, "牙音", "清", nil, "k"),
+      ShengNiu.new({ "溪" }, "牙音", "次清", nil, "kh"),
+      ShengNiu.new({ "群" }, "牙音", "濁", nil, "g"),
+      ShengNiu.new({ "疑" }, "牙音", "清濁", nil, "ng"),
       --歯 ts
-      ShengNiu.new("精", "歯頭音", "清", "c"),
-      ShengNiu.new("清", "歯頭音", "次清", "ch"),
-      ShengNiu.new("從", "歯頭音", "濁", "z"),
-      ShengNiu.new("心", "歯頭音", "清", "s"),
-      ShengNiu.new("邪", "歯頭音", "濁", "zs"),
-      ShengNiu.new("照", "正歯音", "清", "cr"),
-      ShengNiu.new("穿", "正歯音", "次清", "sj"),
-      ShengNiu.new("牀", "正歯音", "濁", "zr"),
-      ShengNiu.new("審", "正歯音", "清", "sr"),
-      ShengNiu.new("禅", "正歯音", "濁", "zsr"),
+      ShengNiu.new({ "精", "莊" }, "歯頭音", "清", 1, "c"),
+      ShengNiu.new({ "清", "初" }, "歯頭音", "次清", 1, "ch"),
+      ShengNiu.new({ "從" }, "歯頭音", "濁", 1, "z"),
+      ShengNiu.new({ "心" }, "歯頭音", "清", 1, "s"),
+      ShengNiu.new({ "邪" }, "歯頭音", "濁", 1, "zs"),
+      ShengNiu.new({ "照", "章" }, "正歯音", "清", 2, "cr"),
+      ShengNiu.new({ "穿", "昌" }, "正歯音", "次清", 2, "sj"),
+      ShengNiu.new({ "牀", "崇" }, "正歯音", "濁", 2, "zr"),
+      ShengNiu.new({ "審", "書" }, "正歯音", "清", 2, "sr"),
+      ShengNiu.new({ "禅" }, "正歯音", "濁", 2, "zsr"),
       --喉 h
-      ShengNiu.new("影", "喉音", "清", ""),
-      ShengNiu.new("曉", "喉音", "清", ""),
-      ShengNiu.new("匣", "喉音", "濁", ""),
-      ShengNiu.new("喩", "喉音", "清濁", ""),
+      ShengNiu.new({ "影" }, "喉音", "清", nil, ""),
+      ShengNiu.new({ "曉" }, "喉音", "清", nil, ""),
+      ShengNiu.new({ "匣", "俟" }, "喉音", "濁", nil, ""),
+      ShengNiu.new({ "喩", "以" }, "喉音", "清濁", nil, ""),
       -- 半
-      ShengNiu.new("來", "半舌音", "清濁", "l"),
-      ShengNiu.new("日", "半歯音", "清濁", "nj"),
+      ShengNiu.new({ "來" }, "半舌音", "清濁", nil, "l"),
+      ShengNiu.new({ "日" }, "半歯音", "清濁", nil, "nj"),
     },
   }, GuangYun)
   return self
@@ -292,12 +240,12 @@ end
 ---@return ShengNiu
 function GuangYun:get_or_create_shengniu(ch)
   for _, sheng in ipairs(self.sheng_list) do
-    if sheng.name == ch then
+    if sheng:match(ch) then
       return sheng
     end
   end
 
-  local sheng = ShengNiu.new(ch, "?", "?", "?")
+  local sheng = ShengNiu.new({ ch }, "?", "?", "?")
   table.insert(self.sheng_list, sheng)
   return sheng
 end
@@ -332,6 +280,151 @@ function GuangYun:xiaoyun_from_fanqie(fanqie)
     --   return x
     -- end
   end
+end
+
+---@param callback fun(x:XiaoYun):boolean
+---@return XiaoYun?
+function GuangYun:find_xiaoyun(callback)
+  for _, x in ipairs(self.list) do
+    if callback(x) then
+      return x
+    end
+  end
+  return nil
+end
+
+---@param name string
+---@param deng string 等
+---@return XiaoYun[]
+function GuangYun:make_xiaoyun_list(name, deng)
+  ---@type (XiaoYun?)[]
+  local list = {}
+  for i = 1, 36 do
+    local sheng = self.sheng_list[i]
+    local xiaoyun = nil
+    if sheng then
+      xiaoyun = self:find_xiaoyun(function(x)
+        return x.name == name and x.deng == deng and (sheng and sheng:match(x.shengniu))
+      end)
+    end
+    if xiaoyun then
+      table.insert(list, xiaoyun)
+    else
+      table.insert(list, false)
+    end
+  end
+  return list
+end
+
+---@param ch string
+---@param xiaoyun XiaoYun
+---@return string[]
+function GuangYun:hover(ch, xiaoyun)
+  local lines = {}
+  table.insert(
+    lines,
+    ("# 廣韻 %s, 小韻 %s, %s切%s声 %s口%s等 %s"):format(
+      xiaoyun.name,
+      xiaoyun.chars[1],
+      xiaoyun.fanqie,
+      xiaoyun.diao,
+      xiaoyun.huo,
+      xiaoyun.deng,
+      xiaoyun.roma
+    )
+  )
+  table.insert(lines, "")
+
+  -- 韻
+  local yunshe, yunmu = yun.get_she(xiaoyun.name)
+
+  if yunshe and yunmu then
+    table.insert(lines, ("## %s攝"):format(yunshe.name))
+    table.insert(
+      lines,
+      ("%s %s %s %s"):format(
+        "平" == xiaoyun.diao and "`平`" or "平",
+        "上" == xiaoyun.diao and "`上`" or "上",
+        "去" == xiaoyun.diao and "`去`" or "去",
+        "入" == xiaoyun.diao and "`入`" or "入"
+      )
+    )
+    for _, group in ipairs(yunshe.list) do
+      --平水韻 delimiter
+      table.insert(lines, "-----------")
+
+      local a = group[1]
+      local b = group[2]
+      local c = group[3]
+      local d = group[4]
+
+      local i = 1
+      while
+        (a and i <= #a.guangyun)
+        or (b and i <= #b.guangyun)
+        or (c and i <= #c.guangyun)
+        or (d and i <= #d.guangyun)
+      do
+        local hei = a and (a.guangyun[i] or "〇") or "〇"
+        if hei == xiaoyun.name then
+          hei = "`" .. hei .. "`"
+        end
+        local jou = b and (b.guangyun[i] or "〇") or "〇"
+        if jou == xiaoyun.name then
+          jou = "`" .. jou .. "`"
+        end
+        local kyo = c and (c.guangyun[i] or "〇") or "〇"
+        if kyo == xiaoyun.name then
+          kyo = "`" .. kyo .. "`"
+        end
+        local nyu = d and (d.guangyun[i] or "〇") or "〇"
+        if nyu == xiaoyun.name then
+          nyu = "`" .. nyu .. "`"
+        end
+        table.insert(lines, ("%s %s %s %s"):format(hei, jou, kyo, nyu))
+        i = i + 1
+      end
+    end
+    table.insert(lines, "")
+  end
+
+  -- 聲紐
+  local shengniu = self:get_or_create_shengniu(xiaoyun.shengniu)
+  table.insert(
+    lines,
+    ("## 聲紐: %s, %s%s (%s)"):format(xiaoyun.shengniu, shengniu.type, shengniu.seidaku, shengniu.roma)
+  )
+  table.insert(lines, "")
+  local yuns = self:make_xiaoyun_list(xiaoyun.name, xiaoyun.deng)
+  local line_type = ""
+  local line_seidaku = ""
+  local line = ""
+  local line2 = ""
+  for i = 1, 36 do
+    local s = self.sheng_list[i]
+    line_type = line_type .. type1[s.type]
+    line_seidaku = line_seidaku .. seidaku1[s.seidaku]
+    line = line .. s.names[1]
+
+    local y = yuns[i]
+    if y then
+      if y == xiaoyun then
+        line2 = line2 .. "`" .. y.chars[1] .. "`"
+      else
+        line2 = line2 .. y.chars[1]
+      end
+    else
+      line2 = line2 .. "〇"
+    end
+  end
+  table.insert(lines, line_type)
+  table.insert(lines, line_seidaku)
+  table.insert(lines, line)
+  table.insert(lines, "----")
+  table.insert(lines, line2)
+  table.insert(lines, "")
+
+  return lines
 end
 
 return GuangYun

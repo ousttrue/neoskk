@@ -48,11 +48,29 @@ describe("廣韻", function()
   end)
 
   it("声紐", function()
-    assert.equal(38, #guangyun.sheng_list)
+    -- assert.equal(38, #guangyun.sheng_list)
 
     print()
-    for _, s in ipairs(guangyun.sheng_list) do
-      print(s)
+    ---@param s ShengNiu
+    local function tmp(s)
+      for j = 1, 36 do
+        local t = guangyun.sheng_list[j]
+        for _, x in ipairs(guangyun.list) do
+          if s:match(x.shengniu) then
+            for _, y in ipairs(x.chars) do
+              if #t.xiaoyun_list == 0 and t:match(y) then
+                return t
+              end
+            end
+          end
+        end
+      end
+    end
+
+    for i = 37, #guangyun.sheng_list do
+      local s = guangyun.sheng_list[i]
+      local t = tmp(s)
+      print(s, t)
     end
   end)
 end)

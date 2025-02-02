@@ -659,8 +659,7 @@ function UniHanDict:hover(ch)
 
     local xiaoyun = self:get_xiaoyun(ch)
     if xiaoyun then
-      local shengniu = self.guangyun:get_or_create_shengniu(xiaoyun.shengniu)
-      local xiaoyun_hover = xiaoyun:hover(ch, shengniu)
+      local xiaoyun_hover = self.guangyun:hover(ch, xiaoyun)
       util.insert_all(lines, xiaoyun_hover)
 
       -- 字例
