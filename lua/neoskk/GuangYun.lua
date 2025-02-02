@@ -1,7 +1,9 @@
 ---廣韻
 -- [有女同車《〈廣韻〉全字表》原表](https://github.com/syimyuzya/guangyun0704)
+-- [音韻学入門 －中古音篇－](https://kodaimoji.chowder.jp/chinese-phonology/pdf/oningaku.pdf)
 local util = require "neoskk.util"
 local utf8 = require "neoskk.utf8"
+local yun = require "neoskk.yun"
 
 ---小韻
 ---@class XiaoYun
@@ -14,7 +16,7 @@ local utf8 = require "neoskk.utf8"
 ---@field chars string[]
 ---@field shengniu string 聲紐
 ---@field huo string 開合呼
----@filed deng string 等
+---@field deng string 等
 local XiaoYun = {}
 XiaoYun.__index = XiaoYun
 
@@ -60,12 +62,17 @@ function XiaoYun.parse(line)
   end
 
   local name = cols[7]:match "^%d+%.%d+(.*)$"
+  local shengniu = cols[9]
+  for _, code in utf8.codes(shengniu) do
+    shengniu = code
+    break
+  end
 
   local xiaoyun = setmetatable({
     no = no,
     fanqie = cols[3],
     name = name,
-    shengniu = cols[9],
+    shengniu = shengniu,
     huo = cols[10],
     deng = cols[11],
     parent = cols[12],
@@ -92,8 +99,128 @@ function XiaoYun:__tostring()
   )
 end
 
+---@param ch string
+---@param shengniu ShengNiu
+---@return string[]
+function XiaoYun:hover(ch, shengniu)
+  local lines = {}
+  table.insert(
+    lines,
+    ("# 廣韻 %s, 小韻 %s, %s切%s声 %s"):format(self.name, self.chars[1], self.fanqie, self.diao, self.roma)
+  )
+  table.insert(lines, "")
+
+  -- 韻
+  local yunshe, yunmu = yun.get_she(self.name)
+
+  if yunshe and yunmu then
+    table.insert(lines, ("## %s攝"):format(yunshe.name))
+    table.insert(
+      lines,
+      ("%s %s %s %s"):format(
+        "平" == self.diao and "`平`" or "平",
+        "上" == self.diao and "`上`" or "上",
+        "去" == self.diao and "`去`" or "去",
+        "入" == self.diao and "`入`" or "入"
+      )
+    )
+    for _, group in ipairs(yunshe.list) do
+      --平水韻 delimiter
+      table.insert(lines, "-----------")
+
+      local a = group[1]
+      local b = group[2]
+      local c = group[3]
+      local d = group[4]
+
+      local i = 1
+      while
+        (a and i <= #a.guangyun)
+        or (b and i <= #b.guangyun)
+        or (c and i <= #c.guangyun)
+        or (d and i <= #d.guangyun)
+      do
+        local hei = a and (a.guangyun[i] or "〇") or "〇"
+        if hei == self.name then
+          hei = "`" .. hei .. "`"
+        end
+        local jou = b and (b.guangyun[i] or "〇") or "〇"
+        if jou == self.name then
+          jou = "`" .. jou .. "`"
+        end
+        local kyo = c and (c.guangyun[i] or "〇") or "〇"
+        if kyo == self.name then
+          kyo = "`" .. kyo .. "`"
+        end
+        local nyu = d and (d.guangyun[i] or "〇") or "〇"
+        if nyu == self.name then
+          nyu = "`" .. nyu .. "`"
+        end
+        table.insert(lines, ("%s %s %s %s"):format(hei, jou, kyo, nyu))
+        i = i + 1
+      end
+    end
+    table.insert(lines, "")
+  end
+
+  -- 聲紐
+  table.insert(lines, "## 聲紐: " .. self.shengniu)
+  local line = ""
+  for _, s in
+  utf8.codes "幇滂並明非敷奉微端透定泥知徹澄娘見渓群疑精清従心邪照穿牀審禅影暁匣喩来日"
+  do
+    if s == self.shengniu then
+      line = line .. "`" .. s .. "`"
+    else
+      line = line .. s
+    end
+  end
+  table.insert(lines, line)
+  table.insert(lines, tostring(shengniu))
+  table.insert(lines, "")
+
+  return lines
+end
+
+---@alias ShengNiuType "重唇音"|"軽唇音"|"舌頭音"|"舌上音"|"牙音"|"歯頭音"|"正歯音"|"喉音"|"半舌音"|"半歯音"
+---@alias ShengNiuSeidaku "清"|"次清"|"濁"|"清濁"
+
+---聲紐 字母
+---@class ShengNiu
+---@field name string 字
+---@field type ShengNiuType
+---@field seidaku ShengNiuSeidaku
+---@field roma string alphabet
+---@field xiaoyun_list string[] 小韻のリスト
+local ShengNiu = {}
+ShengNiu.__index = ShengNiu
+
+---@param name string
+---@param type ShengNiuType
+---@param seidaku ShengNiuSeidaku
+---@param roma string
+---@return ShengNiu
+function ShengNiu.new(name, type, seidaku, roma)
+  local self = setmetatable({
+    name = name,
+    type = type,
+    seidaku = seidaku,
+    roma = roma,
+    xiaoyun_list = {},
+  }, ShengNiu)
+  return self
+end
+
+---@return string
+function ShengNiu:__tostring()
+  return ("%s#%d:(%s) %s"):format(self.name, #self.xiaoyun_list, self.roma, util.join(util.take(self.xiaoyun_list, 10)))
+  -- return ("%s(%s)"):format(self.name, self.roma)
+end
+
+---廣韻
 ---@class GuangYun
 ---@field list XiaoYun[] 小韻リスト
+---@field sheng_list table<string, string>
 local GuangYun = {}
 GuangYun.__index = GuangYun
 
@@ -101,6 +228,50 @@ GuangYun.__index = GuangYun
 function GuangYun.new()
   local self = setmetatable({
     list = {},
+    sheng_list = {
+      --唇 p
+      ShengNiu.new("幫", "重唇音", "清", "p"),
+      ShengNiu.new("滂", "重唇音", "次清", "ph"),
+      ShengNiu.new("並", "重唇音", "濁", "b"),
+      ShengNiu.new("明", "重唇音", "清濁", "m"),
+      ShengNiu.new("非", "軽唇音", "次清", "f"),
+      ShengNiu.new("敷", "軽唇音", "濁", "fh"),
+      ShengNiu.new("奉", "軽唇音", "清", "v"),
+      ShengNiu.new("微", "軽唇音", "清濁", ""),
+      --舌 t
+      ShengNiu.new("端", "舌頭音", "清", "t"),
+      ShengNiu.new("透", "舌頭音", "次清", "th"),
+      ShengNiu.new("定", "舌頭音", "濁", "d"),
+      ShengNiu.new("泥", "舌頭音", "清濁", "n"),
+      ShengNiu.new("知", "舌上音", "清", "tr"),
+      ShengNiu.new("徹", "舌上音", "次清", "thr"),
+      ShengNiu.new("澄", "舌上音", "濁", "dr"),
+      ShengNiu.new("娘", "舌上音", "清濁", "nr"),
+      --牙 k
+      ShengNiu.new("見", "牙音", "清", "k"),
+      ShengNiu.new("溪", "牙音", "次清", "kh"),
+      ShengNiu.new("群", "牙音", "濁", "g"),
+      ShengNiu.new("疑", "牙音", "清濁", "ng"),
+      --歯 ts
+      ShengNiu.new("精", "歯頭音", "清", "c"),
+      ShengNiu.new("清", "歯頭音", "次清", "ch"),
+      ShengNiu.new("從", "歯頭音", "濁", "z"),
+      ShengNiu.new("心", "歯頭音", "清", "s"),
+      ShengNiu.new("邪", "歯頭音", "濁", "zs"),
+      ShengNiu.new("照", "正歯音", "清", "cr"),
+      ShengNiu.new("穿", "正歯音", "次清", "sj"),
+      ShengNiu.new("牀", "正歯音", "濁", "zr"),
+      ShengNiu.new("審", "正歯音", "清", "sr"),
+      ShengNiu.new("禅", "正歯音", "濁", "zsr"),
+      --喉 h
+      ShengNiu.new("影", "喉音", "清", ""),
+      ShengNiu.new("曉", "喉音", "清", ""),
+      ShengNiu.new("匣", "喉音", "濁", ""),
+      ShengNiu.new("喩", "喉音", "清濁", ""),
+      -- 半
+      ShengNiu.new("來", "半舌音", "清濁", "l"),
+      ShengNiu.new("日", "半歯音", "清濁", "nj"),
+    },
   }, GuangYun)
   return self
 end
@@ -111,13 +282,29 @@ function GuangYun:load(data)
     local xiaoyun = XiaoYun.parse(line)
     if xiaoyun then
       table.insert(self.list, xiaoyun)
+      local sheng = self:get_or_create_shengniu(xiaoyun.shengniu)
+      table.insert(sheng.xiaoyun_list, xiaoyun.chars[1])
     end
   end
 end
 
 ---@param ch string
+---@return ShengNiu
+function GuangYun:get_or_create_shengniu(ch)
+  for _, sheng in ipairs(self.sheng_list) do
+    if sheng.name == ch then
+      return sheng
+    end
+  end
+
+  local sheng = ShengNiu.new(ch, "?", "?", "?")
+  table.insert(self.sheng_list, sheng)
+  return sheng
+end
+
+---@param char string
 ---@return XiaoYun?
-function GuangYun:find_char(char)
+function GuangYun:xiaoyun_from_char(char)
   for _, x in ipairs(self.list) do
     if x.chars[1] == char then
       -- find first
@@ -130,6 +317,20 @@ function GuangYun:find_char(char)
         return x
       end
     end
+  end
+end
+
+---@param fanqie string
+---@return XiaoYun?
+function GuangYun:xiaoyun_from_fanqie(fanqie)
+  for _, x in ipairs(self.list) do
+    if x.fanqie == fanqie then
+      return x
+    end
+    --TODO: 反切系聯法
+    -- if x:match_fanqie(fantie) then
+    --   return x
+    -- end
   end
 end
 

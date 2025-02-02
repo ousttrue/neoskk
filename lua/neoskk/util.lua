@@ -116,6 +116,26 @@ function M.to_list(iter, immutable, mutable)
   return list
 end
 
+---@param l table
+---@param r table
+function M.insert_all(l, r)
+  for _, x in ipairs(r) do
+    table.insert(l, x)
+  end
+end
+
+function M.take(l, n)
+  if n >= #l then
+    return l
+  end
+
+  local list = {}
+  for i = 1, n do
+    table.insert(list, l[i])
+  end
+  return list
+end
+
 ---@param list string[]
 ---@param delimiter string?
 function M.join(list, delimiter)

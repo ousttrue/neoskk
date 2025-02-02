@@ -4,6 +4,7 @@ local CompletionItem = require "neoskk.CompletionItem"
 local util = require "neoskk.util"
 local pinyin = require "neoskk.pinyin"
 local yun = require "neoskk.yun"
+local GuangYun = require "neoskk.GuangYun"
 
 --- 読
 ---@class UniHanReading
@@ -33,16 +34,6 @@ local yun = require "neoskk.yun"
 ---@field indices string? 康煕字典
 ---@field ref string? 別字参照
 
----小韻
----@class XiaoYun
----@field name string
----@field parent string
----@field fanqie string
----@field roma string
----@field diao string
----@field chars string[]
----@field shengniu string 聲紐
-
 -- # SKK https://github.com/skk-dev/dict
 --   UniHanDict:load_skk
 -- # Unicode Han Database
@@ -61,9 +52,10 @@ local yun = require "neoskk.yun"
 ---@field jisyo table<string, CompletionItem[]> SKK辞書
 ---@field simple_map table<string, string> 簡体字マップ
 ---@field zhuyin_map table<string, string[]> 注音辞書
----@field xiaoyun_list XiaoYun[] 小韻
+---@field guangyun GuangYun 廣韻
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
+
 ---@return UniHanDict
 function UniHanDict.new()
   local self = setmetatable({
@@ -71,7 +63,7 @@ function UniHanDict.new()
     jisyo = {},
     simple_map = {},
     zhuyin_map = {},
-    xiaoyun_list = {},
+    guangyun = GuangYun.new(),
   }, UniHanDict)
   return self
 end
@@ -614,55 +606,15 @@ function UniHanDict:load_chinadat(data)
 end
 
 ---廣韻
--- 字段(fields)由「;」分隔，内容由左至右依次爲
--- 1、舊版(unicode3.1字符集第一版)小韻總序號。缺錄:丑戾切、no=2381，烏懈切、no=2455，他德切、no=3728，盧合、no=3784四小韻。
--- 2、刊正小韻總序號
--- 3、反切
--- 4、小韻内辭目（headwords）
--- 5、小韻所收辭目數
--- 6、校驗表記
--- 7、韻目。阿拉伯數碼「X.XX」，小數點前一位爲卷號，小數點後兩位爲韻目。如「4.11暮」意爲「第四卷去聲、十一暮韻」。
--- 8、小韻在韻中的序號。如「『德紅切』『東』爲『東』韻第一小韻，『薄紅切』『蓬』爲『東』韻第三十一小韻。」古書向無頁碼，兼且版本紛紜卷帙雜沓難於取捨，故此僅錄標目序號不記頁碼。
--- 9、聲紐
--- 10、呼（開合口）
--- 11、等
--- 12、韻部（四聲劃一）
--- 13、聲調
--- 14、Polyhedron擬羅馬字
--- 15、有女同車擬羅馬字
--- 16、舊版備註
--- 17、本次復校備註
--- 18、特殊小韻韻目歸屬說明
--- 19、見於廣韻辭條中的辭目重文、取自集韻的增補和異體字、等價異形字、備考新字等
--- 20、unicode3.1未收字的準IDS（Ideographic Desciption Characters）描述：H=⿰、Z=⿱、P=⿸、E=⿳、V=某字unicode缺載之變體
--- 1;1;德紅;東菄鶇䍶𠍀倲𩜍𢘐涷蝀凍鯟𢔅崠埬𧓕䰤;17;.;1.01東;1;端;開;一;東;平;tung;tung;;;;;
--- 3674;3676;都歷;的適嫡甋靮鏑馰滴肑弔芍蹢䶂玓樀𪄱𦉹𥕐𥐝扚𣂉啇魡㣿𨑩杓;26;.;5.23錫;5;端;開;四;青;入;tek;tek;;;;;
 ---@param data string Kuankhiunn0704-semicolon.txt
 function UniHanDict:load_quangyun(data)
-  for line in string.gmatch(data, "([^\n]+)\n") do
-    local cols = util.splited(line, ";")
-    if #cols > 5 then
-      local name = cols[7]:match "^%d+%.%d+(.*)$"
-
-      local xiaoyun = {
-        fanqie = cols[3],
-        name = name,
-        parent = cols[12],
-        diao = cols[13],
-        chars = {},
-        roma = cols[14],
-        shengniu = cols[9],
-      }
-      for _, ch in utf8.codes(cols[4]) do
-        table.insert(xiaoyun.chars, ch)
-      end
-      table.insert(self.xiaoyun_list, xiaoyun)
-    end
-  end
+  self.guangyun:load(data)
 end
 
+---@param ch string
+---@return XiaoYun?
 function UniHanDict:get_xiaoyun(ch)
-  local xiao = self:xiaoyun_from_char(ch)
+  local xiao = self.guangyun:xiaoyun_from_char(ch)
   if xiao then
     return xiao
   end
@@ -670,7 +622,7 @@ function UniHanDict:get_xiaoyun(ch)
   local item = self.map[ch]
   if item then
     for _, fanqie in ipairs(item.fanqie) do
-      xiao = self:xiaoyun_from_fanqie(fanqie)
+      xiao = self.guangyun:xiaoyun_from_fanqie(fanqie)
       if xiao then
         return xiao
       end
@@ -678,41 +630,6 @@ function UniHanDict:get_xiaoyun(ch)
   end
 end
 
----@param ch string
----@return XiaoYun?
-function UniHanDict:xiaoyun_from_char(ch)
-  for _, x in ipairs(self.xiaoyun_list) do
-    if x.name == ch then
-      return x
-    end
-    if x.chars[1] == ch then
-      return x
-    end
-  end
-  for _, x in ipairs(self.xiaoyun_list) do
-    for _, y in ipairs(x.chars) do
-      if y == ch then
-        return x
-      end
-    end
-  end
-end
-
----@param fanqie string
----@return XiaoYun?
-function UniHanDict:xiaoyun_from_fanqie(fanqie)
-  for _, x in ipairs(self.xiaoyun_list) do
-    if x.fanqie == fanqie then
-      return x
-    end
-    --TODO: 反切系聯法
-    -- if x:match_fanqie(fantie) then
-    --   return x
-    -- end
-  end
-end
-
---- 士
 ---@param ch string
 ---@return string[]?
 function UniHanDict:hover(ch)
@@ -740,85 +657,15 @@ function UniHanDict:hover(ch)
     end
     table.insert(lines, "")
 
-    local xiao = self:get_xiaoyun(ch)
-    if xiao then
-      table.insert(
-        lines,
-        ("# 廣韻 %s, 小韻 %s, %s切%s声 %s"):format(xiao.name, xiao.chars[1], xiao.fanqie, xiao.diao, xiao.roma)
-      )
-      table.insert(lines, "")
-
-      -- 聲紐
-      table.insert(lines, "## 聲紐: " .. xiao.shengniu)
-      local line = ""
-      for _, s in
-      utf8.codes "幇滂並明非敷奉微端透定泥知徹澄娘見渓群疑精清従心邪照穿牀審禅影暁匣喩来日"
-      do
-        if s == xiao.shengniu then
-          line = line .. "`" .. s .. "`"
-        else
-          line = line .. s
-        end
-      end
-      table.insert(lines, line)
-      table.insert(lines, "")
-
-      -- 韻
-      local yunshe, yunmu = yun.get_she(xiao.name)
-
-      if yunshe and yunmu then
-        table.insert(lines, ("## %s攝"):format(yunshe.name))
-        table.insert(
-          lines,
-          ("%s %s %s %s"):format(
-            "平" == xiao.diao and "`平`" or "平",
-            "上" == xiao.diao and "`上`" or "上",
-            "去" == xiao.diao and "`去`" or "去",
-            "入" == xiao.diao and "`入`" or "入"
-          )
-        )
-        for _, group in ipairs(yunshe.list) do
-          --平水韻 delimiter
-          table.insert(lines, "-----------")
-
-          local a = group[1]
-          local b = group[2]
-          local c = group[3]
-          local d = group[4]
-
-          local i = 1
-          while
-            (a and i <= #a.guangyun)
-            or (b and i <= #b.guangyun)
-            or (c and i <= #c.guangyun)
-            or (d and i <= #d.guangyun)
-          do
-            local hei = a and (a.guangyun[i] or "〇") or "〇"
-            if hei == xiao.name then
-              hei = "`" .. hei .. "`"
-            end
-            local jou = b and (b.guangyun[i] or "〇") or "〇"
-            if jou == xiao.name then
-              jou = "`" .. jou .. "`"
-            end
-            local kyo = c and (c.guangyun[i] or "〇") or "〇"
-            if kyo == xiao.name then
-              kyo = "`" .. kyo .. "`"
-            end
-            local nyu = d and (d.guangyun[i] or "〇") or "〇"
-            if nyu == xiao.name then
-              nyu = "`" .. nyu .. "`"
-            end
-            table.insert(lines, ("%s %s %s %s"):format(hei, jou, kyo, nyu))
-            i = i + 1
-          end
-        end
-        table.insert(lines, "")
-      end
+    local xiaoyun = self:get_xiaoyun(ch)
+    if xiaoyun then
+      local shengniu = self.guangyun:get_or_create_shengniu(xiaoyun.shengniu)
+      local xiaoyun_hover = xiaoyun:hover(ch, shengniu)
+      util.insert_all(lines, xiaoyun_hover)
 
       -- 字例
-      table.insert(lines, ("## %d字"):format(#xiao.chars))
-      for _, x in ipairs(xiao.chars) do
+      table.insert(lines, ("## %d字"):format(#xiaoyun.chars))
+      for _, x in ipairs(xiaoyun.chars) do
         local y = self.map[x]
         if y and #y.readings > 0 then
           local r = y.readings[1]
@@ -842,7 +689,7 @@ function UniHanDict:hover(ch)
 
     if item.xszd then
       table.insert(lines, "# 學生字典")
-      for i, l in util.split, { item.xszd, "\n" } do
+      for _, l in util.split, { item.xszd, "\n" } do
         table.insert(lines, l)
       end
     end
