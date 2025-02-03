@@ -3,6 +3,7 @@ local KanaRules = require "neoskk.tables.KanaRules"
 local Completion = require "neoskk.Completion"
 local CompletionItem = require "neoskk.CompletionItem"
 local util = require "neoskk.util"
+local kana_util = require "neoskk.kana_util"
 local utf8 = require "neoskk.utf8"
 
 local HIRAKANA = "hirakana"
@@ -125,7 +126,7 @@ function SkkMachine.input_char(self, lhs)
       MachedKanaRule.conv(KanaRules, self.kana_feed .. lhs, MachedKanaRule.new(KanaRules, self.kana_feed))
   self.kana_feed = feed
   if self.input_mode == KATAKANA then
-    kana = util.str_to_katakana(kana)
+    kana = kana_util.str_to_katakana(kana)
   end
   return kana
 end
@@ -214,7 +215,7 @@ function SkkMachine:_input(lhs, dict)
   elseif self.conv_mode == CONV then
     -- conv
     if lhs == "q" then
-      self.conv_feed = util.str_toggle_kana(self.conv_feed)
+      self.conv_feed = kana_util.str_toggle_kana(self.conv_feed)
       -- return "", self.conv_feed .. self.kana_feed
       -- 確定
       local preedit = self.conv_feed .. self.kana_feed

@@ -2,6 +2,7 @@ local utf8 = require "neoskk.utf8"
 local Completion = require "neoskk.Completion"
 local CompletionItem = require "neoskk.CompletionItem"
 local util = require "neoskk.util"
+local kana_util = require "neoskk.kana_util"
 local pinyin = require "neoskk.pinyin"
 local yun = require "neoskk.yun"
 local GuangYun = require "neoskk.GuangYun"
@@ -509,7 +510,7 @@ function UniHanDict:filter_jisyo(key, okuri)
   end
 
   -- 単漢字
-  key = util.str_to_hirakana(key)
+  key = kana_util.str_to_hirakana(key)
   for k, item in pairs(self.map) do
     if item.flag == "joyo" or item.xszd then
       if item.indices or item.fanqie or item.xszd or item.annotation then
