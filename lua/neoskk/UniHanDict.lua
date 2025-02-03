@@ -515,7 +515,7 @@ function UniHanDict:filter_jisyo(key, okuri)
     if item.flag == "joyo" or item.xszd then
       if item.indices or item.fanqie or item.xszd or item.annotation then
         for _, kana in ipairs(item.kana) do
-          if util.str_to_hirakana(kana) == key then
+          if kana_util.str_to_hirakana(kana) == key then
             local new_item = CompletionItem.from_word(k, item, self)
             if okuri then
               new_item.word = new_item.word .. okuri

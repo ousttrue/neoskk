@@ -67,10 +67,10 @@ describe("廣韻", function()
       end
     end
 
-    for i = 37, #guangyun.sheng_list do
-      local s = guangyun.sheng_list[i]
-      local t = tmp(s)
-      print(s, t)
-    end
+    -- for i = 37, #guangyun.sheng_list do
+    --   local s = guangyun.sheng_list[i]
+    --   local t = tmp(s)
+    --   print(s, t)
+    -- end
   end)
 end)

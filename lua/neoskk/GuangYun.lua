@@ -99,6 +99,17 @@ function XiaoYun:__tostring()
   )
 end
 
+---半切上字
+---@return string
+function XiaoYun:fanqie_up()
+  for _, code in utf8.codes(self.fanqie) do
+    return code
+  end
+
+  -- print(self.chars[1], self.fanqie)
+  -- assert(false)
+end
+
 ---@alias ShengNiuType "重唇音"|"軽唇音"|"舌頭音"|"舌上音"|"牙音"|"歯頭音"|"正歯音"|"喉音"|"半舌音"|"半歯音"
 local type1 = {
   ["重唇音"] = "唇",
@@ -224,6 +235,50 @@ function GuangYun.new()
   return self
 end
 
+---@class XiLian
+---@field list XiaoYun[]
+local XiLian = {}
+XiLian.__index = XiLian
+
+function XiLian.new()
+  local self = setmetatable({
+    list = {},
+  }, XiLian)
+  return self
+end
+
+function XiLian:push(xiaoyun)
+  table.insert(self.list, xiaoyun)
+end
+
+---@param xiaoyun XiaoYun
+---@return boolean
+function XiLian:keiren(xiaoyun)
+  for _, x in ipairs(self.list) do
+    if x.shengniu == xiaoyun.shengniu then
+      return true
+    end
+    local l = x:fanqie_up()
+    if l then
+      for _, ch in ipairs(xiaoyun.chars) do
+        if l == ch then
+          return true
+        end
+      end
+    end
+
+    local r = xiaoyun:fanqie_up()
+    if r then
+      for _, ch in ipairs(x.chars) do
+        if ch == r then
+          return true
+        end
+      end
+    end
+  end
+  return false
+end
+
 ---@param data string Kuankhiunn0704-semicolon.txt
 function GuangYun:load(data)
   for line in string.gmatch(data, "([^\n]+)\n") do
@@ -234,6 +289,36 @@ function GuangYun:load(data)
       table.insert(sheng.xiaoyun_list, xiaoyun.chars[1])
     end
   end
+
+  for i = 1, 36 do
+    local s = self.sheng_list[i]
+    local x = self:xiaoyun_from_char(s.names[1])
+    print(i, s.names[1], x)
+  end
+
+  ---@ytpe XiLian[]
+  local groups = {}
+  for _, xiaoyun in ipairs(self.list) do
+    local found = false
+    for _, g in ipairs(groups) do
+      if g:keiren(xiaoyun) then
+        g:push(xiaoyun)
+        found = true
+        break
+      end
+    end
+
+    if not found then
+      local new_group = XiLian.new()
+      new_group:push(xiaoyun)
+      table.insert(groups, new_group)
+    end
+  end
+  -- print(#groups, "Group")
+
+  -- for _, g in ipairs(groups) do
+  --   print(g.list[1].shengniu)
+  -- end
 end
 
 ---@param ch string
