@@ -21,24 +21,22 @@ function XiLian.parse(list)
     if hi then
       for _, g in ipairs(self.hi) do
         if g:keiren(xiaoyun) then
-          g.map[hi] = true
+          g:push(xiaoyun)
           found = true
           break
         end
       end
 
       if not found then
-        local new_group = FanqieShang.new(xiaoyun.shengniu)
-        new_group.map[hi] = true
+        local new_group = FanqieShang.new()
+        new_group:push(xiaoyun)
         table.insert(self.hi, new_group)
       end
+    else
+      print("no fanqie", xiaoyun)
     end
   end
-  -- print(#groups, "Group")
 
-  -- for _, g in ipairs(groups) do
-  --   print(g.list[1].shengniu)
-  -- end
   return self
 end
 

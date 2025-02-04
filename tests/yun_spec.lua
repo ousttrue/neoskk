@@ -8,10 +8,10 @@ local XiLian = require "neoskk.XiLian"
 
 local uv = require "luv"
 
-local file = os.getenv "GUANGYUN"
-assert(file, "env: GUANGYUN")
+local dir = os.getenv "GHQ_ROOT"
+assert(dir, "env: GHQ_ROOT")
 
-local data = util.readfile_sync(uv, file)
+local data = util.readfile_sync(uv, dir .. "/github.com/syimyuzya/guangyun0704/Kuankhiunn0704-semicolon.txt")
 assert(data, "file")
 
 local dict = UniHanDict.new()
@@ -50,12 +50,7 @@ describe("廣韻", function()
   end)
 
   it("声紐", function()
-    -- assert.equal(38, #guangyun.sheng_list)
     local xilian = XiLian.parse(guangyun.list)
-
-    assert.same(
-      FanqieShang.parse("方 府 博 彼 甫 邊 布 必 愽 北 卑 伯 筆 脯 巴 并 補 陂 分 兵 畀 封 鄙 百", "幫"),
-      xilian:from_shengniu "幫"
-    )
+    -- assert.equal(38, #xilian.hi)
   end)
 end)

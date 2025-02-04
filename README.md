@@ -207,11 +207,13 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 #### Unicode
 
 - https://www.unicode.org/Public/UNIDATA/
+
   - Blocks.txt
   - UnicodeData.txt
 
 - https://www.unicode.org/reports/tr38/
 - https://www.unicode.org/Public/UCD/latest/ucd/
+
   - https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
     - Unihan_DictionaryLikeData.txt 四角号碼 etc...
     - Unihan_Readings.txt かな, pinyin, 反切 etc...
@@ -234,13 +236,14 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - https://github.com/rime-aca/character_set
 
 - [有女同車《〈廣韻〉全字表》原表](https://github.com/syimyuzya/guangyun0704)
-- https://github.com/kanripo/KR1j0054
+- `影印本` https://github.com/kanripo/KR1j0054
 - https://github.com/rime-aca/rime-middle-chinese-phonetics?tab=readme-ov-file
 - https://github.com/sozysozbot/zyegnio_xrynmu/tree/master
 - https://ytenx.org/
 - https://github.com/pujdict/pujdict
 
 玉篇
+
 - https://www.kanripo.org/
 - https://github.com/kanripo/KR1j0056
 - https://github.com/kanripo/KR1j0022
