@@ -157,4 +157,16 @@ function M.readfile_sync(uv, path, from, to, opts)
   return data
 end
 
+---@param t table
+---@param x any
+---@return boolean
+function M.contains(t, x)
+  for _, v in pairs(t) do
+    if v == x then
+      return true
+    end
+  end
+  return false
+end
+
 return M

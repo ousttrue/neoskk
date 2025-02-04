@@ -1,6 +1,7 @@
 ---廣韻
 -- [有女同車《〈廣韻〉全字表》原表](https://github.com/syimyuzya/guangyun0704)
 -- [音韻学入門 －中古音篇－](https://kodaimoji.chowder.jp/chinese-phonology/pdf/oningaku.pdf)
+-- https://ytenx.org/kyonh/
 local util = require "neoskk.util"
 local utf8 = require "neoskk.utf8"
 local yun = require "neoskk.yun"
@@ -101,7 +102,7 @@ end
 
 ---半切上字
 ---@return string
-function XiaoYun:fanqie_up()
+function XiaoYun:fanqie_hi()
   for _, code in utf8.codes(self.fanqie) do
     return code
   end
@@ -235,50 +236,6 @@ function GuangYun.new()
   return self
 end
 
----@class XiLian
----@field list XiaoYun[]
-local XiLian = {}
-XiLian.__index = XiLian
-
-function XiLian.new()
-  local self = setmetatable({
-    list = {},
-  }, XiLian)
-  return self
-end
-
-function XiLian:push(xiaoyun)
-  table.insert(self.list, xiaoyun)
-end
-
----@param xiaoyun XiaoYun
----@return boolean
-function XiLian:keiren(xiaoyun)
-  for _, x in ipairs(self.list) do
-    if x.shengniu == xiaoyun.shengniu then
-      return true
-    end
-    local l = x:fanqie_up()
-    if l then
-      for _, ch in ipairs(xiaoyun.chars) do
-        if l == ch then
-          return true
-        end
-      end
-    end
-
-    local r = xiaoyun:fanqie_up()
-    if r then
-      for _, ch in ipairs(x.chars) do
-        if ch == r then
-          return true
-        end
-      end
-    end
-  end
-  return false
-end
-
 ---@param data string Kuankhiunn0704-semicolon.txt
 function GuangYun:load(data)
   for line in string.gmatch(data, "([^\n]+)\n") do
@@ -286,39 +243,11 @@ function GuangYun:load(data)
     if xiaoyun then
       table.insert(self.list, xiaoyun)
       local sheng = self:get_or_create_shengniu(xiaoyun.shengniu)
-      table.insert(sheng.xiaoyun_list, xiaoyun.chars[1])
-    end
-  end
-
-  for i = 1, 36 do
-    local s = self.sheng_list[i]
-    local x = self:xiaoyun_from_char(s.names[1])
-    print(i, s.names[1], x)
-  end
-
-  ---@ytpe XiLian[]
-  local groups = {}
-  for _, xiaoyun in ipairs(self.list) do
-    local found = false
-    for _, g in ipairs(groups) do
-      if g:keiren(xiaoyun) then
-        g:push(xiaoyun)
-        found = true
-        break
+      if sheng then
+        table.insert(sheng.xiaoyun_list, xiaoyun.chars[1])
       end
     end
-
-    if not found then
-      local new_group = XiLian.new()
-      new_group:push(xiaoyun)
-      table.insert(groups, new_group)
-    end
   end
-  -- print(#groups, "Group")
-
-  -- for _, g in ipairs(groups) do
-  --   print(g.list[1].shengniu)
-  -- end
 end
 
 ---@param ch string
@@ -330,9 +259,9 @@ function GuangYun:get_or_create_shengniu(ch)
     end
   end
 
-  local sheng = ShengNiu.new({ ch }, "?", "?", "?")
-  table.insert(self.sheng_list, sheng)
-  return sheng
+  -- local sheng = ShengNiu.new({ ch }, "?", "?", "?")
+  -- table.insert(self.sheng_list, sheng)
+  -- return sheng
 end
 
 ---@param char string

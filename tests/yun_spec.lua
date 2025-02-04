@@ -3,11 +3,13 @@ local utf8 = require "neoskk.utf8"
 local UniHanDict = require "neoskk.UniHanDict"
 local yun = require "neoskk.yun"
 local GuangYun = require "neoskk.GuangYun"
+local FanqieShang = require("neoskk.fanqie").FanqieShang
+local XiLian = require "neoskk.XiLian"
 
 local uv = require "luv"
 
 local file = os.getenv "GUANGYUN"
-assert(file, "env")
+assert(file, "env: GUANGYUN")
 
 local data = util.readfile_sync(uv, file)
 assert(data, "file")
@@ -49,28 +51,11 @@ describe("廣韻", function()
 
   it("声紐", function()
     -- assert.equal(38, #guangyun.sheng_list)
+    local xilian = XiLian.parse(guangyun.list)
 
-    print()
-    ---@param s ShengNiu
-    local function tmp(s)
-      for j = 1, 36 do
-        local t = guangyun.sheng_list[j]
-        for _, x in ipairs(guangyun.list) do
-          if s:match(x.shengniu) then
-            for _, y in ipairs(x.chars) do
-              if #t.xiaoyun_list == 0 and t:match(y) then
-                return t
-              end
-            end
-          end
-        end
-      end
-    end
-
-    -- for i = 37, #guangyun.sheng_list do
-    --   local s = guangyun.sheng_list[i]
-    --   local t = tmp(s)
-    --   print(s, t)
-    -- end
+    assert.same(
+      FanqieShang.parse("方 府 博 彼 甫 邊 布 必 愽 北 卑 伯 筆 脯 巴 并 補 陂 分 兵 畀 封 鄙 百", "幫"),
+      xilian:from_shengniu "幫"
+    )
   end)
 end)
