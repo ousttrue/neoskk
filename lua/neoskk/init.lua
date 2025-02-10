@@ -4,9 +4,23 @@
 local MODULE_NAME = "neoskk"
 local cache = vim.fn.stdpath "cache"
 assert(type(cache) == "string")
-local CACHE_DIR = vim.fs.joinpath(cache, MODULE_NAME)
+
+---@return string
+local function ensure_make_cache_dir()
+  local CACHE_DIR = vim.fs.joinpath(cache, MODULE_NAME)
+  if not vim.uv.fs_stat(CACHE_DIR) then
+    vim.notify_once("mkdir " .. CACHE_DIR, vim.log.levels.INFO, { title = "neoskk" })
+    vim.fn.mkdir(CACHE_DIR, "p")
+  end
+  return CACHE_DIR
+end
+
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
 local KEYS_SYMBOL = vim.split("., :;-+*~[](){}<>\b0123456789/", "")
+local UNIHAN_URL = "https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip"
+-- https://skk-dev.github.io/dict/
+local SKK_L_URL = "https://skk-dev.github.io/dict/SKK-JISYO.L.gz"
+local SKK_china_taiwan_URL = "https://skk-dev.github.io/dict/SKK-JISYO.china_taiwan.gz"
 
 local PreEdit = require "neoskk.PreEdit"
 local UniHanDict = require "neoskk.UniHanDict"
@@ -159,6 +173,10 @@ function M.NeoSkk.new(opts)
 
   vim.api.nvim_create_user_command("NeoSkkUnihanDownload", function()
     require("neoskk").download_unihan()
+  end, {})
+
+  vim.api.nvim_create_user_command("NeoSkkSkkDictDownload", function()
+    require("neoskk").download_skkdict()
   end, {})
 
   M.instance = self
@@ -413,7 +431,8 @@ end
 function M.NeoSkk:load_dict()
   self.dict = UniHanDict.new()
 
-  local unihan_dir = self.opts.unihan_dir or CACHE_DIR
+  local dir = ensure_make_cache_dir()
+  local unihan_dir = self.opts.unihan_dir or dir
 
   local data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_DictionaryLikeData.txt")
   if data then
@@ -433,42 +452,56 @@ function M.NeoSkk:load_dict()
   end
 
   if self.opts.guangyun then
-    local data = util.readfile_sync(vim.uv, self.opts.guangyun)
+    data = util.readfile_sync(vim.uv, self.opts.guangyun)
     if data then
       self.dict:load_quangyun(data)
     end
   end
 
   if self.opts.kangxi then
-    local data = util.readfile_sync(vim.uv, self.opts.kangxi)
+    data = util.readfile_sync(vim.uv, self.opts.kangxi)
     if data then
       self.dict:load_kangxi(data)
     end
   end
 
   if self.opts.xszd then
-    local data = util.readfile_sync(vim.uv, self.opts.xszd)
+    data = util.readfile_sync(vim.uv, self.opts.xszd)
     if data then
       self.dict:load_xszd(data)
     end
   end
 
   if self.opts.chinadat then
-    local data = util.readfile_sync(vim.uv, self.opts.chinadat)
+    data = util.readfile_sync(vim.uv, self.opts.chinadat)
     if data then
       self.dict:load_chinadat(data)
     end
   end
 
-  if self.opts.jisyo then
-    local data = util.readfile_sync(vim.uv, self.opts.jisyo, "euc-jp", "utf-8", {})
+  ---@type string[]
+  local jisyo = {}
+  if type(self.opts.jisyo) == "string" then
+    table.insert(jisyo, self.opts.jisyo)
+  elseif type(self.opts.jisyo) == "table" then
+    for _, j in ipairs(self.opts.jisyo) do
+      table.insert(jisyo, j)
+    end
+  end
+  if #jisyo == 0 then
+    table.insert(jisyo, dir .. "/SKK-JISYO.L")
+    table.insert(jisyo, dir .. "/SKK-JISYO.china_taiwan")
+  end
+
+  for _, j in ipairs(jisyo) do
+    data = util.readfile_sync(vim.uv, j, "euc-jp", "utf-8", {})
     if data then
       self.dict:load_skk(data)
     end
   end
 
   if self.opts.user then
-    local data = util.readfile_sync(vim.uv, self.opts.user)
+    data = util.readfile_sync(vim.uv, self.opts.user)
     if data then
       local json = vim.json.decode(data)
       self.dict:load_user(json)
@@ -524,33 +557,51 @@ function M.reload_dict()
   end
 end
 
-function M.download_unihan()
-  if not vim.uv.fs_stat(CACHE_DIR) then
-    vim.notify_once("mkdir " .. CACHE_DIR, vim.log.levels.INFO, { title = "neoskk" })
-    vim.fn.mkdir(CACHE_DIR, "p")
+---@param url string
+---@param dir string
+---@param downloaded string
+---@param extracted string
+local function download_if_not_exist(url, dir, downloaded, extracted, opts)
+  local dst_extracted = vim.fs.joinpath(dir, extracted)
+  if vim.uv.fs_stat(dst_extracted) then
+    vim.notify_once("exist " .. dst_extracted, vim.log.levels.INFO, { title = "neoskk" })
+    return
   end
 
-  local url = "https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip"
-  local indices = vim.fs.joinpath(CACHE_DIR, "Unihan_DictionaryIndices.txt")
-  local dst = vim.fs.joinpath(CACHE_DIR, "Unihan.zip")
-  if vim.uv.fs_stat(indices) then
-    vim.notify_once("exist " .. indices, vim.log.levels.INFO, { title = "neoskk" })
+  local dst_archive = vim.fs.joinpath(dir, downloaded)
+  if not vim.uv.fs_stat(dst_archive) then
+    -- download
+    vim.notify_once("download " .. url, vim.log.levels.INFO, { title = "neoskk" })
+
+    local dl_job = vim.system({ "curl", url }, { text = false }):wait()
+    assert(dl_job.stdout)
+    vim.notify_once(("write %dbytes"):format(#dl_job.stdout), vim.log.levels.INFO, { title = "neoskk" })
+    util.writefile_sync(vim.uv, dst_archive, dl_job.stdout)
+  end
+
+  -- extract
+  vim.notify_once("extact " .. dst_extracted, vim.log.levels.INFO, { title = "neoskk" })
+  if not downloaded:match "%.tar%.gz$" and downloaded:match "%.gz$" then
+    local gz_job = vim.system({ "C:/Program Files/Git/usr/bin/gzip.exe", "-dc", dst_archive }, { cwd = dir }):wait()
+    util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout)
+    assert(vim.uv.fs_stat(dst_extracted))
+    vim.notify_once("done", vim.log.levels.INFO, { title = "neoskk" })
   else
-    if not vim.uv.fs_stat(dst) then
-      -- download
-      vim.notify_once("download " .. url, vim.log.levels.INFO, { title = "neoskk" })
-      local dl_job = vim.system({ "curl", url }, { text = false }):wait()
-      if dl_job.stdout then
-        vim.notify_once(("write %dbytes"):format(#dl_job.stdout), vim.log.levels.INFO, { title = "neoskk" })
-        util.writefile_sync(vim.uv, dst, dl_job.stdout)
-      end
-    end
-
-    -- extract
-    vim.notify_once("extact " .. indices, vim.log.levels.INFO, { title = "neoskk" })
-    vim.system({ "tar", "xf", dst }, { cwd = CACHE_DIR }):wait()
-    assert(vim.uv.fs_stat(indices))
+    vim.system({ "tar", "xf", dst_archive }, { cwd = dir }):wait()
+    assert(vim.uv.fs_stat(dst_extracted))
+    vim.notify_once("done", vim.log.levels.INFO, { title = "neoskk" })
   end
+end
+
+function M.download_unihan()
+  local dir = ensure_make_cache_dir()
+  download_if_not_exist(UNIHAN_URL, dir, "Unihan.zip", "Unihan_DictionaryIndices.txt")
+end
+
+function M.download_skkdict()
+  local dir = ensure_make_cache_dir()
+  download_if_not_exist(SKK_L_URL, dir, "SKK-JISYO.L.gz", "SKK-JISYO.L")
+  download_if_not_exist(SKK_china_taiwan_URL, dir, "SKK-JISYO.china_taiwan.gz", "SKK-JISYO.china_taiwan")
 end
 
 return M
