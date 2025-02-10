@@ -2,8 +2,12 @@
 --- vim の状態管理
 ---
 local MODULE_NAME = "neoskk"
+local cache = vim.fn.stdpath "cache"
+assert(type(cache) == "string")
+local CACHE_DIR = vim.fs.joinpath(cache, MODULE_NAME)
 local KEYS_LOWER = vim.split("abcdefghijklmnopqrstuvwxyz", "")
 local KEYS_SYMBOL = vim.split("., :;-+*~[](){}<>\b0123456789/", "")
+
 local PreEdit = require "neoskk.PreEdit"
 local UniHanDict = require "neoskk.UniHanDict"
 local SkkMachine = require "neoskk.SkkMachine"
@@ -20,15 +24,6 @@ local M = {
   ---@type STATE_MODE
   state_mode = STATE_MODE_SKK,
 }
-
----@param path string
----@param from string?
----@param to string?
----@param opts table? vim.iconv opts
----@return string?
-local function readFileSync(...)
-  return util.readfile_sync(vim.uv, ...)
-end
 
 ---@class NeoSkkOpts
 ---@field jisyo string? path to SKK-JISYO.L from https://github.com/skk-dict/jisyo
@@ -157,6 +152,14 @@ function M.NeoSkk.new(opts)
     local new_self = new_module.NeoSkk.new(old.opts)
     new_self.dict = old.dict
   end)
+
+  vim.api.nvim_create_user_command("NeoSkkReload", function()
+    require("neoskk").reload_dict()
+  end, {})
+
+  vim.api.nvim_create_user_command("NeoSkkUnihanDownload", function()
+    require("neoskk").download_unihan()
+  end, {})
 
   M.instance = self
   return self
@@ -410,62 +413,62 @@ end
 function M.NeoSkk:load_dict()
   self.dict = UniHanDict.new()
 
-  if self.opts.unihan_dir then
-    local data = readFileSync(self.opts.unihan_dir .. "/Unihan_DictionaryLikeData.txt")
-    if data then
-      self.dict:load_unihan_likedata(data)
-    end
-    data = readFileSync(self.opts.unihan_dir .. "/Unihan_Readings.txt")
-    if data then
-      self.dict:load_unihan_readings(data)
-    end
-    data = readFileSync(self.opts.unihan_dir .. "/Unihan_Variants.txt")
-    if data then
-      self.dict:load_unihan_variants(data)
-    end
-    data = readFileSync(self.opts.unihan_dir .. "/Unihan_OtherMappings.txt")
-    if data then
-      self.dict:load_unihan_othermappings(data)
-    end
+  local unihan_dir = self.opts.unihan_dir or CACHE_DIR
+
+  local data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_DictionaryLikeData.txt")
+  if data then
+    self.dict:load_unihan_likedata(data)
+  end
+  data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_Readings.txt")
+  if data then
+    self.dict:load_unihan_readings(data)
+  end
+  data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_Variants.txt")
+  if data then
+    self.dict:load_unihan_variants(data)
+  end
+  data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_OtherMappings.txt")
+  if data then
+    self.dict:load_unihan_othermappings(data)
   end
 
   if self.opts.guangyun then
-    local data = readFileSync(self.opts.guangyun)
+    local data = util.readfile_sync(vim.uv, self.opts.guangyun)
     if data then
       self.dict:load_quangyun(data)
     end
   end
 
   if self.opts.kangxi then
-    local data = readFileSync(self.opts.kangxi)
+    local data = util.readfile_sync(vim.uv, self.opts.kangxi)
     if data then
       self.dict:load_kangxi(data)
     end
   end
 
   if self.opts.xszd then
-    local data = readFileSync(self.opts.xszd)
+    local data = util.readfile_sync(vim.uv, self.opts.xszd)
     if data then
       self.dict:load_xszd(data)
     end
   end
 
   if self.opts.chinadat then
-    local data = readFileSync(self.opts.chinadat)
+    local data = util.readfile_sync(vim.uv, self.opts.chinadat)
     if data then
       self.dict:load_chinadat(data)
     end
   end
 
   if self.opts.jisyo then
-    local data = readFileSync(self.opts.jisyo, "euc-jp", "utf-8", {})
+    local data = util.readfile_sync(vim.uv, self.opts.jisyo, "euc-jp", "utf-8", {})
     if data then
       self.dict:load_skk(data)
     end
   end
 
   if self.opts.user then
-    local data = readFileSync(self.opts.user)
+    local data = util.readfile_sync(vim.uv, self.opts.user)
     if data then
       local json = vim.json.decode(data)
       self.dict:load_user(json)
@@ -518,6 +521,35 @@ function M.reload_dict()
   local skk = M.instance
   if skk then
     return skk:load_dict()
+  end
+end
+
+function M.download_unihan()
+  if not vim.uv.fs_stat(CACHE_DIR) then
+    vim.notify_once("mkdir " .. CACHE_DIR, vim.log.levels.INFO, { title = "neoskk" })
+    vim.fn.mkdir(CACHE_DIR, "p")
+  end
+
+  local url = "https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip"
+  local indices = vim.fs.joinpath(CACHE_DIR, "Unihan_DictionaryIndices.txt")
+  local dst = vim.fs.joinpath(CACHE_DIR, "Unihan.zip")
+  if vim.uv.fs_stat(indices) then
+    vim.notify_once("exist " .. indices, vim.log.levels.INFO, { title = "neoskk" })
+  else
+    if not vim.uv.fs_stat(dst) then
+      -- download
+      vim.notify_once("download " .. url, vim.log.levels.INFO, { title = "neoskk" })
+      local dl_job = vim.system({ "curl", url }, { text = false }):wait()
+      if dl_job.stdout then
+        vim.notify_once(("write %dbytes"):format(#dl_job.stdout), vim.log.levels.INFO, { title = "neoskk" })
+        util.writefile_sync(vim.uv, dst, dl_job.stdout)
+      end
+    end
+
+    -- extract
+    vim.notify_once("extact " .. indices, vim.log.levels.INFO, { title = "neoskk" })
+    vim.system({ "tar", "xf", dst }, { cwd = CACHE_DIR }):wait()
+    assert(vim.uv.fs_stat(indices))
   end
 end
 

@@ -138,6 +138,7 @@ end
 --   return t
 -- end
 
+---@param uv uv
 ---@param path string
 ---@param from string?
 ---@param to string?
@@ -147,7 +148,7 @@ function M.readfile_sync(uv, path, from, to, opts)
   if not uv.fs_stat(path) then
     return
   end
-  local fd = assert(uv.fs_open(path, "r", 438))
+  local fd = assert(uv.fs_open(path, "r", 0))
   local stat = assert(uv.fs_fstat(fd))
   local data = assert(uv.fs_read(fd, stat.size, 0))
   assert(uv.fs_close(fd))
@@ -155,6 +156,15 @@ function M.readfile_sync(uv, path, from, to, opts)
     data = assert(vim.iconv(data, from, to, opts))
   end
   return data
+end
+
+---@param uv uv
+---@param  path string
+---@param content string
+function M.writefile_sync(uv, path, content)
+  local fd = assert(uv.fs_open(path, "w", 0))
+  uv.fs_write(fd, content)
+  assert(uv.fs_close(fd))
 end
 
 ---@param t table
