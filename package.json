@@ -1,0 +1,14 @@
+{
+  "name": "neoskk",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "./luarocks/bin/busted.bat --helper=./tests/testhelper.lua ./tests"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

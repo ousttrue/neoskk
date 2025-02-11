@@ -6,6 +6,7 @@ local kana_util = require "neoskk.kana_util"
 local pinyin = require "neoskk.pinyin"
 local yun = require "neoskk.yun"
 local GuangYun = require "neoskk.GuangYun"
+local NUM_BASE = tonumber("2460", 16) - 1
 
 --- 読
 ---@class UniHanReading
@@ -663,15 +664,35 @@ function UniHanDict:hover(ch)
       local xiaoyun_hover = self.guangyun:hover(ch, xiaoyun)
       util.insert_all(lines, xiaoyun_hover)
 
+      local function make_x(i)
+        local x = xiaoyun.chars[i]
+        if x then
+          local n = utf8.char(NUM_BASE + i) .. " "
+          local y = self.map[x]
+          if y and #y.readings > 0 then
+            local r = y.readings[1]
+            return ("%s%s %s%s %s"):format(n, x, r.zhuyin, r.diao or "", y.kana[1])
+          else
+            return n .. x
+          end
+        end
+      end
+
       -- 字例
       table.insert(lines, ("## %d字"):format(#xiaoyun.chars))
-      for _, x in ipairs(xiaoyun.chars) do
-        local y = self.map[x]
-        if y and #y.readings > 0 then
-          local r = y.readings[1]
-          table.insert(lines, ("%s %s%s %s"):format(x, r.zhuyin, r.diao or "", y.kana[1]))
-        else
-          table.insert(lines, x)
+      for i = 1, #xiaoyun.chars, 4 do
+        local x1 = make_x(i)
+        local x2 = make_x(i + 1)
+        local x3 = make_x(i + 2)
+        local x4 = make_x(i + 3)
+        if x1 and x2 and x3 and x4 then
+          table.insert(lines, "|" .. x1 .. "|" .. x2 .. "|" .. x3 .. "|" .. x4)
+        elseif x1 and x2 and x3 then
+          table.insert(lines, "|" .. x1 .. "|" .. x2 .. "|" .. x3)
+        elseif x1 and x2 then
+          table.insert(lines, "|" .. x1 .. "|" .. x2)
+        elseif x1 then
+          table.insert(lines, "|" .. x1)
         end
       end
       table.insert(lines, "")

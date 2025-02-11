@@ -75,7 +75,7 @@ preedit を extmark で表示します.
 > .\luarocks\bin\lua.exe -v
 LuaJIT 2.1.0-beta3 -- Copyright (C) 2005-2017 Mike Pall. http://luajit.org/
 > .\luarocks\bin\activate.ps1
-> luarocks install busted
+> luarocks install busted luv
 > .\luarocks\bin\busted.bat --version
 2.2.0
 ```

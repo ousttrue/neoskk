@@ -322,7 +322,17 @@ function GuangYun:hover(ch, xiaoyun)
         if nyu == xiaoyun.name then
           nyu = "`" .. nyu .. "`"
         end
-        table.insert(lines, ("%s %s %s %s"):format(hei, jou, kyo, nyu))
+
+        local a_xiaoyun = false
+        if a then
+          a_xiaoyun = self:xiaoyun_from_char(a.guangyun[1])
+        end
+        if a_xiaoyun then
+          table.insert(lines, ("%s %s %s %s %s口%s等"):format(hei, jou, kyo, nyu, a_xiaoyun.huo, a_xiaoyun.deng))
+        else
+          print(a.name)
+          table.insert(lines, ("%s %s %s %s"):format(hei, jou, kyo, nyu))
+        end
         i = i + 1
       end
     end
