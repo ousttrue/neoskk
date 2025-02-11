@@ -229,10 +229,6 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 
   - 學生字典 Text Data (xszd.txt)
 
-- 常用漢字
-
-  - https://x0213.org/joyo-kanji-code/
-
 - https://github.com/rime-aca/character_set
 
 - [有女同車《〈廣韻〉全字表》原表](https://github.com/syimyuzya/guangyun0704)
@@ -247,6 +243,18 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 - https://www.kanripo.org/
 - https://github.com/kanripo/KR1j0056
 - https://github.com/kanripo/KR1j0022
+
+- https://github.com/g0v/moedict-app
+
+### 常用漢字
+
+- [簡体字、日用字変換の手順](http://mikeo410.minim.ne.jp/%EF%BC%95%EF%BC%8E%E3%80%8C%E3%81%8B%E3%81%9F%E3%81%A1%E3%80%8D%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6/%EF%BC%91%EF%BC%8E%E6%96%87%E5%AD%97/%EF%BC%91%EF%BC%8E%E7%B0%A1%E4%BD%93%E5%AD%97/%EF%BC%91%EF%BC%8E%E7%B0%A1%E4%BD%93%E5%AD%97%E3%80%81%E6%97%A5%E7%94%A8%E5%AD%97%E5%A4%89%E6%8F%9B%E3%81%AE%E6%89%8B%E9%A0%86.html)
+- https://x0213.org/joyo-kanji-code/
+- https://github.com/rime-aca/character_set
+- https://www.aozora.gr.jp/kanji_table/
+
+- https://github.com/zispace/hanzi-chars
+  - https://github.com/zispace/hanzi-chars/blob/main/data-charlist/%E6%97%A5%E6%9C%AC%E3%80%8A%E5%B8%B8%E7%94%A8%E6%BC%A2%E5%AD%97%E8%A1%A8%E3%80%8B%EF%BC%882010%E5%B9%B4%EF%BC%89%E6%97%A7%E5%AD%97%E4%BD%93.txt
 
 ### pinyin
 

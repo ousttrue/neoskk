@@ -5,8 +5,9 @@
 local util = require "neoskk.util"
 local yun = require "neoskk.yun"
 local XiaoYun = require "neoskk.XiaoYun"
+local utf8 = require "neoskk.utf8"
 
----@alias ShengNiuType "重唇音"|"軽唇音"|"舌頭音"|"舌上音"|"牙音"|"歯頭音"|"正歯音"|"喉音"|"半舌音"|"半歯音"
+---@alias ShengNiuType "重唇音"|"軽唇音"|"舌頭音"|"舌上音"|"牙音"|"歯頭音"|"正歯音莊組"|"正歯音章組"|"喉音"|"半舌音"|"半歯音"
 local type1 = {
   ["重唇音"] = "唇",
   ["軽唇音"] = "唇",
@@ -30,28 +31,33 @@ local seidaku1 = {
 
 ---聲紐 字母
 ---@class ShengNiu
----@field names string[] 字
+---@field name string
+---@field names string[]
 ---@field type ShengNiuType
 ---@field seidaku ShengNiuSeidaku
----@field roma string alphabet
 ---@field xiaoyun_list string[] 小韻のリスト
 local ShengNiu = {}
 ShengNiu.__index = ShengNiu
 
----@param names string[]
+---@param name string
 ---@param t ShengNiuType
 ---@param seidaku ShengNiuSeidaku
 ---@param line integer? 一等四等 or 二等三等 or nil
----@param roma string
+---@param chars string?
 ---@return ShengNiu
-function ShengNiu.new(names, t, seidaku, line, roma)
+function ShengNiu.new(name, t, seidaku, line, chars)
   local self = setmetatable({
-    names = names,
+    name = name,
+    names = {},
     type = t,
     seidaku = seidaku,
-    roma = roma,
     xiaoyun_list = {},
   }, ShengNiu)
+  if chars then
+    for _, ch in utf8.codes(chars) do
+      table.insert(self.names, ch)
+    end
+  end
   return self
 end
 
@@ -85,47 +91,71 @@ function GuangYun.new()
     list = {},
     sheng_list = {
       --唇 p
-      ShengNiu.new({ "幫" }, "重唇音", "清", nil, "p"),
-      ShengNiu.new({ "滂" }, "重唇音", "次清", nil, "ph"),
-      ShengNiu.new({ "並" }, "重唇音", "濁", nil, "b"),
-      ShengNiu.new({ "明" }, "重唇音", "清濁", nil, "m"),
-      ShengNiu.new({ "非" }, "軽唇音", "次清", 3, "f"),
-      ShengNiu.new({ "敷" }, "軽唇音", "濁", 3, "fh"),
-      ShengNiu.new({ "奉" }, "軽唇音", "清", 3, "v"),
-      ShengNiu.new({ "微" }, "軽唇音", "清濁", 3, ""),
+      ShengNiu.new(
+        "幫",
+        "重唇音",
+        "清",
+        nil,
+        "方府博彼甫邊布必北卑伯筆巴并補陂分兵晡畀封鄙百"
+      ),
+      ShengNiu.new("滂", "重唇音", "次清", nil, "方敷匹芳普撫孚滂披妃丕峯譬拂"),
+      ShengNiu.new(
+        "並",
+        "重唇音",
+        "濁",
+        nil,
+        "房薄符防部步扶附蒲縛皮白便浮裴傍毗平捕馮婢父弼"
+      ),
+      ShengNiu.new("明", "重唇音", "清濁", nil, "莫靡武無彌母亡文綿眉模謨明摸巫美望矛慕"),
+      ShengNiu.new("非", "軽唇音", "次清", 3),
+      ShengNiu.new("敷", "軽唇音", "濁", 3),
+      ShengNiu.new("奉", "軽唇音", "清", 3),
+      ShengNiu.new("微", "軽唇音", "清濁", 3),
       --舌 t
-      ShengNiu.new({ "端" }, "舌頭音", "清", 1, "t"),
-      ShengNiu.new({ "透" }, "舌頭音", "次清", 1, "th"),
-      ShengNiu.new({ "定" }, "舌頭音", "濁", 1, "d"),
-      ShengNiu.new({ "泥" }, "舌頭音", "清濁", 1, "n"),
-      ShengNiu.new({ "知" }, "舌上音", "清", 2, "tr"),
-      ShengNiu.new({ "徹" }, "舌上音", "次清", 2, "thr"),
-      ShengNiu.new({ "澄" }, "舌上音", "濁", 2, "dr"),
-      ShengNiu.new({ "娘" }, "舌上音", "清濁", 2, "nr"),
-      --牙 k
-      ShengNiu.new({ "見" }, "牙音", "清", nil, "k"),
-      ShengNiu.new({ "溪" }, "牙音", "次清", nil, "kh"),
-      ShengNiu.new({ "群" }, "牙音", "濁", nil, "g"),
-      ShengNiu.new({ "疑" }, "牙音", "清濁", nil, "ng"),
+      ShengNiu.new("端", "舌頭音", "清", 1, "德都丁當多得冬"),
+      ShengNiu.new("透", "舌頭音", "次清", 1, "他土吐託天湯通台"),
+      ShengNiu.new("定", "舌頭音", "濁", 1, "徒同杜度墜特堂唐田陀"),
+      ShengNiu.new("泥", "舌頭音", "清濁", 1, "奴乃諾那内"),
+      ShengNiu.new("知", "舌上音", "清", 2, "陟都竹丁卓張中知豬珍追猪徵"),
+      ShengNiu.new("徹", "舌上音", "次清", 2, "敕他丑褚楮癡抽恥"),
+      ShengNiu.new("澄", "舌上音", "濁", 2, "徒直宅柱池丈持除治馳遟佇場"),
+      ShengNiu.new("孃", "舌上音", "清濁", 2, "奴女乃妳諾尼拏穠"),
       --歯 ts
-      ShengNiu.new({ "精", "莊" }, "歯頭音", "清", 1, "c"),
-      ShengNiu.new({ "清", "初" }, "歯頭音", "次清", 1, "ch"),
-      ShengNiu.new({ "從" }, "歯頭音", "濁", 1, "z"),
-      ShengNiu.new({ "心" }, "歯頭音", "清", 1, "s"),
-      ShengNiu.new({ "邪" }, "歯頭音", "濁", 1, "zs"),
-      ShengNiu.new({ "照", "章" }, "正歯音", "清", 2, "cr"),
-      ShengNiu.new({ "穿", "昌" }, "正歯音", "次清", 2, "sj"),
-      ShengNiu.new({ "牀", "崇" }, "正歯音", "濁", 2, "zr"),
-      ShengNiu.new({ "審", "書" }, "正歯音", "清", 2, "sr"),
-      ShengNiu.new({ "禅" }, "正歯音", "濁", 2, "zsr"),
+      ShengNiu.new("精", "歯頭音", "清", 1, "子作即姊遵醉則祖臧將借兹𩛠資姉"),
+      ShengNiu.new("清", "歯頭音", "次清", 1, "倉七此取蒼醋千雌采親麁靑麤遷"),
+      ShengNiu.new("從", "歯頭音", "濁", 1, "徂藏疾昨匠在才自慈秦漸情前"),
+      ShengNiu.new("心", "歯頭音", "清", 1, "息蘇私相素先思須寫桑速斯胥悉雖司辛"),
+      ShengNiu.new("邪", "歯頭音", "濁", 1, "祥旬似詳夕徐隨辝辭寺"),
+      ShengNiu.new("莊", "正歯音莊組", "清", 1, "子側莊阻仄爭鄒簪"),
+      ShengNiu.new("初", "正歯音莊組", "次清", 1, "楚叉測初創瘡芻廁"),
+      ShengNiu.new("崇", "正歯音莊組", "濁", 1, "鋤士仕崇鉏助牀鶵雛犲崱查査"),
+      ShengNiu.new("生", "正歯音莊組", "清", 1, "所山疏數色史踈砂沙生"),
+      ShengNiu.new("俟", "正歯音莊組", "濁", 1, "俟牀"),
+      ShengNiu.new("章", "正歯音章組", "清", 1, "職章旨止諸正煑之占支脂征"),
+      ShengNiu.new("昌", "正歯音章組", "次清", 1, "昌尺叱處叉赤充姝"),
+      ShengNiu.new("常", "正歯音章組", "濁", 1, "蜀是視市署成植常氏時承臣殖甞寔殊十"),
+      ShengNiu.new("書", "正歯音章組", "濁", 1, "書式傷失識施詩舒賞矢釋商試始"),
+      ShengNiu.new("船", "正歯音章組", "次清", 1, "食神實乗"),
+      --牙 k
+      ShengNiu.new("見", "牙音", "清", nil, "居古九舉公過俱佳乖姑各兼詭規几吉紀格"),
+      ShengNiu.new(
+        "溪",
+        "牙音",
+        "次清",
+        nil,
+        "去苦曲丘豈口可起乞客綺恪康墟袪羌驅弃空牽枯欽謙區窺卿詰傾楷"
+      ),
+      ShengNiu.new("羣", "牙音", "濁", nil, "渠巨強其跪求曁狂奇具臼衢"),
+      ShengNiu.new("疑", "牙音", "清濁", nil, "五魚牛語遇擬愚俄虞疑研宜危吾玉"),
       --喉 h
-      ShengNiu.new({ "影" }, "喉音", "清", nil, ""),
-      ShengNiu.new({ "曉" }, "喉音", "清", nil, ""),
-      ShengNiu.new({ "匣", "俟" }, "喉音", "濁", nil, ""),
-      ShengNiu.new({ "喩", "以" }, "喉音", "清濁", nil, ""),
+      ShengNiu.new("曉", "喉音", "清", nil, "呼許香喜朽況荒火虚虎興花休况馨海羲呵"),
+      ShengNiu.new("匣", "喉音", "清", nil, "戸下胡獲侯懷何乎黃"),
+      ShengNiu.new("影", "喉音", "濁", nil, "烏於握央憶哀乙謁一委挹安紆烟衣依鷖伊憂愛"),
+      ShengNiu.new("云", "喉音", "清濁", nil, "羽下薳洧雨爲王有于永韋榮云雲筠"),
+      ShengNiu.new("以", "喉音", "清濁", nil, "以餘弋悅與羊翼于余移夷營"),
       -- 半
-      ShengNiu.new({ "來" }, "半舌音", "清濁", nil, "l"),
-      ShengNiu.new({ "日" }, "半歯音", "清濁", nil, "nj"),
+      ShengNiu.new("來", "半舌音", "清濁", nil, "力盧吕里落郎賴魯縷勒良來洛連練離林"),
+      ShengNiu.new("日", "半齒音", "清濁", nil, "如而汝人儒耳兒仍"),
     },
   }, GuangYun)
   return self
@@ -208,8 +238,9 @@ end
 function GuangYun:make_xiaoyun_list(name, deng)
   ---@type (XiaoYun?)[]
   local list = {}
-  for i = 1, 36 do
-    local sheng = self.sheng_list[i]
+  -- for i = 1, 36 do
+  --   local sheng = self.sheng_list[i]
+  for i, sheng in ipairs(self.sheng_list) do
     local xiaoyun = nil
     if sheng then
       xiaoyun = self:find_xiaoyun(function(x)
@@ -229,6 +260,7 @@ end
 ---@param xiaoyun XiaoYun
 ---@return string[]
 function GuangYun:hover(ch, xiaoyun)
+  assert(xiaoyun)
   local lines = {}
   table.insert(
     lines,
@@ -299,39 +331,44 @@ function GuangYun:hover(ch, xiaoyun)
 
   -- 聲紐
   local shengniu = self:get_or_create_shengniu(xiaoyun.shengniu)
-  table.insert(
-    lines,
-    ("## 聲紐: %s, %s%s (%s)"):format(xiaoyun.shengniu, shengniu.type, shengniu.seidaku, shengniu.roma)
-  )
-  table.insert(lines, "")
-  local yuns = self:make_xiaoyun_list(xiaoyun.name, xiaoyun.deng)
-  local line_type = ""
-  local line_seidaku = ""
-  local line = ""
-  local line2 = ""
-  for i = 1, 36 do
-    local s = self.sheng_list[i]
-    line_type = line_type .. type1[s.type]
-    line_seidaku = line_seidaku .. seidaku1[s.seidaku]
-    line = line .. s.names[1]
-
-    local y = yuns[i]
-    if y then
-      if y == xiaoyun then
-        line2 = line2 .. "`" .. y.chars[1] .. "`"
-      else
-        line2 = line2 .. y.chars[1]
+  if shengniu then
+    table.insert(
+      lines,
+      ("## 聲紐: %s, %s%s (%s)"):format(xiaoyun.shengniu, shengniu.type, shengniu.seidaku, shengniu.roma)
+    )
+    table.insert(lines, "")
+    local yuns = self:make_xiaoyun_list(xiaoyun.name, xiaoyun.deng)
+    local line_type = ""
+    local line_seidaku = ""
+    local line = ""
+    local line2 = ""
+    -- for i = 1, 36 do
+    --   local s = self.sheng_list[i]
+    for i, s in ipairs(self.sheng_list) do
+      line_type = line_type .. (type1[s.type] or "？")
+      line_seidaku = line_seidaku .. seidaku1[s.seidaku]
+      if #s.names > 0 then
+        line = line .. s.names[1]
       end
-    else
-      line2 = line2 .. "〇"
+
+      local y = yuns[i]
+      if y then
+        if y == xiaoyun then
+          line2 = line2 .. "`" .. y.chars[1] .. "`"
+        else
+          line2 = line2 .. y.chars[1]
+        end
+      else
+        line2 = line2 .. "〇"
+      end
     end
+    table.insert(lines, line_type)
+    table.insert(lines, line_seidaku)
+    table.insert(lines, line)
+    table.insert(lines, "----")
+    table.insert(lines, line2)
+    table.insert(lines, "")
   end
-  table.insert(lines, line_type)
-  table.insert(lines, line_seidaku)
-  table.insert(lines, line)
-  table.insert(lines, "----")
-  table.insert(lines, line2)
-  table.insert(lines, "")
 
   return lines
 end
