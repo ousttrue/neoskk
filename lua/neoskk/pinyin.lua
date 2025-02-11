@@ -188,7 +188,7 @@ end
 ---@return integer?
 function M:to_zhuyin(pinyin)
   -- remove 声調
-  local n = nil
+  local n
   for from, _to in pairs(self.to_ascii) do
     local to, _n = unpack(_to)
     local _pinyin = pinyin:gsub(from, to)

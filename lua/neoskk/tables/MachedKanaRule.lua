@@ -109,8 +109,7 @@ function MatchedKanaRule.split(rules, src)
   local output = ""
   -- 部分一致が複数在って後続を見るまで確定できない
   ---@type MatchedKanaRule?
-  local candidate = nil
-
+  local candidate
   for key in src:gmatch "." do
     -- 一文字ずつ処理する
     feed = feed .. key

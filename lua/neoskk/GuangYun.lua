@@ -16,6 +16,8 @@ local type1 = {
   ["牙音"] = "牙",
   ["歯頭音"] = "歯",
   ["正歯音"] = "歯",
+  ["正歯音莊組"] = "歯",
+  ["正歯音章組"] = "歯",
   ["喉音"] = "喉",
   ["半舌音"] = "半",
   ["半歯音"] = "半",
@@ -70,6 +72,9 @@ end
 ---@param s string
 ---@return boolean
 function ShengNiu:match(s)
+  if s == self.name then
+    return true
+  end
   for _, name in ipairs(self.names) do
     if name == s then
       return true
@@ -155,7 +160,7 @@ function GuangYun.new()
       ShengNiu.new("以", "喉音", "清濁", nil, "以餘弋悅與羊翼于余移夷營"),
       -- 半
       ShengNiu.new("來", "半舌音", "清濁", nil, "力盧吕里落郎賴魯縷勒良來洛連練離林"),
-      ShengNiu.new("日", "半齒音", "清濁", nil, "如而汝人儒耳兒仍"),
+      ShengNiu.new("日", "半歯音", "清濁", nil, "如而汝人儒耳兒仍"),
     },
   }, GuangYun)
   return self
@@ -232,155 +237,149 @@ function GuangYun:find_xiaoyun(callback)
   return nil
 end
 
----@param name string
----@param deng string 等
+---@param name string 韻目
 ---@return XiaoYun[]
-function GuangYun:make_xiaoyun_list(name, deng)
+function GuangYun:make_xiaoyun_list(name)
   ---@type (XiaoYun?)[]
   local list = {}
-  -- for i = 1, 36 do
-  --   local sheng = self.sheng_list[i]
   for i, sheng in ipairs(self.sheng_list) do
-    local xiaoyun = nil
-    if sheng then
-      xiaoyun = self:find_xiaoyun(function(x)
-        return x.name == name and x.deng == deng and (sheng and sheng:match(x.shengniu))
-      end)
-    end
+    local xiaoyun = self:find_xiaoyun(function(x)
+      return x.name == name --[[and x.deng == deng]]
+          and sheng:match(x.shengniu)
+    end)
     if xiaoyun then
       table.insert(list, xiaoyun)
     else
+      print(name, sheng.name, "not found")
       table.insert(list, false)
     end
   end
   return list
 end
 
----@param ch string
+---@param xiaoyuns XiaoYun[]
+---@return string[]?, XiaoYun?
+function GuangYun:hover(xiaoyuns)
+  for _, xiaoyun in ipairs(xiaoyuns) do
+    local lines = self:_hover(xiaoyun)
+    if lines then
+      return lines, xiaoyun
+    end
+  end
+end
+
 ---@param xiaoyun XiaoYun
----@return string[]
-function GuangYun:hover(ch, xiaoyun)
-  assert(xiaoyun)
-  local lines = {}
-  table.insert(
-    lines,
-    ("# 廣韻 %s, 小韻 %s, %s切%s声 %s口%s等 %s"):format(
-      xiaoyun.name,
-      xiaoyun.chars[1],
-      xiaoyun.fanqie,
-      xiaoyun.diao,
-      xiaoyun.huo,
-      xiaoyun.deng,
-      xiaoyun.roma
-    )
-  )
-  table.insert(lines, "")
+---@return string[]?
+function GuangYun:_hover(xiaoyun)
+  local yunshe, yunmu = yun.get_she(xiaoyun.name)
+  if not yunshe or not yunmu then
+    return
+  end
+  local shengniu = self:get_or_create_shengniu(xiaoyun.shengniu)
+  if not shengniu then
+    return
+  end
 
   -- 韻
-  local yunshe, yunmu = yun.get_she(xiaoyun.name)
-
-  if yunshe and yunmu then
-    table.insert(lines, ("## %s攝"):format(yunshe.name))
-    table.insert(
-      lines,
-      ("%s %s %s %s"):format(
-        "平" == xiaoyun.diao and "`平`" or "平",
-        "上" == xiaoyun.diao and "`上`" or "上",
-        "去" == xiaoyun.diao and "`去`" or "去",
-        "入" == xiaoyun.diao and "`入`" or "入"
-      )
+  local lines = {}
+  table.insert(lines, ("## %s攝"):format(yunshe.name))
+  table.insert(
+    lines,
+    ("%s %s %s %s"):format(
+      "平" == xiaoyun.diao and "`平`" or "平",
+      "上" == xiaoyun.diao and "`上`" or "上",
+      "去" == xiaoyun.diao and "`去`" or "去",
+      "入" == xiaoyun.diao and "`入`" or "入"
     )
-    for _, group in ipairs(yunshe.list) do
-      --平水韻 delimiter
-      table.insert(lines, "-----------")
+  )
+  for _, group in ipairs(yunshe.list) do
+    --平水韻 delimiter
+    table.insert(lines, "-----------")
 
-      local a = group[1]
-      local b = group[2]
-      local c = group[3]
-      local d = group[4]
+    local a = group[1]
+    local b = group[2]
+    local c = group[3]
+    local d = group[4]
 
-      local i = 1
-      while
-        (a and i <= #a.guangyun)
-        or (b and i <= #b.guangyun)
-        or (c and i <= #c.guangyun)
-        or (d and i <= #d.guangyun)
-      do
-        local hei = a and (a.guangyun[i] or "〇") or "〇"
-        if hei == xiaoyun.name then
-          hei = "`" .. hei .. "`"
-        end
-        local jou = b and (b.guangyun[i] or "〇") or "〇"
-        if jou == xiaoyun.name then
-          jou = "`" .. jou .. "`"
-        end
-        local kyo = c and (c.guangyun[i] or "〇") or "〇"
-        if kyo == xiaoyun.name then
-          kyo = "`" .. kyo .. "`"
-        end
-        local nyu = d and (d.guangyun[i] or "〇") or "〇"
-        if nyu == xiaoyun.name then
-          nyu = "`" .. nyu .. "`"
-        end
-
-        local a_xiaoyun = false
-        if a then
-          a_xiaoyun = self:xiaoyun_from_char(a.guangyun[1])
-        end
-        if a_xiaoyun then
-          table.insert(lines, ("%s %s %s %s %s口%s等"):format(hei, jou, kyo, nyu, a_xiaoyun.huo, a_xiaoyun.deng))
-        else
-          print(a.name)
-          table.insert(lines, ("%s %s %s %s"):format(hei, jou, kyo, nyu))
-        end
-        i = i + 1
+    local i = 1
+    while
+      (a and i <= #a.guangyun)
+      or (b and i <= #b.guangyun)
+      or (c and i <= #c.guangyun)
+      or (d and i <= #d.guangyun)
+    do
+      local hei = a and (a.guangyun[i] or "〇") or "〇"
+      if hei == xiaoyun.name then
+        hei = "`" .. hei .. "`"
       end
+      local jou = b and (b.guangyun[i] or "〇") or "〇"
+      if jou == xiaoyun.name then
+        jou = "`" .. jou .. "`"
+      end
+      local kyo = c and (c.guangyun[i] or "〇") or "〇"
+      if kyo == xiaoyun.name then
+        kyo = "`" .. kyo .. "`"
+      end
+      local nyu = d and (d.guangyun[i] or "〇") or "〇"
+      if nyu == xiaoyun.name then
+        nyu = "`" .. nyu .. "`"
+      end
+
+      local a_xiaoyun = false
+      if a then
+        a_xiaoyun = self:xiaoyun_from_char(a.guangyun[1])
+      end
+      if a_xiaoyun then
+        table.insert(lines, ("%s %s %s %s %s口%s等"):format(hei, jou, kyo, nyu, a_xiaoyun.huo, a_xiaoyun.deng))
+      else
+        table.insert(lines, ("%s %s %s %s"):format(hei, jou, kyo, nyu))
+      end
+      i = i + 1
     end
-    table.insert(lines, "")
   end
+  table.insert(lines, "")
 
   -- 聲紐
-  local shengniu = self:get_or_create_shengniu(xiaoyun.shengniu)
-  if shengniu then
-    table.insert(
-      lines,
-      ("## 聲紐: %s, %s%s (%s)"):format(xiaoyun.shengniu, shengniu.type, shengniu.seidaku, shengniu.roma)
-    )
-    table.insert(lines, "")
-    local yuns = self:make_xiaoyun_list(xiaoyun.name, xiaoyun.deng)
-    local line_type = ""
-    local line_seidaku = ""
-    local line = ""
-    local line2 = ""
-    -- for i = 1, 36 do
-    --   local s = self.sheng_list[i]
-    for i, s in ipairs(self.sheng_list) do
-      line_type = line_type .. (type1[s.type] or "？")
-      line_seidaku = line_seidaku .. seidaku1[s.seidaku]
-      if #s.names > 0 then
-        line = line .. s.names[1]
-      end
-
-      local y = yuns[i]
-      if y then
-        if y == xiaoyun then
-          line2 = line2 .. "`" .. y.chars[1] .. "`"
-        else
-          line2 = line2 .. y.chars[1]
-        end
-      else
-        line2 = line2 .. "〇"
-      end
+  table.insert(lines, ("## 聲紐: %s, %s%s"):format(xiaoyun.shengniu, shengniu.type, shengniu.seidaku))
+  local yuns = self:make_xiaoyun_list(xiaoyun.name)
+  local line_type = "五音| "
+  local line_seidaku = "清濁| "
+  local shengniu_name = "聲紐| "
+  local xiaoyun_name = "小韻| "
+  local found = false
+  for i, s in ipairs(self.sheng_list) do
+    local t = type1[s.type]
+    if not t then
+      print(s.type)
+      t = "？"
     end
-    table.insert(lines, line_type)
-    table.insert(lines, line_seidaku)
-    table.insert(lines, line)
-    table.insert(lines, "----")
-    table.insert(lines, line2)
-    table.insert(lines, "")
-  end
+    line_type = line_type .. t
+    line_seidaku = line_seidaku .. seidaku1[s.seidaku]
 
-  return lines
+    local y = yuns[i]
+    if y then
+      shengniu_name = shengniu_name .. s.name
+      if y == xiaoyun then
+        found = true
+        xiaoyun_name = xiaoyun_name .. "`" .. y.chars[1] .. "`"
+      else
+        xiaoyun_name = xiaoyun_name .. y.chars[1]
+      end
+    else
+      shengniu_name = shengniu_name .. "〇"
+      xiaoyun_name = xiaoyun_name .. "〇"
+    end
+  end
+  table.insert(lines, line_type)
+  table.insert(lines, line_seidaku)
+  table.insert(lines, shengniu_name)
+  table.insert(lines, "----")
+  table.insert(lines, xiaoyun_name)
+  table.insert(lines, "")
+
+  if found then
+    return lines
+  end
 end
 
 return GuangYun

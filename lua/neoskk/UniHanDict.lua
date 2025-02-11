@@ -614,22 +614,24 @@ function UniHanDict:load_quangyun(data)
 end
 
 ---@param ch string
----@return XiaoYun?
+---@return XiaoYun[]
 function UniHanDict:get_xiaoyun(ch)
-  local xiao = self.guangyun:xiaoyun_from_char(ch)
-  if xiao then
-    return xiao
-  end
+  -- local xiao = self.guangyun:xiaoyun_from_char(ch)
+  -- if xiao then
+  --   return xiao
+  -- end
+  local list = {}
 
   local item = self.map[ch]
   if item then
     for _, fanqie in ipairs(item.fanqie) do
-      xiao = self.guangyun:xiaoyun_from_fanqie(fanqie)
+      local xiao = self.guangyun:xiaoyun_from_fanqie(fanqie)
       if xiao then
-        return xiao
+        table.insert(list, xiao)
       end
     end
   end
+  return list
 end
 
 ---@param ch string
@@ -659,9 +661,28 @@ function UniHanDict:hover(ch)
     end
     table.insert(lines, "")
 
-    local xiaoyun = self:get_xiaoyun(ch)
-    if xiaoyun then
-      local xiaoyun_hover = self.guangyun:hover(ch, xiaoyun)
+    local xiaoyuns = self:get_xiaoyun(ch)
+    local xiaoyun_hover
+    local xiaoyun
+    if #xiaoyuns > 0 then
+      xiaoyun_hover, xiaoyun = self.guangyun:hover(xiaoyuns)
+    end
+
+    if xiaoyun_hover and xiaoyun then
+      table.insert(
+        lines,
+        ("# 廣韻 %s, 小韻 %s, %s切%s声 %s口%s等 %s"):format(
+          xiaoyun.name,
+          xiaoyun.chars[1],
+          xiaoyun.fanqie,
+          xiaoyun.diao,
+          xiaoyun.huo,
+          xiaoyun.deng,
+          xiaoyun.roma
+        )
+      )
+      table.insert(lines, "")
+
       util.insert_all(lines, xiaoyun_hover)
 
       local function make_x(i)
