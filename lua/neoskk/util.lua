@@ -171,11 +171,17 @@ function M.readfile_sync(uv, path, from, to, opts)
 end
 
 ---@param uv uv
----@param  path string
----@param content string
-function M.writefile_sync(uv, path, content)
-  local fd = assert(uv.fs_open(path, "w", 0))
-  uv.fs_write(fd, content)
+---@param path string
+---@param data string
+---@param from string?
+---@param to string?
+---@param opts table? vim.iconv opts
+function M.writefile_sync(uv, path, data, from, to, opts)
+  if from and to then
+    data = assert(vim.iconv(data, from, to, opts))
+  end
+  local fd = assert(uv.fs_open(path, "w", tonumber("0666", 8)))
+  uv.fs_write(fd, data)
   assert(uv.fs_close(fd))
 end
 

@@ -502,7 +502,11 @@ local function download_if_not_exist(url, dir, downloaded, extracted, opts)
   vim.notify_once("extact " .. dst_extracted, vim.log.levels.INFO, { title = "neoskk" })
   if not downloaded:match "%.tar%.gz$" and downloaded:match "%.gz$" then
     local gz_job = vim.system({ "C:/Program Files/Git/usr/bin/gzip.exe", "-dc", dst_archive }, { cwd = dir }):wait()
-    util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout)
+    if opts.encoding then
+      util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout, opts.encodng, "utf-8")
+    else
+      util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout)
+    end
     assert(vim.uv.fs_stat(dst_extracted))
     vim.notify_once("done", vim.log.levels.INFO, { title = "neoskk" })
   else
@@ -519,8 +523,14 @@ end
 
 function M.download_skkdict()
   local dir = ensure_make_cache_dir()
-  download_if_not_exist(SKK_L_URL, dir, "SKK-JISYO.L.gz", "SKK-JISYO.L")
-  download_if_not_exist(SKK_china_taiwan_URL, dir, "SKK-JISYO.china_taiwan.gz", "SKK-JISYO.china_taiwan")
+  download_if_not_exist(SKK_L_URL, dir, "SKK-JISYO.L.gz", "SKK-JISYO.L", { encoding = "euc-jp" })
+  download_if_not_exist(
+    SKK_china_taiwan_URL,
+    dir,
+    "SKK-JISYO.china_taiwan.gz",
+    "SKK-JISYO.china_taiwan",
+    { encoding = "euc-jp" }
+  )
 end
 
 return M
