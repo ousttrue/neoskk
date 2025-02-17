@@ -166,6 +166,13 @@ function GuangYun.new()
   return self
 end
 
+function GuangYun.resetmetatable(self)
+  setmetatable(self, GuangYun)
+  for _, sheng in ipairs(self.sheng_list) do
+    setmetatable(sheng, ShengNiu)
+  end
+end
+
 ---@param data string Kuankhiunn0704-semicolon.txt
 function GuangYun:load(data)
   for line in string.gmatch(data, "([^\n]+)\n") do
@@ -245,7 +252,7 @@ function GuangYun:make_xiaoyun_list(name)
   for i, sheng in ipairs(self.sheng_list) do
     local xiaoyun = self:find_xiaoyun(function(x)
       return x.name == name --[[and x.deng == deng]]
-          and sheng:match(x.shengniu)
+        and sheng:match(x.shengniu)
     end)
     if xiaoyun then
       table.insert(list, xiaoyun)

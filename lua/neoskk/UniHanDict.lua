@@ -70,6 +70,11 @@ function UniHanDict.new()
   return self
 end
 
+function UniHanDict.resetmetatable(self)
+  setmetatable(self, UniHanDict)
+  GuangYun.resetmetatable(self.guangyun)
+end
+
 ---単漢字登録
 ---@param char string 漢字
 ---@return UniHanChar
@@ -623,7 +628,7 @@ function UniHanDict:get_xiaoyun(ch)
   local list = {}
 
   local item = self.map[ch]
-  if item then
+  if item and item.fanqie then
     for _, fanqie in ipairs(item.fanqie) do
       local xiao = self.guangyun:xiaoyun_from_fanqie(fanqie)
       if xiao then

@@ -424,7 +424,8 @@ function M.NeoSkk:load_dict()
 
   require("neoskk.work_util").async_load(self.opts, function(dict)
     print("loaded", dict)
-    self.dict = setmetatable(dict, UniHanDict)
+    self.dict = dict
+    UniHanDict.resetmetatable(self.dict)
   end)
 end
 
