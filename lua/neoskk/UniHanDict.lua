@@ -311,12 +311,12 @@ end
 -- local data = readFileSync(path)
 -- local data = readFileSync(path)
 
-local UNIHAN_PATTERN = "U%+([A-F0-9]+)\t(k%w+)\t([^\n]+)\n"
+UniHanDict.UNIHAN_PATTERN = "U%+([A-F0-9]+)\t(k%w+)\t([^\n]+)\n"
 
 ---@param data string Unihan_DictionaryLikeData.txt
 function UniHanDict:load_unihan_likedata(data)
   -- U+5650	kFourCornerCode	6666.1
-  for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+  for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
     local codepoint = tonumber(unicode, 16)
     local ch = utf8.char(codepoint)
     local item = self:get_or_create(ch)
@@ -338,7 +338,7 @@ function UniHanDict:load_unihan_readings(data)
   -- U+6570	kTGHZ2013	342.010:shǔ 342.160:shù 345.150:shuò
   --现代汉语词典
   -- U+6570	kXHC1983	1066.040:shǔ 1069.050:shù 1083.010:shuò
-  for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+  for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
     local codepoint = tonumber(unicode, 16)
     local ch = utf8.char(codepoint)
     local item = self:get_or_create(ch)
@@ -374,7 +374,7 @@ end
 --   if data then
 --     -- 新字体とか最近の文字も含まれてたー
 --     -- U+3400	kKangXi	0078.010
---     for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+--     for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
 --       local codepoint = tonumber(unicode, 16)
 --       local ch = utf8.char(codepoint)
 --       local item = self:get_or_create(ch)
@@ -391,7 +391,7 @@ end
 ---@param data string Unihan_Variants.txt
 function UniHanDict:load_unihan_variants(data)
   -- U+346E	kSimplifiedVariant	U+2B748
-  for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+  for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
     local codepoint = tonumber(unicode, 16)
     local ch = utf8.char(codepoint)
     local item = self:get_or_create(ch)
@@ -437,7 +437,7 @@ end
 -- #	kXerox
 ---@param data string Unihan_OtherMappings.txt
 function UniHanDict:load_unihan_othermappings(data)
-  for unicode, k, v in string.gmatch(data, UNIHAN_PATTERN) do
+  for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
     local codepoint = tonumber(unicode, 16)
     local ch = utf8.char(codepoint)
     local item = self:get_or_create(ch)

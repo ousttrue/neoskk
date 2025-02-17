@@ -140,6 +140,18 @@ end
 
 ---@param uv uv
 ---@param path string
+---@return integer? fd
+---@return integer? size
+function M.open_read(uv, path)
+  local stat = uv.fs_stat(path)
+  if not stat then
+    return
+  end
+  return assert(uv.fs_open(path, "r", 0)), stat.size
+end
+
+---@param uv uv
+---@param path string
 ---@param from string?
 ---@param to string?
 ---@param opts table? vim.iconv opts

@@ -39,16 +39,6 @@ local M = {
   state_mode = STATE_MODE_SKK,
 }
 
----@class NeoSkkOpts
----@field jisyo string? path to SKK-JISYO.L from https://github.com/skk-dict/jisyo
----@field unihan_dir string? path to dir. Extracted https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip
----@field xszd string? path to xszd.txt from https://github.com/cjkvi/cjkvi-dict
----@field kangxi string? kx2ucs.txt from https://github.com/cjkvi/cjkvi-dict
----@field chinadat string? path to chinadat.csv from https://www.seiwatei.net/info/dnchina.htm
----@field guangyun string? path to Kuankhiunn0704-semicolon.txt from https://github.com/syimyuzya/guangyun0704
----@field user string? path to user_dict.json
-local NeoSkkOpts = {}
-
 ---@class NeoSkk
 ---@field opts NeoSkkOpts
 ---@field bufnr integer 対象のbuf。変わったら状態をクリアする
@@ -430,83 +420,12 @@ end
 
 function M.NeoSkk:load_dict()
   self.dict = UniHanDict.new()
+  self.opts.dir = ensure_make_cache_dir()
 
-  local dir = ensure_make_cache_dir()
-  local unihan_dir = self.opts.unihan_dir or dir
-
-  local data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_DictionaryLikeData.txt")
-  if data then
-    self.dict:load_unihan_likedata(data)
-  end
-  data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_Readings.txt")
-  if data then
-    self.dict:load_unihan_readings(data)
-  end
-  data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_Variants.txt")
-  if data then
-    self.dict:load_unihan_variants(data)
-  end
-  data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_OtherMappings.txt")
-  if data then
-    self.dict:load_unihan_othermappings(data)
-  end
-
-  if self.opts.guangyun then
-    data = util.readfile_sync(vim.uv, self.opts.guangyun)
-    if data then
-      self.dict:load_quangyun(data)
-    end
-  end
-
-  if self.opts.kangxi then
-    data = util.readfile_sync(vim.uv, self.opts.kangxi)
-    if data then
-      self.dict:load_kangxi(data)
-    end
-  end
-
-  if self.opts.xszd then
-    data = util.readfile_sync(vim.uv, self.opts.xszd)
-    if data then
-      self.dict:load_xszd(data)
-    end
-  end
-
-  if self.opts.chinadat then
-    data = util.readfile_sync(vim.uv, self.opts.chinadat)
-    if data then
-      self.dict:load_chinadat(data)
-    end
-  end
-
-  ---@type string[]
-  local jisyo = {}
-  if type(self.opts.jisyo) == "string" then
-    table.insert(jisyo, self.opts.jisyo)
-  elseif type(self.opts.jisyo) == "table" then
-    for _, j in ipairs(self.opts.jisyo) do
-      table.insert(jisyo, j)
-    end
-  end
-  if #jisyo == 0 then
-    table.insert(jisyo, dir .. "/SKK-JISYO.L")
-    table.insert(jisyo, dir .. "/SKK-JISYO.china_taiwan")
-  end
-
-  for _, j in ipairs(jisyo) do
-    data = util.readfile_sync(vim.uv, j, "euc-jp", "utf-8", {})
-    if data then
-      self.dict:load_skk(data)
-    end
-  end
-
-  if self.opts.user then
-    data = util.readfile_sync(vim.uv, self.opts.user)
-    if data then
-      local json = vim.json.decode(data)
-      self.dict:load_user(json)
-    end
-  end
+  require("neoskk.work_util").async_load(self.opts, function(dict)
+    print("loaded", dict)
+    self.dict = setmetatable(dict, UniHanDict)
+  end)
 end
 
 ---@param mode STATE_MODE?
