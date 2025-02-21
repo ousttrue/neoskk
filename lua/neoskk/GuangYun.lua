@@ -234,30 +234,45 @@ function GuangYun:xiaoyun_from_fanqie(fanqie)
 end
 
 ---@param callback fun(x:XiaoYun):boolean
----@return XiaoYun?
+---@return XiaoYun[]
 function GuangYun:find_xiaoyun(callback)
+  local founds = {}
   for _, x in ipairs(self.list) do
     if callback(x) then
-      return x
+      table.insert(founds, x)
     end
   end
-  return nil
+  return founds
 end
 
----@param name string 韻目
+---@param xiaoyun XiaoYun 小韻
 ---@return XiaoYun[]
-function GuangYun:make_xiaoyun_list(name)
+function GuangYun:make_xiaoyun_list(xiaoyun)
   ---@type (XiaoYun?)[]
   local list = {}
   for i, sheng in ipairs(self.sheng_list) do
-    local xiaoyun = self:find_xiaoyun(function(x)
-      return x.name == name --[[and x.deng == deng]]
-        and sheng:match(x.shengniu)
+    local founds = self:find_xiaoyun(function(x)
+      return x.name == xiaoyun.name --[[and x.deng == deng]]
+          and sheng:match(x.shengniu)
     end)
-    if xiaoyun then
-      table.insert(list, xiaoyun)
+    if #founds > 0 then
+      if #founds == 1 then
+        table.insert(list, founds[1])
+      else
+        local found
+        for _, x in ipairs(founds) do
+          if x == xiaoyun then
+            found = x
+            break
+          end
+        end
+        if found then
+          table.insert(list, found)
+        else
+          table.insert(list, founds[1])
+        end
+      end
     else
-      print(name, sheng.name, "not found")
       table.insert(list, false)
     end
   end
@@ -280,11 +295,12 @@ end
 function GuangYun:_hover(xiaoyun)
   local yunshe, yunmu = yun.get_she(xiaoyun.name)
   if not yunshe or not yunmu then
-    print('no yunmu', xiaoyun.name)
+    print("no yunmu", xiaoyun.name)
     return
   end
   local shengniu = self:get_or_create_shengniu(xiaoyun.shengniu)
   if not shengniu then
+    print("no shengniu", xiaoyun.shengniu)
     return
   end
 
@@ -349,7 +365,9 @@ function GuangYun:_hover(xiaoyun)
 
   -- 聲紐
   table.insert(lines, ("## 聲紐: %s, %s%s"):format(xiaoyun.shengniu, shengniu.type, shengniu.seidaku))
-  local yuns = self:make_xiaoyun_list(xiaoyun.name)
+  local yuns = self:make_xiaoyun_list(xiaoyun)
+  assert(#yuns == #self.sheng_list)
+
   local line_type = "五音| "
   local line_seidaku = "清濁| "
   local shengniu_name = "聲紐| "
@@ -387,6 +405,8 @@ function GuangYun:_hover(xiaoyun)
 
   if found then
     return lines
+  else
+    print()
   end
 end
 

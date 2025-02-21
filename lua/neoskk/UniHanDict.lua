@@ -664,12 +664,7 @@ end
 ---@param ch string
 ---@return XiaoYun[]
 function UniHanDict:get_xiaoyun(ch)
-  -- local xiao = self.guangyun:xiaoyun_from_char(ch)
-  -- if xiao then
-  --   return xiao
-  -- end
   local list = {}
-
   local item = self.map[ch]
   if item and item.fanqie then
     for _, fanqie in ipairs(item.fanqie) do
@@ -679,7 +674,16 @@ function UniHanDict:get_xiaoyun(ch)
       end
     end
   end
-  return list
+  if #list > 0 then
+    return list
+  end
+
+  local xiao = self.guangyun:xiaoyun_from_char(ch)
+  if xiao then
+    return { xiao }
+  end
+
+  return {}
 end
 
 ---@param ch string
@@ -766,6 +770,13 @@ function UniHanDict:hover(ch)
       end
       table.insert(lines, "")
     else
+      if #xiaoyuns > 0 then
+        for _, x in ipairs(xiaoyuns) do
+          table.insert(lines, "小韻: " .. x.name .. ", 聲紐:" .. x.shengniu)
+        end
+      else
+        table.insert(lines, ("xiaoyun for %s not found"):format(ch))
+      end
       local line = ""
       for _, f in ipairs(item.fanqie) do
         if #line > 0 then
