@@ -6,7 +6,7 @@
 ---@field chinadat string? path to chinadat.csv from https://www.seiwatei.net/info/dnchina.htm
 ---@field guangyun string? path to Kuankhiunn0704-semicolon.txt from https://github.com/syimyuzya/guangyun0704
 ---@field user string? path to user_dict.json
----@field dir string basedir
+---@field dir string? basedir
 
 ---@param encoded string
 ---@return string string.buffer encoded
@@ -19,27 +19,22 @@ local function parse_unihan(encoded)
   local utf8 = require "neoskk.utf8"
 
   local unihan_dir = opts.unihan_dir or opts.dir
-  local data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_DictionaryLikeData.txt")
+  local unihan_like_file = unihan_dir .. "/Unihan_DictionaryLikeData.txt"
+  local data = util.readfile_sync(vim.uv, unihan_like_file)
   if data then
-    for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
-      local codepoint = tonumber(unicode, 16)
-      local ch = utf8.char(codepoint)
-      local item = dict:get_or_create(ch)
-      -- assert(item)
-      if k == "kFourCornerCode" then
-        item.goma = v
-      end
-    end
+    dict:load_unihan_likedata(data, unihan_like_file)
   end
 
-  data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_Readings.txt")
+  local unihan_reading_file = unihan_dir .. "/Unihan_Readings.txt"
+  data = util.readfile_sync(vim.uv, unihan_reading_file)
   if data then
-    dict:load_unihan_readings(data)
+    dict:load_unihan_readings(data, unihan_reading_file)
   end
 
-  data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_Variants.txt")
+  local unihan_variants_file = unihan_dir .. "/Unihan_Variants.txt"
+  data = util.readfile_sync(vim.uv, unihan_variants_file)
   if data then
-    dict:load_unihan_variants(data)
+    dict:load_unihan_variants(data, unihan_variants_file)
   end
 
   data = util.readfile_sync(vim.uv, unihan_dir .. "/Unihan_OtherMappings.txt")
@@ -50,7 +45,7 @@ local function parse_unihan(encoded)
   if opts.guangyun then
     data = util.readfile_sync(vim.uv, opts.guangyun)
     if data then
-      dict:load_quangyun(data)
+      dict:load_quangyun(data, opts.guangyun)
     end
   end
 
@@ -61,17 +56,19 @@ local function parse_unihan(encoded)
     end
   end
 
-  if opts.xszd then
-    data = util.readfile_sync(vim.uv, opts.xszd)
+  do
+    local xszd = opts.xszd and opts.xszd or (vim.fs.joinpath(opts.dir, "cjkvi-dict-master/xszd.txt"))
+    data = util.readfile_sync(vim.uv, xszd)
     if data then
       dict:load_xszd(data)
     end
   end
 
-  if opts.chinadat then
-    data = util.readfile_sync(vim.uv, opts.chinadat)
+  do
+    local chinadat_file = opts.chinadat and opts.chinadat or (vim.fs.joinpath(opts.dir, "chinadat.csv"))
+    data = util.readfile_sync(vim.uv, chinadat_file)
     if data then
-      dict:load_chinadat(data)
+      dict:load_chinadat(data, chinadat_file)
     end
   end
 

@@ -21,6 +21,8 @@ local UNIHAN_URL = "https://www.unicode.org/Public/UCD/latest/ucd/Unihan.zip"
 -- https://skk-dev.github.io/dict/
 local SKK_L_URL = "https://skk-dev.github.io/dict/SKK-JISYO.L.gz"
 local SKK_china_taiwan_URL = "https://skk-dev.github.io/dict/SKK-JISYO.china_taiwan.gz"
+local CHINADAT_URL = "https://www.seiwatei.net/info/chinadat.csv"
+local CJKVI_DICT_URL = "https://github.com/cjkvi/cjkvi-dict/archive/refs/heads/master.zip"
 
 local PreEdit = require "neoskk.PreEdit"
 local UniHanDict = require "neoskk.UniHanDict"
@@ -167,6 +169,14 @@ function M.NeoSkk.new(opts)
 
   vim.api.nvim_create_user_command("NeoSkkSkkDictDownload", function()
     require("neoskk").download_skkdict()
+  end, {})
+
+  vim.api.nvim_create_user_command("NeoSkkChinadatDownload", function()
+    require("neoskk").download_chinadat()
+  end, {})
+
+  vim.api.nvim_create_user_command("NeoSkkCjkviDictDownload", function()
+    require("neoskk").download_cjkvi_dict()
   end, {})
 
   M.instance = self
@@ -493,27 +503,31 @@ local function download_if_not_exist(url, dir, downloaded, extracted, opts)
     -- download
     vim.notify_once("download " .. url, vim.log.levels.INFO, { title = "neoskk" })
 
-    local dl_job = vim.system({ "curl", url }, { text = false }):wait()
+    local dl_job = vim.system({ "curl", "-L", url }, { text = false }):wait()
     assert(dl_job.stdout)
     vim.notify_once(("write %dbytes"):format(#dl_job.stdout), vim.log.levels.INFO, { title = "neoskk" })
     util.writefile_sync(vim.uv, dst_archive, dl_job.stdout)
   end
 
   -- extract
-  vim.notify_once("extact " .. dst_extracted, vim.log.levels.INFO, { title = "neoskk" })
-  if not downloaded:match "%.tar%.gz$" and downloaded:match "%.gz$" then
-    local gz_job = vim.system({ "C:/Program Files/Git/usr/bin/gzip.exe", "-dc", dst_archive }, { cwd = dir }):wait()
-    if opts.encoding then
-      util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout, opts.encodng, "utf-8")
-    else
-      util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout)
-    end
-    assert(vim.uv.fs_stat(dst_extracted))
-    vim.notify_once("done", vim.log.levels.INFO, { title = "neoskk" })
+  if downloaded == extracted then
+    -- skip
   else
-    vim.system({ "tar", "xf", dst_archive }, { cwd = dir }):wait()
-    assert(vim.uv.fs_stat(dst_extracted))
-    vim.notify_once("done", vim.log.levels.INFO, { title = "neoskk" })
+    vim.notify_once("extact " .. dst_extracted, vim.log.levels.INFO, { title = "neoskk" })
+    if not downloaded:match "%.tar%.gz$" and downloaded:match "%.gz$" then
+      local gz_job = vim.system({ "C:/Program Files/Git/usr/bin/gzip.exe", "-dc", dst_archive }, { cwd = dir }):wait()
+      if opts.encoding then
+        util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout, opts.encodng, "utf-8")
+      else
+        util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout)
+      end
+      assert(vim.uv.fs_stat(dst_extracted))
+      vim.notify_once("done", vim.log.levels.INFO, { title = "neoskk" })
+    else
+      vim.system({ "tar", "xf", dst_archive }, { cwd = dir }):wait()
+      assert(vim.uv.fs_stat(dst_extracted))
+      vim.notify_once("done", vim.log.levels.INFO, { title = "neoskk" })
+    end
   end
 end
 
@@ -532,6 +546,16 @@ function M.download_skkdict()
     "SKK-JISYO.china_taiwan",
     { encoding = "euc-jp" }
   )
+end
+
+function M.download_chinadat()
+  local dir = ensure_make_cache_dir()
+  download_if_not_exist(CHINADAT_URL, dir, "chinadat.csv", "chinadat.csv", {})
+end
+
+function M.download_cjkvi_dict()
+  local dir = ensure_make_cache_dir()
+  download_if_not_exist(CJKVI_DICT_URL, dir, "cjkvi-dict-master.zip", "cjkvi-dict-master/xszd.txt", {})
 end
 
 return M

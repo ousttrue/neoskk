@@ -74,7 +74,7 @@ local HIRA = [[
 ばびぶべぼ
 ぱぴぷぺぽ
 ぁぃぅぇぉ
-ゃゅょ
+ゃゅょっ
 ]]
 local HIRA_LIST = {}
 for _, code in utf8.codes(HIRA) do
@@ -82,7 +82,7 @@ for _, code in utf8.codes(HIRA) do
     table.insert(HIRA_LIST, code)
   end
 end
-assert(#HIRA_LIST == 46 + 25 + 8)
+assert(#HIRA_LIST == 46 + 25 + 9)
 
 local KATA = [[
 アイウエオ
@@ -101,7 +101,7 @@ local KATA = [[
 バビブベボ
 パピプペポ
 ァィゥェォ
-ャュョ
+ャュョッ
 ]]
 local KATA_LIST = {}
 for _, code in utf8.codes(KATA) do

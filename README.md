@@ -206,8 +206,8 @@ https://zenn.dev/uga_rosa/articles/e4c532a59de7d6#2.6.-language-mapping
 
 - [x] `<BS>`
 - [x] 変換モード`<Space>`: completion
-- [x] `<Enter>` で変換モード脱出(変換しなかったかなを確定)
-- [ ] ひらがな片仮名変換除外 `ー`
+- [x] `<Enter>` で変換モード脱出(未変換のかなを確定)
+- [x] ひらがな片仮名変換除外 `ー` (範囲方式をやめた)
 - [x] l: ASCIIモード
 - [ ] completion キャンセルで conv_feed 化する
 - [ ] visual mode 選択を conv_feed 化する

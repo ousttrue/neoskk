@@ -24,11 +24,16 @@ local NUM_BASE = tonumber("2460", 16) - 1
 ---@class ChinaKan
 ---@field kana string[] よみかな
 
+--- 學生字典
+---@class XueShengSection
+---@field header string
+---@field body string
+
 --- 単漢字
 ---@class UniHanChar
 ---@field annotation string?
 ---@field goma string? 四角号碼
----@field xszd string? 學生字典
+---@field xszd XueShengSection[]? 學生字典
 ---@field readings UniHanReading[] 読み
 ---@field fanqie string[] 反切と声調
 ---@field kana string[] よみかな
@@ -55,6 +60,11 @@ local NUM_BASE = tonumber("2460", 16) - 1
 ---@field simple_map table<string, string> 簡体字マップ
 ---@field zhuyin_map table<string, string[]> 注音辞書
 ---@field guangyun GuangYun 廣韻
+---@field unihan_like_file string?
+---@field unihan_reading_file string?
+---@field unihan_variants_file string?
+---@field uangyun_file string?
+---@field chinadat_file string?
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
 
@@ -160,33 +170,50 @@ end
 -- --統括之詞。如一切、一概。
 -- --或然之詞。如萬一、一旦。
 -- --專也。如一味、一意。
+-- **些
+-- -西遮切(Sieh)平聲或讀若徙
+-- --少也。俗亦謂之些須。
+-- -四餓切(So)去聲
+-- --語助詞。楚辭招魂末多用之。故曰楚些。哀輓語也。
 ---@param data string xszd.txt
 function UniHanDict:load_xszd(data)
-  local last_s = 0
-  while last_s <= #data do
-    local s = data:find("%*%*", last_s + 1)
-    if s then
-      if last_s > 0 then
-        local codepoint = utf8.codepoint(data, last_s + 2)
-        local char = utf8.char(codepoint)
-        local item = self:get_or_create(char)
-        if item then
-          item.xszd = util.strip(data:sub(last_s, s - 1))
+  local item, xszd
+  for l in string.gmatch(data, "[^\n]+") do
+    local header, char = l:match "^(%*+)(.*)"
+    if header == "*" then
+    elseif header == "**" then
+      local i = 0
+      if char then
+        for _ in utf8.codes(char) do
+          i = i + 1
         end
       end
-      last_s = s
+      if i == 1 then
+        if item then
+          item.xszd = xszd
+        end
+        ---@type XueShengSection[]
+        xszd = {}
+        item = self:get_or_create(char)
+      end
+    elseif header == "***" then
     else
-      -- last one
-      if last_s > 0 then
-        local codepoint = utf8.codepoint(data, last_s + 2)
-        local char = utf8.char(codepoint)
-        local item = self:get_or_create(char)
-        if item then
-          item.xszd = util.strip(data:sub(last_s))
+      local h, b = l:match "^(%-+)(.*)"
+      if h == "-" then
+        table.insert(xszd, { header = b, body = "" })
+      elseif h == "--" then
+        if #xszd == 0 then
+          table.insert(xszd, { header = b, body = "" })
+        else
+          xszd[#xszd].body = xszd[#xszd].body .. b
         end
+      else
+        assert(false)
       end
-      break
     end
+  end
+  if item then
+    item.xszd = xszd
   end
 end
 
@@ -319,7 +346,9 @@ end
 UniHanDict.UNIHAN_PATTERN = "U%+([A-F0-9]+)\t(k%w+)\t([^\n]+)\n"
 
 ---@param data string Unihan_DictionaryLikeData.txt
-function UniHanDict:load_unihan_likedata(data)
+---@param path string?
+function UniHanDict:load_unihan_likedata(data, path)
+  self.unihan_like_file = path
   -- U+5650	kFourCornerCode	6666.1
   for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
     local codepoint = tonumber(unicode, 16)
@@ -333,7 +362,9 @@ function UniHanDict:load_unihan_likedata(data)
 end
 
 ---@param data string Unihan_Readings.txt
-function UniHanDict:load_unihan_readings(data)
+---@param path string?
+function UniHanDict:load_unihan_readings(data, path)
+  self.unihan_reading_file = path
   -- U+3401	kFanqie	他紺 他念
   -- U+6570	kJapanese	スウ ス ショ サク ソク ショク シュク かず かぞえる しばしば せめる
   -- U+6570	kJapaneseKun	KAZOERU KAZU SEMERU
@@ -394,7 +425,9 @@ end
 -- end
 
 ---@param data string Unihan_Variants.txt
-function UniHanDict:load_unihan_variants(data)
+---@param path string? 
+function UniHanDict:load_unihan_variants(data, path)
+  self.unihan_variants_file = path
   -- U+346E	kSimplifiedVariant	U+2B748
   for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
     local codepoint = tonumber(unicode, 16)
@@ -563,7 +596,9 @@ end
 -- ※新華字典による校正は現在進行中です。 よってこの記述が消えるまでは、上記'*'印の入力は完全ではありません。
 --10: 日本語音訓……音はカタカナ、訓はひらがなであり、前後に区切り文字としての'1'をつけてあります。旧仮名・新仮名の関係は「1ケフ1(1キョウ1)」などのように記しています。
 ---@param data string chinadat.csv
-function UniHanDict:load_chinadat(data)
+---@param path string?
+function UniHanDict:load_chinadat(data, path)
+  self.chinadat_file = path
   -- 亜,亞,,009,7,5,7,+10106+,/ya3/ya4*,1ア1つぐ1,
   -- 伝(1),傳,,026,9,4,6,+21231+,/chuan2,1テン1デン1つたふ1(1つたう1)1つたへる1(1つたえる1)1つたはる1(1つたわる1)1つて1,
   -- 余(1),,017,,9,5,7,+80904+,/yu2,1ヨ1われ1,
@@ -589,6 +624,7 @@ function UniHanDict:load_chinadat(data)
         local ref = cols[2]
         if ref:find "%d+" then
           -- 漢,18153
+          item.ref = cols[2]
         else
           item.ref = cols[2]
         end
@@ -614,7 +650,9 @@ end
 
 ---廣韻
 ---@param data string Kuankhiunn0704-semicolon.txt
-function UniHanDict:load_quangyun(data)
+---@param path string?
+function UniHanDict:load_quangyun(data, path)
+  self.guangyun_file = path
   self.guangyun:load(data)
 end
 
@@ -736,8 +774,11 @@ function UniHanDict:hover(ch)
 
     if item.xszd then
       table.insert(lines, "# 學生字典")
-      for _, l in util.split, { item.xszd, "\n" } do
-        table.insert(lines, l)
+      for _, x in ipairs(item.xszd) do
+        table.insert(lines, "## " .. x.header)
+        for _, l in util.split, { x.body, "\n" } do
+          table.insert(lines, l)
+        end
       end
     end
     return lines

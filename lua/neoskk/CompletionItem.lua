@@ -68,7 +68,10 @@ function CompletionItem.from_word(w, item, dict)
       new_item.info = util.join(item.kana, ",")
     end
     if item.xszd then
-      new_item.info = (new_item.info or "") .. "\n" .. item.xszd
+      new_item.info = (new_item.info or "") .. "\n"
+      for _, section in ipairs(item.xszd) do
+        new_item.info = new_item.info .. "# " .. section.header .. '\n' .. section.body
+      end
     end
 
     -- abbr
