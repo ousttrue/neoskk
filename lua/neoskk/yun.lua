@@ -1,7 +1,8 @@
 local utf8 = require "neoskk.utf8"
 -- 平水韻(106)と廣韻(206)の対応 from 唐詩概説
+-- https://ytenx.org/kyonh/
 
----韻目
+---平水韻 韻目
 ---@class YunMu
 ---@field name string 韻目
 ---@field guangyun string[] 廣韻の対応する韻目
@@ -135,7 +136,7 @@ M.list = {
     {
       nil,
       nil,
-      YunMu.new("泰"), -- たい
+      YunMu.new "泰", -- たい
       nil,
     },
     {
@@ -160,29 +161,29 @@ M.list = {
     },
     {
       YunMu.new("文", "欣"), -- ぶん
-      YunMu.new("吻"), -- ぶん
-      YunMu.new("問"), -- ぶん
-      YunMu.new("物"), -- ぶつ
+      YunMu.new "吻", -- ぶん
+      YunMu.new "問", -- ぶん
+      YunMu.new "物", -- ぶつ
     },
     {
       YunMu.new("元", "魂", "痕"), -- げん
-      YunMu.new("阮"),
-      YunMu.new("願"),
-      YunMu.new("月"),
+      YunMu.new "阮",
+      YunMu.new "願",
+      YunMu.new "月",
     },
   }),
   YunShe.new("山", {
     {
       YunMu.new("寒", "桓"), -- くわん
-      YunMu.new("旱"),
-      YunMu.new("翰"),
-      YunMu.new("曷"),
+      YunMu.new("旱", "緩"),
+      YunMu.new("翰", "換"),
+      YunMu.new("曷", "末"),
     },
     {
       YunMu.new("刪", "山"), -- さん
-      YunMu.new("潸"),
-      YunMu.new("諫"),
-      YunMu.new("黠"),
+      YunMu.new("潸", "產"),
+      YunMu.new("諫", "襇"),
+      YunMu.new("黠", "鎋"),
     },
     {
       YunMu.new("先", "仙"),
@@ -199,15 +200,15 @@ M.list = {
       nil,
     },
     {
-      YunMu.new("肴"),
-      YunMu.new("巧"),
-      YunMu.new("效"),
+      YunMu.new "肴",
+      YunMu.new "巧",
+      YunMu.new "效",
       nil,
     },
     {
-      YunMu.new("豪"),
-      YunMu.new("晧"),
-      YunMu.new("号"),
+      YunMu.new "豪",
+      YunMu.new "晧",
+      YunMu.new "号",
       nil,
     },
   }),
@@ -221,9 +222,9 @@ M.list = {
   }),
   YunShe.new("仮", {
     {
-      YunMu.new("麻"),
-      YunMu.new("馬"),
-      YunMu.new("禡"),
+      YunMu.new "麻",
+      YunMu.new "馬",
+      YunMu.new "禡",
       nil,
     },
   }),
@@ -243,10 +244,10 @@ M.list = {
       YunMu.new("陌", "麦", "昔"),
     },
     {
-      YunMu.new("青"),
-      YunMu.new("迥"),
-      YunMu.new("径"),
-      YunMu.new("錫"),
+      YunMu.new "青",
+      YunMu.new "迥",
+      YunMu.new "径",
+      YunMu.new "錫",
     },
   }),
   YunShe.new("曾", {
@@ -267,10 +268,10 @@ M.list = {
   }),
   YunShe.new("深", {
     {
-      YunMu.new("侵"),
-      YunMu.new("寝"),
-      YunMu.new("沁"),
-      YunMu.new("緝"),
+      YunMu.new "侵",
+      YunMu.new "寝",
+      YunMu.new "沁",
+      YunMu.new "緝",
     },
   }),
   YunShe.new("咸", {

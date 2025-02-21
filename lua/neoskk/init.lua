@@ -23,6 +23,7 @@ local SKK_L_URL = "https://skk-dev.github.io/dict/SKK-JISYO.L.gz"
 local SKK_china_taiwan_URL = "https://skk-dev.github.io/dict/SKK-JISYO.china_taiwan.gz"
 local CHINADAT_URL = "https://www.seiwatei.net/info/chinadat.csv"
 local CJKVI_DICT_URL = "https://github.com/cjkvi/cjkvi-dict/archive/refs/heads/master.zip"
+local HANZI_CHARS_URL = "https://github.com/zispace/hanzi-chars/archive/refs/heads/main.zip"
 
 local PreEdit = require "neoskk.PreEdit"
 local UniHanDict = require "neoskk.UniHanDict"
@@ -177,6 +178,10 @@ function M.NeoSkk.new(opts)
 
   vim.api.nvim_create_user_command("NeoSkkCjkviDictDownload", function()
     require("neoskk").download_cjkvi_dict()
+  end, {})
+
+  vim.api.nvim_create_user_command("NeoSkkHanziCharsDownload", function()
+    require("neoskk").download_hanzi_chars()
   end, {})
 
   M.instance = self
@@ -556,6 +561,17 @@ end
 function M.download_cjkvi_dict()
   local dir = ensure_make_cache_dir()
   download_if_not_exist(CJKVI_DICT_URL, dir, "cjkvi-dict-master.zip", "cjkvi-dict-master/xszd.txt", {})
+end
+
+function M.download_hanzi_chars()
+  local dir = ensure_make_cache_dir()
+  download_if_not_exist(
+    HANZI_CHARS_URL,
+    dir,
+    "hanzi-chars-main.zip",
+    "hanzi-chars-main/data-charlist/日本《常用漢字表》（2010年）旧字体.txt",
+    {}
+  )
 end
 
 return M

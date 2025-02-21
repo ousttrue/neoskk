@@ -39,7 +39,7 @@ local NUM_BASE = tonumber("2460", 16) - 1
 ---@field kana string[] よみかな
 ---@field flag "joyo" | nil
 ---@field indices string? 康煕字典
----@field ref string? 別字参照
+---@field ref string[]? 異字体
 
 -- # SKK https://github.com/skk-dev/dict
 --   UniHanDict:load_skk
@@ -65,6 +65,7 @@ local NUM_BASE = tonumber("2460", 16) - 1
 ---@field unihan_variants_file string?
 ---@field uangyun_file string?
 ---@field chinadat_file string?
+---@field kyu_file string?
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
 
@@ -126,7 +127,7 @@ function UniHanDict:get_label(ch, item)
       label = label .. ":" .. ref.goma
     end
   elseif item.ref then
-    label = ">" .. item.ref
+    label = ">" .. util.join(item.ref)
     local ref = self.map[item.ref]
     if ref and ref.goma then
       label = label .. ":" .. ref.goma
@@ -425,7 +426,7 @@ end
 -- end
 
 ---@param data string Unihan_Variants.txt
----@param path string? 
+---@param path string?
 function UniHanDict:load_unihan_variants(data, path)
   self.unihan_variants_file = path
   -- U+346E	kSimplifiedVariant	U+2B748
@@ -618,19 +619,12 @@ function UniHanDict:load_chinadat(data, path)
     end
 
     if ch and not ch:find "^%w+$" then
+      if #cols[2] > 0 then
+        self:add_ref(ch, cols[2])
+      end
+
       local item = self:get_or_create(ch)
       assert(item)
-      if #cols[2] > 0 then
-        local ref = cols[2]
-        if ref:find "%d+" then
-          -- 漢,18153
-          item.ref = cols[2]
-        else
-          item.ref = cols[2]
-        end
-        -- print(vim.inspect(cols))
-        -- break
-      end
       if #cols[10] > 0 then
         local _kana = util.splited(cols[10], "1")
         item.kana = {}
@@ -646,6 +640,17 @@ function UniHanDict:load_chinadat(data, path)
       end
     end
   end
+end
+
+function UniHanDict:add_ref(ch, ref)
+  local item = self:get_or_create(ch)
+  assert(item)
+  local list = item.ref
+  if not list then
+    list = {}
+    item.ref = list
+  end
+  table.insert(list, ref)
 end
 
 ---廣韻
@@ -685,7 +690,7 @@ function UniHanDict:hover(ch)
     local cp = utf8.codepoint(ch)
     local lines = { "# " .. ch }
     if item.ref then
-      table.insert(lines, "参照 => " .. item.ref)
+      table.insert(lines, "参照 => " .. util.join(item.ref, ","))
     end
     if item.goma then
       table.insert(lines, ("UNICODE: U+%X, 四角号碼: %s"):format(cp, item.goma))
@@ -782,6 +787,28 @@ function UniHanDict:hover(ch)
       end
     end
     return lines
+  end
+end
+
+---旧字体
+-- # 常用漢字表-旧字体
+-- # 汉字共366组
+-- # （〔〕/［］内为旧字体或异体字）
+--
+-- 亜〔亞〕
+-- 悪〔惡〕
+function UniHanDict:load_kyu(data, path)
+  self.kyu_file = path
+  for l in string.gmatch(data, "[^\n]*\n") do
+    local list = {}
+    for _, ch in utf8.codes(l) do
+      table.insert(list, ch)
+    end
+    if #list == 4 then
+      if list[2] == "〔" and list[4] == "〕" then
+        self:add_ref(list[1], list[3])
+      end
+    end
   end
 end
 

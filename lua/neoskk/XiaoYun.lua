@@ -64,9 +64,11 @@ function XiaoYun.parse(line)
     break
   end
 
+  local fanqie = cols[3]:match('[^%?]+')
+
   local xiaoyun = setmetatable({
     no = no,
-    fanqie = cols[3],
+    fanqie = fanqie,
     name = name,
     shengniu = shengniu,
     huo = cols[10],

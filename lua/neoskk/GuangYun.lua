@@ -280,6 +280,7 @@ end
 function GuangYun:_hover(xiaoyun)
   local yunshe, yunmu = yun.get_she(xiaoyun.name)
   if not yunshe or not yunmu then
+    print('no yunmu', xiaoyun.name)
     return
   end
   local shengniu = self:get_or_create_shengniu(xiaoyun.shengniu)

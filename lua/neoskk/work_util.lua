@@ -65,6 +65,15 @@ local function parse_unihan(encoded)
   end
 
   do
+    local kyu_file =
+      vim.fs.joinpath(opts.dir, "hanzi-chars-main/data-charlist/日本《常用漢字表》（2010年）旧字体.txt")
+    data = util.readfile_sync(vim.uv, kyu_file)
+    if data then
+      dict:load_kyu(data, kyu_file)
+    end
+  end
+
+  do
     local chinadat_file = opts.chinadat and opts.chinadat or (vim.fs.joinpath(opts.dir, "chinadat.csv"))
     data = util.readfile_sync(vim.uv, chinadat_file)
     if data then

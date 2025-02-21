@@ -21,6 +21,7 @@ M.check = function()
     check_dict_file "unihan_variants_file"
     check_dict_file "guangyun_file"
     check_dict_file "chinadat_file"
+    check_dict_file "kyu_file"
 
     local n = 0
     for k, v in pairs(dict.map) do
