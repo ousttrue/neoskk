@@ -29,13 +29,19 @@ local NUM_BASE = tonumber("2460", 16) - 1
 ---@field header string
 ---@field body string
 
+---@class Yin
+---@field fanqie string? 反切
+---@field zhi string? 直音
+---@field roma string? roma
+---@field deng string? 声調
+
 --- 単漢字
 ---@class UniHanChar
 ---@field annotation string?
 ---@field goma string? 四角号碼
 ---@field xszd XueShengSection[]? 學生字典
 ---@field readings UniHanReading[] 読み
----@field fanqie string[] 反切と声調
+---@field yin Yin[] 反切と声調
 ---@field kana string[] よみかな
 ---@field flag "joyo" | nil
 ---@field indices string? 康煕字典
@@ -66,6 +72,7 @@ local NUM_BASE = tonumber("2460", 16) - 1
 ---@field uangyun_file string?
 ---@field chinadat_file string?
 ---@field kyu_file string?
+---@field xszd_file string?
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
 
@@ -103,7 +110,7 @@ function UniHanDict:get_or_create(char)
     --   return
     -- end
     item = {
-      fanqie = {},
+      yin = {},
       kana = {},
       readings = {},
     }
@@ -156,11 +163,19 @@ function UniHanDict:load_user(json)
     if last_pos == 1 then
       assert(false, "todo")
     else
-      for i, kana in ipairs(v.kana) do
+      for _, kana in ipairs(v.kana) do
         self:add_word(word, kana, "[USER]", v.annotation)
       end
     end
   end
+end
+
+local function code_count(body)
+  local n = 0
+  for _ in utf8.codes(body) do
+    n = n + 1
+  end
+  return n
 end
 
 -- 學生字典(XueShengZiDian)
@@ -177,44 +192,86 @@ end
 -- -四餓切(So)去聲
 -- --語助詞。楚辭招魂末多用之。故曰楚些。哀輓語也。
 ---@param data string xszd.txt
-function UniHanDict:load_xszd(data)
-  local item, xszd
+---@param path string?
+function UniHanDict:load_xszd(data, path)
+  self.xszd_file = path
+  ---@type {item: UniHanChar?, i: integer}
+  local current = {
+    item = nil,
+    i = 0,
+  }
+  ---@param yin Yin
+  local function add_yin(yin)
+    local item = current.item
+    assert(item)
+    table.insert(item.yin, current.i, yin)
+    current.i = current.i + 1
+  end
+
   for l in string.gmatch(data, "[^\n]+") do
-    local header, char = l:match "^(%*+)(.*)"
+    local header, body = l:match "^([%*-]+)(.*)"
     if header == "*" then
+      -- skip
     elseif header == "**" then
-      local i = 0
-      if char then
-        for _ in utf8.codes(char) do
-          i = i + 1
-        end
-      end
-      if i == 1 then
-        if item then
-          item.xszd = xszd
-        end
-        ---@type XueShengSection[]
-        xszd = {}
-        item = self:get_or_create(char)
+      current.item = nil
+      current.i = 1
+
+      local n = code_count(body)
+      if n == 1 then
+        local item = self:get_or_create(body)
+        item.xszd = {}
+        current.item = item
       end
     elseif header == "***" then
-    else
-      local h, b = l:match "^(%-+)(.*)"
-      if h == "-" then
-        table.insert(xszd, { header = b, body = "" })
-      elseif h == "--" then
-        if #xszd == 0 then
-          table.insert(xszd, { header = b, body = "" })
+      -- skip
+    elseif header == "-" then
+      if current.item then
+        -- TODO
+        table.insert(current.item.xszd, { header = body, body = "" })
+
+        if body:match "^［解字］" then
         else
-          xszd[#xszd].body = xszd[#xszd].body .. b
+          local list = {}
+          for _, ch in utf8.codes(body) do
+            table.insert(list, ch)
+          end
+          if list[1] == "讀" and list[2] == "如" then
+            -- 讀如音(Yin)上聲
+            add_yin { zhi = list[3] }
+          elseif list[1] == "音" then
+            -- 音菊(Chu)入聲
+            add_yin { zhi = list[2] }
+          elseif list[3] == "切" then
+            -- 則思切(Tzu)平聲
+            add_yin { fanqie = list[1] .. list[2] }
+          elseif list[1] == "讀" and list[2] == "若" then
+            -- 讀若如(Ju)上聲
+            add_yin { zhi = list[3] }
+          elseif list[1] == "與" and list[3] == "同" then
+            -- 與阨同
+            add_yin { zhi = list[2] }
+          elseif list[1] == "古" then
+            -- 古原字
+          elseif list[1] == "俗" then
+            -- 俗效字
+          elseif list[1] == "本" then
+            -- 本音覃
+          else
+            -- print(l)
+          end
         end
-      else
-        assert(false)
       end
+    elseif header == "--" then
+      if current.item then
+        if #current.item.xszd == 0 then
+          table.insert(current.item.xszd, { header = body, body = "" })
+        else
+          current.item.xszd[#current.item.xszd].body = current.item.xszd[#current.item.xszd].body .. body
+        end
+      end
+    else
+      assert(false, l)
     end
-  end
-  if item then
-    item.xszd = xszd
   end
 end
 
@@ -324,7 +381,7 @@ function UniHanDict:load_kangxi(data)
         -- print(t, ch)
         ch = t
       end
-      local item = self:get_or_create(ch)
+      item = self:get_or_create(ch)
       assert(item)
       item.indices = kx
 
@@ -399,7 +456,11 @@ function UniHanDict:load_unihan_readings(data, path)
         })
       end
     elseif k == "kFanqie" then
-      item.fanqie = util.splited(v)
+      for s in util.split, { v, "%s" } do
+        table.insert(item.yin, {
+          fanqie = s,
+        })
+      end
     elseif k == "kJapanese" then
       item.kana = util.splited(v)
     end
@@ -433,8 +494,6 @@ function UniHanDict:load_unihan_variants(data, path)
   for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
     local codepoint = tonumber(unicode, 16)
     local ch = utf8.char(codepoint)
-    local item = self:get_or_create(ch)
-    -- assert(item)
     if k == "kSimplifiedVariant" then
       local v_codepoint = tonumber(v, 16)
       local v_ch = utf8.char(v_codepoint)
@@ -476,7 +535,7 @@ end
 -- #	kXerox
 ---@param data string Unihan_OtherMappings.txt
 function UniHanDict:load_unihan_othermappings(data)
-  for unicode, k, v in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
+  for unicode, k, _ in string.gmatch(data, UniHanDict.UNIHAN_PATTERN) do
     local codepoint = tonumber(unicode, 16)
     local ch = utf8.char(codepoint)
     local item = self:get_or_create(ch)
@@ -553,7 +612,7 @@ function UniHanDict:filter_jisyo(key, okuri)
   key = kana_util.str_to_hirakana(key)
   for k, item in pairs(self.map) do
     if item.flag == "joyo" or item.xszd then
-      if item.indices or item.fanqie or item.xszd or item.annotation then
+      if item.indices or item.yin or item.xszd or item.annotation then
         for _, kana in ipairs(item.kana) do
           if kana_util.str_to_hirakana(kana) == key then
             local new_item = CompletionItem.from_word(k, item, self)
@@ -666,11 +725,14 @@ end
 function UniHanDict:get_xiaoyun(ch)
   local list = {}
   local item = self.map[ch]
-  if item and item.fanqie then
-    for _, fanqie in ipairs(item.fanqie) do
-      local xiao = self.guangyun:xiaoyun_from_fanqie(fanqie)
-      if xiao then
-        table.insert(list, xiao)
+  if item and item.yin then
+    for _, yin in ipairs(item.yin) do
+      local fanqie = yin.fanqie
+      if fanqie then
+        local xiao = self.guangyun:xiaoyun_from_fanqie(fanqie)
+        if xiao then
+          table.insert(list, xiao)
+        end
       end
     end
   end
@@ -706,7 +768,8 @@ function UniHanDict:hover(ch)
 
     table.insert(lines, "# 読み")
     if #item.kana > 0 then
-      table.insert(lines, util.join(item.kana, ","))
+      -- table.insert(lines, util.join(item.kana, ","))
+      table.insert(lines, item.kana[1])
     end
     for _, r in ipairs(item.readings) do
       table.insert(lines, r.zhuyin .. (r.diao and ("%d"):format(r.diao) or ""))
@@ -778,7 +841,8 @@ function UniHanDict:hover(ch)
         table.insert(lines, ("xiaoyun for %s not found"):format(ch))
       end
       local line = ""
-      for _, f in ipairs(item.fanqie) do
+      for _, yin in ipairs(item.yin) do
+        local f = yin.fanqie
         if #line > 0 then
           line = line .. ","
         end

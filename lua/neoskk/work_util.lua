@@ -57,16 +57,16 @@ local function parse_unihan(encoded)
   end
 
   do
-    local xszd = opts.xszd and opts.xszd or (vim.fs.joinpath(opts.dir, "cjkvi-dict-master/xszd.txt"))
-    data = util.readfile_sync(vim.uv, xszd)
+    local xszd_file = opts.xszd and opts.xszd or (vim.fs.joinpath(opts.dir, "cjkvi-dict-master/xszd.txt"))
+    data = util.readfile_sync(vim.uv, xszd_file)
     if data then
-      dict:load_xszd(data)
+      dict:load_xszd(data, xszd_file)
     end
   end
 
   do
     local kyu_file =
-      vim.fs.joinpath(opts.dir, "hanzi-chars-main/data-charlist/日本《常用漢字表》（2010年）旧字体.txt")
+        vim.fs.joinpath(opts.dir, "hanzi-chars-main/data-charlist/日本《常用漢字表》（2010年）旧字体.txt")
     data = util.readfile_sync(vim.uv, kyu_file)
     if data then
       dict:load_kyu(data, kyu_file)

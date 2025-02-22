@@ -228,25 +228,23 @@ M.list = {
       nil,
     },
   }),
-  YunShe.new("宕", {
+  YunShe.new("宕梗", {
     {
       YunMu.new("陽", "唐"),
       YunMu.new("養", "蕩"),
       YunMu.new("漾", "宕"),
       YunMu.new("薬", "藥", "鐸"),
     },
-  }),
-  YunShe.new("梗", {
     {
       YunMu.new("庚", "耕", "清"),
       YunMu.new("梗", "耿", "静"),
-      YunMu.new("敬", "諍", "勁"),
+      YunMu.new(--[["敬"]]"映", "諍", "勁"),
       YunMu.new("陌", "麦", "昔"),
     },
     {
       YunMu.new "青",
       YunMu.new "迥",
-      YunMu.new "径",
+      YunMu.new "徑",
       YunMu.new "錫",
     },
   }),

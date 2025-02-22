@@ -65,7 +65,8 @@ function CompletionItem.from_word(w, item, dict)
   if item then
     -- info
     if #item.kana > 0 then
-      new_item.info = util.join(item.kana, ",")
+      -- new_item.info = util.join(item.kana, ",")
+      new_item.info = item.kana[1]
     end
     if item.xszd then
       new_item.info = (new_item.info or "") .. "\n"
