@@ -81,6 +81,9 @@ function XiaoYun.parse(line)
   for _, ch in utf8.codes(cols[4]) do
     table.insert(xiaoyun.chars, ch)
   end
+  for _, ch in utf8.codes(cols[19]) do
+    table.insert(xiaoyun.chars, ch)
+  end
   assert(#xiaoyun.chars, cols[5])
   return xiaoyun
 end
