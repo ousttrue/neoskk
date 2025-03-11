@@ -25,13 +25,13 @@ local CHINADAT_URL = "https://www.seiwatei.net/info/chinadat.csv"
 local CJKVI_DICT_URL = "https://github.com/cjkvi/cjkvi-dict/archive/refs/heads/master.zip"
 local HANZI_CHARS_URL = "https://github.com/zispace/hanzi-chars/archive/refs/heads/main.zip"
 
-local PreEdit = require "neoskk.PreEdit"
 local UniHanDict = require "neoskk.UniHanDict"
 local SkkMachine = require "neoskk.SkkMachine"
 local ZhuyinMachine = require "neoskk.ZhuyinMachine"
 local Completion = require "neoskk.Completion"
 local Indicator = require "neoskk.Indicator"
 local util = require "neoskk.util"
+local utf8 = require "neoskk.utf8"
 
 local STATE_MODE_SKK = "skk"
 local STATE_MODE_ZHUYIN = "zhuyin"
@@ -47,7 +47,7 @@ local M = {
 ---@field bufnr integer 対象のbuf。変わったら状態をクリアする
 ---@field state SkkMachine | ZhuyinMachine | nil 状態管理
 ---@field conv_col integer 漢字変換を開始した col
----@field preedit PreEdit
+---@field preedit string
 ---@field map_keys string[]
 ---@field dict UniHanDict
 ---@field indicator Indicator
@@ -63,7 +63,7 @@ function M.NeoSkk.new(opts)
     bufnr = -1,
     opts = opts and opts or {},
     conv_col = 0,
-    preedit = PreEdit.new(MODULE_NAME),
+    preedit = "",
     map_keys = {},
     dict = UniHanDict.new(),
     indicator = Indicator.new(),
@@ -142,7 +142,7 @@ function M.NeoSkk.new(opts)
   vim.api.nvim_create_autocmd("ModeChanged", {
     group = group,
     callback = function()
-      self.preedit:highlight(self.bufnr, "")
+      -- self.preedit = nil
     end,
   })
 
@@ -197,7 +197,7 @@ function M.NeoSkk:flush()
     if #out > 0 then
       vim.api.nvim_put({ out }, "", true, true)
     end
-    self.preedit:highlight(self.bufnr, "")
+    -- self.preedit = nil
     self.bufnr = -1
   end
 
@@ -206,7 +206,7 @@ end
 
 function M.NeoSkk:delete()
   self.indicator:delete()
-  self.preedit:highlight(self.bufnr, "")
+  -- self.preedit = nil
   self:unmap()
 end
 
@@ -233,6 +233,7 @@ end
 ---@param bufnr integer
 ---@param lhs string
 ---@return string
+---@return string?
 function M.NeoSkk:input(bufnr, lhs)
   if self.state then
     if self.bufnr ~= -1 and self.bufnr ~= bufnr then
@@ -253,11 +254,11 @@ function M.NeoSkk:input(bufnr, lhs)
   self.bufnr = bufnr
 
   if lhs == "\b" then
-    if vim.bo.iminsert ~= 1 then
-      return "<C-h>"
-    elseif #self.state:preedit() == 0 then
-      return "<C-h>"
-    end
+    -- if vim.bo.iminsert ~= 1 then
+    return "<C-h>"
+    -- elseif #self.state:preedit() == 0 then
+    --   return "<C-h>"
+    -- end
   end
 
   if lhs:match "^[A-Z]$" then
@@ -278,7 +279,7 @@ function M.NeoSkk:input(bufnr, lhs)
       out = "<C-y>" .. out
     end
   end
-  self.preedit:highlight(self.bufnr, preedit)
+  -- self.preedit:highlight(self.bufnr, preedit)
 
   if completion then
     if not completion.items or #completion.items == 0 then
@@ -295,7 +296,7 @@ function M.NeoSkk:input(bufnr, lhs)
     end
   end
 
-  return out
+  return out, preedit
 end
 
 ---@param completion Completion
@@ -350,7 +351,7 @@ function M.NeoSkk.map(self)
 
       local bufnr = vim.api.nvim_get_current_buf()
       local win = vim.api.nvim_get_current_win()
-      local out = self:input(bufnr, alt and alt or lhs)
+      local out, preedit = self:input(bufnr, alt and alt or lhs)
 
       if vim.bo.filetype == "TelescopePrompt" then
         if out == "\n" then
@@ -362,7 +363,15 @@ function M.NeoSkk.map(self)
       end
 
       self:update_indicator()
-      return out
+
+      local out_str = out .. (preedit or "")
+      local preedit_len = utf8.len(self.preedit)
+      if preedit_len then
+        local delete_preedit = string.rep("\b", preedit_len)
+        out_str = delete_preedit .. out_str
+      end
+      self.preedit = preedit or ""
+      return out_str
     end, {
       -- buffer = true,
       silent = true,
