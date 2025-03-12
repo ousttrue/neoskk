@@ -73,6 +73,7 @@ local NUM_BASE = tonumber("2460", 16) - 1
 ---@field chinadat_file string?
 ---@field kyu_file string?
 ---@field xszd_file string?
+---@field skk_L string?
 local UniHanDict = {}
 UniHanDict.__index = UniHanDict
 
@@ -277,7 +278,11 @@ end
 
 ---SKK辞書
 ---@param data string
-function UniHanDict:load_skk(data)
+---@param path string?
+function UniHanDict:load_skk(data, path)
+  if path then
+    self.skk_L = path
+  end
   ---@param l string
   ---@return string? key
   ---@return string? body

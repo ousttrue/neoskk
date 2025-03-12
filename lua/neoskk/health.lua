@@ -23,6 +23,7 @@ M.check = function()
     check_dict_file "chinadat_file"
     check_dict_file "kyu_file"
     check_dict_file "xszd_file"
+    check_dict_file "skk_L"
 
     local n = 0
     for k, v in pairs(dict.map) do

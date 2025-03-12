@@ -95,10 +95,10 @@ local function parse_unihan(encoded)
     table.insert(jisyo, opts.dir .. "/SKK-JISYO.china_taiwan")
   end
 
-  for _, j in ipairs(jisyo) do
-    data = util.readfile_sync(vim.uv, "euc-jp", "utf-8", j)
+  for _, path in ipairs(jisyo) do
+    data = util.readfile_sync(vim.uv, path)
     if data then
-      dict:load_skk(data)
+      dict:load_skk(data, path)
     end
   end
 

@@ -197,4 +197,11 @@ function M.contains(t, x)
   return false
 end
 
+---@return string
+function M.get_current_line_cursor_left()
+  local line = vim.api.nvim_get_current_line()
+  local col = vim.fn.col "."
+  return line:sub(1, col - 1)
+end
+
 return M

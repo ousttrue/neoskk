@@ -46,13 +46,10 @@ local M = {
 ---@field opts NeoSkkOpts
 ---@field bufnr integer 対象のbuf。変わったら状態をクリアする
 ---@field state SkkMachine | ZhuyinMachine | nil 状態管理
----@field conv_col integer 漢字変換を開始した col
 ---@field map_keys string[]
 ---@field dict UniHanDict
 ---@field indicator Indicator
----@field has_backspace boolean
----@field last_completion Completion?
----@field kana_pos [integer,integer]?
+---@field has_kana_feed boolean
 M.NeoSkk = {}
 M.NeoSkk.__index = M.NeoSkk
 
@@ -62,11 +59,10 @@ function M.NeoSkk.new(opts)
   local self = setmetatable({
     bufnr = -1,
     opts = opts and opts or {},
-    conv_col = 0,
     map_keys = {},
     dict = UniHanDict.new(),
     indicator = Indicator.new(),
-    has_backspace = false,
+    has_kana_feed = false,
   }, M.NeoSkk)
   self:map()
 
@@ -95,31 +91,6 @@ function M.NeoSkk.new(opts)
       vim.bo.iminsert = 0
     end,
   })
-
-  -- vim.api.nvim_create_autocmd("CompleteDone", {
-  --   group = group,
-  --   -- buffer = bufnr,
-  --   callback = function(ev)
-  --     local event = vim.api.nvim_get_vvar "event"
-  --     local last_completion = self.last_completion
-  --     self.last_completion = nil
-  --
-  --     if event.reason == "accept" then
-  --       local item = vim.api.nvim_get_vvar "completed_item"
-  --       -- replace
-  --       self:on_complete_done(ev.buf, item)
-  --     elseif event.reason == "cancel" then
-  --       local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
-  --       cursor_row = cursor_row - 1
-  --       if last_completion then
-  --         -- 四角号碼?
-  --         vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
-  --       end
-  --     end
-  --
-  --     print(event.reason)
-  --   end,
-  -- })
 
   vim.api.nvim_create_autocmd("InsertEnter", {
     group = group,
@@ -188,15 +159,10 @@ function M.NeoSkk.new(opts)
 end
 
 function M.NeoSkk:flush()
-  local out = ""
-  self.kana_pos = nil
+  self.has_kana_feed = false
   if self.bufnr ~= -1 then
-    if #out > 0 then
-      vim.api.nvim_put({ out }, "", true, true)
-    end
     self.bufnr = -1
   end
-
   self.state = nil
 end
 
@@ -247,6 +213,10 @@ function M.NeoSkk:input(bufnr, lhs)
   end
   self.bufnr = bufnr
 
+  if lhs == ";" then
+    return "▽"
+  end
+
   if lhs == "\b" then
     if vim.bo.iminsert ~= 1 then
       return "<C-h>"
@@ -260,48 +230,11 @@ function M.NeoSkk:input(bufnr, lhs)
   --   end
   -- end
 
-  local pos = vim.fn.col "."
-  local line = vim.fn.line "."
-  if self.kana_pos and self.kana_pos[1] ~= line then
-    self.kana_pos = nil
-  end
-  local kana_feed = self:get_feed(pos)
+  local kana_feed = self:get_feed()
 
   local out, preedit = self.state:input(lhs, kana_feed, vim.fn.pumvisible() == 1)
-  if preedit and #preedit > 0 then
-    if not self.kana_pos then
-      self.kana_pos = { line, pos }
-    end
-  else
-    self.kana_pos = nil
-  end
 
-  -- if vim.fn.pumvisible() == 1 and #preedit > 0 then
-  --   if getmetatable(self.state) == SkkMachine then
-  --     -- completion 中に未確定の仮名入力が発生。
-  --     -- 1文字出して消すことで completion を確定終了させる
-  --     out = " \b" .. out
-  --     -- TODO: redraw preedit
-  --   else
-  --     out = "<C-y>" .. out
-  --   end
-  -- end
-  -- -- self.preedit:highlight(self.bufnr, preedit)
-  --
-  -- if completion then
-  --   if not completion.items or #completion.items == 0 then
-  --     -- elseif #completion.items == 1 then
-  --     --   -- 確定
-  --     --   local item = completion.items[1]
-  --     --   out = item.word
-  --   else
-  --     -- completion
-  --     if getmetatable(self.state) == ZhuyinMachine then
-  --       self.conv_col = vim.fn.col "."
-  --     end
-  --     self:raise_completion(completion)
-  --   end
-  -- end
+  self.has_kana_feed = preedit and #preedit > 0
 
   local preedit_len = utf8.len(kana_feed)
   if preedit_len then
@@ -312,57 +245,15 @@ function M.NeoSkk:input(bufnr, lhs)
   return out .. (preedit and preedit or "")
 end
 
----@param cursor_pos integer
 ---@return string
-function M.NeoSkk:get_feed(cursor_pos)
-  if not self.kana_pos then
+function M.NeoSkk:get_feed()
+  if not self.has_kana_feed then
     return ""
   end
 
-  local kana_feed = ""
-  local line = vim.api.nvim_get_current_line()
-  local list = vim.str_utf_pos(line)
-  for i, pos in ipairs(list) do
-    if pos > cursor_pos then
-      break
-    end
-    local s = pos
-    local e = list[i + 1] and (list[i + 1] - 1) or #line
-    if pos >= self.kana_pos[2] then
-      local ch = line:sub(s, e)
-      kana_feed = kana_feed .. ch
-    end
-  end
-  return kana_feed
-end
-
----@param completion Completion
-function M.NeoSkk:raise_completion(completion)
-  if getmetatable(self.state) == ZhuyinMachine then
-    self.last_completion = completion
-  elseif completion.opts == Completion.FUZZY_OPTS then
-    self.last_completion = completion
-  else
-    self.last_completion = nil
-  end
-
-  vim.defer_fn(function()
-    -- trigger completion
-    local opt_backup = vim.opt.completeopt
-    if completion.opts == Completion.SKK_OPTS then
-      vim.opt.completeopt = { "menuone", "popup" }
-    elseif completion.opts == Completion.FUZZY_OPTS then
-      vim.opt.completeopt = { "menuone", "popup", "fuzzy", "noselect", "noinsert" }
-    elseif completion.opts == Completion.ZHUYIN_OPTS then
-      vim.opt.completeopt = { "menuone", "popup", "noselect", "noinsert" }
-    else
-      --
-    end
-    -- completeopt
-    self.has_backspace = false
-    vim.fn.complete(self.conv_col, completion.items)
-    vim.opt.completeopt = opt_backup
-  end, 0)
+  local line = util.get_current_line_cursor_left()
+  local kana_feed = line:match "%a+$"
+  return kana_feed or ""
 end
 
 --- language-mapping
@@ -377,9 +268,7 @@ function M.NeoSkk.map(self)
       end
 
       if vim.fn.pumvisible() == 1 then
-        if lhs == "\b" or alt == "\b" then
-          self.has_backspace = true
-        elseif lhs == "\n" or alt == "\n" then
+        if lhs == "\n" or alt == "\n" then
           return "<C-y>"
         elseif lhs == " " then
           return "<C-n>"
@@ -390,15 +279,15 @@ function M.NeoSkk.map(self)
       local win = vim.api.nvim_get_current_win()
       local out = self:input(bufnr, alt and alt or lhs)
 
-      -- if vim.bo.filetype == "TelescopePrompt" then
-      --   if out == "\n" then
-      --     vim.defer_fn(function()
-      --       require("telescope.actions").select_default(bufnr)
-      --     end, 1)
-      --     return
-      --   end
-      -- end
-      -- self:update_indicator()
+      if vim.bo.filetype == "TelescopePrompt" then
+        if out == "\n" then
+          vim.defer_fn(function()
+            require("telescope.actions").select_default(bufnr)
+          end, 1)
+          return
+        end
+      end
+      self:update_indicator()
 
       return out
     end, {
