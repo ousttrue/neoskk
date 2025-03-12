@@ -223,16 +223,16 @@ function M.NeoSkk:input(bufnr, lhs)
     end
   end
 
-  -- if lhs:match "^[A-Z]$" then
-  --   -- SHIFT
-  --   if self.state.conv_mode == SkkMachine.RAW then
-  --     self.conv_col = vim.fn.col "."
-  --   end
-  -- end
-
   local kana_feed = self:get_feed()
 
   local out, preedit = self.state:input(lhs, kana_feed, vim.fn.pumvisible() == 1)
+  if lhs:match "^[A-Z]$" then
+    -- SHIFT
+    if util.get_current_line_cursor_left():match "▽" then
+    else
+      out = "▽" .. out
+    end
+  end
 
   self.has_kana_feed = preedit and #preedit > 0
 
