@@ -280,7 +280,7 @@ end
 ---@param data string
 ---@param path string?
 function UniHanDict:load_skk(data, path)
-  if path then
+  if path and not self.skk_L then
     self.skk_L = path
   end
   ---@param l string
