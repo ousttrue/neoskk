@@ -47,12 +47,12 @@ local M = {
 ---@field bufnr integer 対象のbuf。変わったら状態をクリアする
 ---@field state SkkMachine | ZhuyinMachine | nil 状態管理
 ---@field conv_col integer 漢字変換を開始した col
----@field preedit string
 ---@field map_keys string[]
 ---@field dict UniHanDict
 ---@field indicator Indicator
 ---@field has_backspace boolean
 ---@field last_completion Completion?
+---@field kana_pos [integer,integer]?
 M.NeoSkk = {}
 M.NeoSkk.__index = M.NeoSkk
 
@@ -63,7 +63,6 @@ function M.NeoSkk.new(opts)
     bufnr = -1,
     opts = opts and opts or {},
     conv_col = 0,
-    preedit = "",
     map_keys = {},
     dict = UniHanDict.new(),
     indicator = Indicator.new(),
@@ -142,10 +141,7 @@ function M.NeoSkk.new(opts)
   vim.api.nvim_create_autocmd("ModeChanged", {
     group = group,
     callback = function()
-      local state = self.state
-      if state then
-        state:clear_conv()
-      end
+      self:flush()
     end,
   })
 
@@ -193,14 +189,11 @@ end
 
 function M.NeoSkk:flush()
   local out = ""
-  if self.state then
-    self.state:flush()
-  end
+  self.kana_pos = nil
   if self.bufnr ~= -1 then
     if #out > 0 then
       vim.api.nvim_put({ out }, "", true, true)
     end
-    -- self.preedit = nil
     self.bufnr = -1
   end
 
@@ -209,7 +202,6 @@ end
 
 function M.NeoSkk:delete()
   self.indicator:delete()
-  -- self.preedit = nil
   self:unmap()
 end
 
@@ -224,24 +216,22 @@ function M.NeoSkk:on_complete_done(bufnr, item)
     return
   end
   if user_data.replace then
-    local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
+    local cursor_row, cursor_pos = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
     cursor_row = cursor_row - 1
 
     -- Replace the already inserted word with user_data.replace
-    local start_char = cursor_col - #item.word
-    vim.api.nvim_buf_set_text(bufnr, cursor_row, start_char, cursor_row, cursor_col, { user_data.replace })
+    local start_char = cursor_pos - #item.word
+    vim.api.nvim_buf_set_text(bufnr, cursor_row, start_char, cursor_row, cursor_pos, { user_data.replace })
   end
 end
 
 ---@param bufnr integer
 ---@param lhs string
 ---@return string
----@return string?
----@return Completion?
 function M.NeoSkk:input(bufnr, lhs)
   if self.state then
     if self.bufnr ~= -1 and self.bufnr ~= bufnr then
-      self.state:flush()
+      self:flush()
     end
   else
     if M.state_mode == STATE_MODE_SKK then
@@ -258,21 +248,33 @@ function M.NeoSkk:input(bufnr, lhs)
   self.bufnr = bufnr
 
   if lhs == "\b" then
-    -- if vim.bo.iminsert ~= 1 then
-    return "<C-h>"
-    -- elseif #self.state:preedit() == 0 then
-    --   return "<C-h>"
-    -- end
-  end
-
-  if lhs:match "^[A-Z]$" then
-    -- SHIFT
-    if self.state.conv_mode == SkkMachine.RAW then
-      self.conv_col = vim.fn.col "."
+    if vim.bo.iminsert ~= 1 then
+      return "<C-h>"
     end
   end
 
-  local out, preedit, completion = self.state:input(lhs, self.dict, vim.fn.pumvisible() == 1)
+  -- if lhs:match "^[A-Z]$" then
+  --   -- SHIFT
+  --   if self.state.conv_mode == SkkMachine.RAW then
+  --     self.conv_col = vim.fn.col "."
+  --   end
+  -- end
+
+  local pos = vim.fn.col "."
+  local line = vim.fn.line "."
+  if self.kana_pos and self.kana_pos[1] ~= line then
+    self.kana_pos = nil
+  end
+  local kana_feed = self:get_feed(pos)
+
+  local out, preedit = self.state:input(lhs, kana_feed, vim.fn.pumvisible() == 1)
+  if preedit and #preedit > 0 then
+    if not self.kana_pos then
+      self.kana_pos = { line, pos }
+    end
+  else
+    self.kana_pos = nil
+  end
 
   -- if vim.fn.pumvisible() == 1 and #preedit > 0 then
   --   if getmetatable(self.state) == SkkMachine then
@@ -301,7 +303,37 @@ function M.NeoSkk:input(bufnr, lhs)
   --   end
   -- end
 
-  return out, preedit, completion
+  local preedit_len = utf8.len(kana_feed)
+  if preedit_len then
+    local delete_preedit = string.rep("\b", preedit_len)
+    out = delete_preedit .. out
+  end
+
+  return out .. (preedit and preedit or "")
+end
+
+---@param cursor_pos integer
+---@return string
+function M.NeoSkk:get_feed(cursor_pos)
+  if not self.kana_pos then
+    return ""
+  end
+
+  local kana_feed = ""
+  local line = vim.api.nvim_get_current_line()
+  local list = vim.str_utf_pos(line)
+  for i, pos in ipairs(list) do
+    if pos > cursor_pos then
+      break
+    end
+    local s = pos
+    local e = list[i + 1] and (list[i + 1] - 1) or #line
+    if pos >= self.kana_pos[2] then
+      local ch = line:sub(s, e)
+      kana_feed = kana_feed .. ch
+    end
+  end
+  return kana_feed
 end
 
 ---@param completion Completion
@@ -356,26 +388,19 @@ function M.NeoSkk.map(self)
 
       local bufnr = vim.api.nvim_get_current_buf()
       local win = vim.api.nvim_get_current_win()
-      local out, preedit = self:input(bufnr, alt and alt or lhs)
+      local out = self:input(bufnr, alt and alt or lhs)
 
-      if vim.bo.filetype == "TelescopePrompt" then
-        if out == "\n" then
-          vim.defer_fn(function()
-            require("telescope.actions").select_default(bufnr)
-          end, 1)
-          return
-        end
-      end
-      self:update_indicator()
+      -- if vim.bo.filetype == "TelescopePrompt" then
+      --   if out == "\n" then
+      --     vim.defer_fn(function()
+      --       require("telescope.actions").select_default(bufnr)
+      --     end, 1)
+      --     return
+      --   end
+      -- end
+      -- self:update_indicator()
 
-      local out_str = out .. (preedit or "")
-      local preedit_len = utf8.len(self.preedit)
-      if preedit_len then
-        local delete_preedit = string.rep("\b", preedit_len)
-        -- out_str = delete_preedit .. out_str
-      end
-      self.preedit = preedit or ""
-      return out_str
+      return out
     end, {
       -- buffer = true,
       silent = true,
@@ -451,7 +476,6 @@ function M.NeoSkk:load_dict()
   self.opts.dir = ensure_make_cache_dir()
 
   require("neoskk.work_util").async_load(self.opts, function(dict)
-    print("loaded", dict)
     self.dict = dict
     UniHanDict.resetmetatable(self.dict)
   end)
