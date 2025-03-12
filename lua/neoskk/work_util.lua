@@ -96,7 +96,7 @@ local function parse_unihan(encoded)
   end
 
   for _, j in ipairs(jisyo) do
-    data = util.readfile_sync(vim.uv, j)
+    data = util.readfile_sync(vim.uv, "euc-jp", "utf-8", j)
     if data then
       dict:load_skk(data)
     end
@@ -124,7 +124,7 @@ function M.async_load(opts, on_completed)
       return work:queue(src)
     end
     local encoded = async.wrap(async_parse, 2)(require("string.buffer").encode(opts))
-    assert(encoded)
+    assert(encoded, vim.inspect(opts))
     ---@diagnostic disable
     local dict = require("string.buffer").decode(encoded)
     ---@cast dict UniHanDict
