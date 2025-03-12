@@ -97,30 +97,30 @@ function M.NeoSkk.new(opts)
     end,
   })
 
-  vim.api.nvim_create_autocmd("CompleteDone", {
-    group = group,
-    -- buffer = bufnr,
-    callback = function(ev)
-      local event = vim.api.nvim_get_vvar "event"
-      local last_completion = self.last_completion
-      self.last_completion = nil
-
-      if event.reason == "accept" then
-        local item = vim.api.nvim_get_vvar "completed_item"
-        -- replace
-        self:on_complete_done(ev.buf, item)
-      elseif event.reason == "cancel" then
-        local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
-        cursor_row = cursor_row - 1
-        if last_completion then
-          -- 四角号碼?
-          vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
-        end
-      end
-
-      print(event.reason)
-    end,
-  })
+  -- vim.api.nvim_create_autocmd("CompleteDone", {
+  --   group = group,
+  --   -- buffer = bufnr,
+  --   callback = function(ev)
+  --     local event = vim.api.nvim_get_vvar "event"
+  --     local last_completion = self.last_completion
+  --     self.last_completion = nil
+  --
+  --     if event.reason == "accept" then
+  --       local item = vim.api.nvim_get_vvar "completed_item"
+  --       -- replace
+  --       self:on_complete_done(ev.buf, item)
+  --     elseif event.reason == "cancel" then
+  --       local cursor_row, cursor_col = unpack(vim.api.nvim_win_get_cursor(0)) --- @type integer, integer
+  --       cursor_row = cursor_row - 1
+  --       if last_completion then
+  --         -- 四角号碼?
+  --         vim.api.nvim_buf_set_text(ev.buf, cursor_row, self.conv_col, cursor_row, cursor_col, { "" })
+  --       end
+  --     end
+  --
+  --     print(event.reason)
+  --   end,
+  -- })
 
   vim.api.nvim_create_autocmd("InsertEnter", {
     group = group,
@@ -142,7 +142,10 @@ function M.NeoSkk.new(opts)
   vim.api.nvim_create_autocmd("ModeChanged", {
     group = group,
     callback = function()
-      -- self.preedit = nil
+      local state = self.state
+      if state then
+        state:clear_conv()
+      end
     end,
   })
 
@@ -369,7 +372,7 @@ function M.NeoSkk.map(self)
       local preedit_len = utf8.len(self.preedit)
       if preedit_len then
         local delete_preedit = string.rep("\b", preedit_len)
-        out_str = delete_preedit .. out_str
+        -- out_str = delete_preedit .. out_str
       end
       self.preedit = preedit or ""
       return out_str
