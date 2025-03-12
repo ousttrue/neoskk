@@ -226,35 +226,35 @@ function SkkMachine:_input(lhs, dict)
       return preedit, ""
     end
 
-    if lhs == " " then
-      if dict then
-        local conv_feed = self:clear_conv()
-        local items = dict:filter_jisyo(conv_feed, nil)
-        self.conv_mode = RAW
-        return conv_feed, "", Completion.new(items)
-      end
-    end
+    -- if lhs == " " then
+    --   if dict then
+    --     local conv_feed = self:clear_conv()
+    --     local items = dict:filter_jisyo(conv_feed, nil)
+    --     self.conv_mode = RAW
+    --     return conv_feed, "", Completion.new(items)
+    --   end
+    -- end
 
     local out = self:input_char(lhs)
     self.conv_feed = self.conv_feed .. out
     local preedit = self.conv_feed .. self.kana_feed
-    if preedit:match "^g[%d%*][%d%*][%d%*][%d%*]$" then
-      -- 四角号碼
-      if dict then
-        local completion = dict:filter_goma(preedit:sub(2, 2), preedit:sub(3, 3), preedit:sub(4, 4), preedit:sub(5, 5))
-        if completion then
-          self.conv_mode = RAW
-          self.conv_feed = ""
-          self.kana_feed = ""
-          return preedit, "", completion
-        else
-          self.conv_mode = CONV
-          self.conv_feed = preedit
-          self.kana_feed = ""
-          return "", preedit
-        end
-      end
-    end
+    -- if preedit:match "^g[%d%*][%d%*][%d%*][%d%*]$" then
+    --   -- 四角号碼
+    --   if dict then
+    --     local completion = dict:filter_goma(preedit:sub(2, 2), preedit:sub(3, 3), preedit:sub(4, 4), preedit:sub(5, 5))
+    --     if completion then
+    --       self.conv_mode = RAW
+    --       self.conv_feed = ""
+    --       self.kana_feed = ""
+    --       return preedit, "", completion
+    --     else
+    --       self.conv_mode = CONV
+    --       self.conv_feed = preedit
+    --       self.kana_feed = ""
+    --       return "", preedit
+    --     end
+    --   end
+    -- end
     return "", preedit
   elseif self.conv_mode == OKURI then
     -- okuri

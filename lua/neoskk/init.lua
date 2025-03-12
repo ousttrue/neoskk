@@ -234,6 +234,7 @@ end
 ---@param lhs string
 ---@return string
 ---@return string?
+---@return Completion?
 function M.NeoSkk:input(bufnr, lhs)
   if self.state then
     if self.bufnr ~= -1 and self.bufnr ~= bufnr then
@@ -269,34 +270,35 @@ function M.NeoSkk:input(bufnr, lhs)
   end
 
   local out, preedit, completion = self.state:input(lhs, self.dict, vim.fn.pumvisible() == 1)
-  if vim.fn.pumvisible() == 1 and #preedit > 0 then
-    if getmetatable(self.state) == SkkMachine then
-      -- completion 中に未確定の仮名入力が発生。
-      -- 1文字出して消すことで completion を確定終了させる
-      out = " \b" .. out
-      -- TODO: redraw preedit
-    else
-      out = "<C-y>" .. out
-    end
-  end
-  -- self.preedit:highlight(self.bufnr, preedit)
 
-  if completion then
-    if not completion.items or #completion.items == 0 then
-      -- elseif #completion.items == 1 then
-      --   -- 確定
-      --   local item = completion.items[1]
-      --   out = item.word
-    else
-      -- completion
-      if getmetatable(self.state) == ZhuyinMachine then
-        self.conv_col = vim.fn.col "."
-      end
-      self:raise_completion(completion)
-    end
-  end
+  -- if vim.fn.pumvisible() == 1 and #preedit > 0 then
+  --   if getmetatable(self.state) == SkkMachine then
+  --     -- completion 中に未確定の仮名入力が発生。
+  --     -- 1文字出して消すことで completion を確定終了させる
+  --     out = " \b" .. out
+  --     -- TODO: redraw preedit
+  --   else
+  --     out = "<C-y>" .. out
+  --   end
+  -- end
+  -- -- self.preedit:highlight(self.bufnr, preedit)
+  --
+  -- if completion then
+  --   if not completion.items or #completion.items == 0 then
+  --     -- elseif #completion.items == 1 then
+  --     --   -- 確定
+  --     --   local item = completion.items[1]
+  --     --   out = item.word
+  --   else
+  --     -- completion
+  --     if getmetatable(self.state) == ZhuyinMachine then
+  --       self.conv_col = vim.fn.col "."
+  --     end
+  --     self:raise_completion(completion)
+  --   end
+  -- end
 
-  return out, preedit
+  return out, preedit, completion
 end
 
 ---@param completion Completion
@@ -361,7 +363,6 @@ function M.NeoSkk.map(self)
           return
         end
       end
-
       self:update_indicator()
 
       local out_str = out .. (preedit or "")
