@@ -896,49 +896,75 @@ end
 -- label = "噐 :66661:",
 -- insertText = "噐",
 -- filterText = ":66661:",
----@class CmpItem
----@field word string
----@field label string
----@field insertText string
----@field filterText string
+
+---@param key string
+---@param item CompletionItem
+---@param okuri string?
+---@return lsp.CompletionItem
+local function makeItem(key, item, okuri)
+  local item = {
+    word = item.word .. (okuri or ""),
+    label = (okuri and ("<%s>"):format(okuri) or "") .. item.abbr,
+    -- insertText = word.word,
+    filterText = "▽" .. key,
+    documentation = item.info,
+  }
+
+  if okuri then
+    if okuri == "i" then
+      item.filterText = item.filterText .. "い"
+    else
+      item.filterText = item.filterText .. okuri
+    end
+  end
+
+  return item
+end
 
 -- TODO: okuri
 ---@param cursor_before_line string
----@return CmpItem[]
+---@return lsp.CompletionItem[]
 function UniHanDict:get_cmp_entries(cursor_before_line)
-  local key = cursor_before_line:match [=[▽(.+)]=]
-  ---@type CmpItem[]
+  local _key = cursor_before_line:match [=[▽(.+)]=]
+  -- print(cursor_before_line, _key)
+  if not _key or #_key == 0 then
+    return {}
+  end
+
+  ---@type lsp.CompletionItem[]
   local items = {}
-  if key and #key > 0 then
-    print("key", key, #key)
+  local key, okuri
+  if _key:match "[a-z]$" then
+    key = _key:sub(1, #_key - 1)
+    okuri = _key:sub(#_key)
+  else
+    key = _key
+  end
+  if okuri and #okuri > 0 then
+    print("key,okuri", key, okuri)
+    local words = self:filter_jisyo(key .. okuri, nil)
+    for _, word in ipairs(words) do
+      table.insert(items, makeItem(key .. okuri, word, okuri))
+    end
+  else
     do
       local words = self:filter_jisyo(key, nil)
       for _, word in ipairs(words) do
-        table.insert(items, {
-          word = word.word,
-          label = word.abbr,
-          -- insertText = word.word,
-          filterText = "▽" .. key,
-          documentation = word.info,
-        })
+        table.insert(items, makeItem(key, word))
       end
     end
 
     if key:match "い$" and #key > 3 then
-      local words = self:filter_jisyo(key:sub(1, #key - 3) .. "i", nil)
+      key = key:sub(1, #key - 3)
+      okuri = "i"
+      print("i", key, okuri)
+      local words = self:filter_jisyo(key .. okuri, nil)
       for _, word in ipairs(words) do
-        table.insert(items, {
-          word = word.word,
-          label = "<i>" .. word.abbr,
-          -- insertText = word.word,
-          filterText = "▽" .. key,
-          documentation = word.info,
-        })
+        table.insert(items, makeItem(key .. okuri, word, okuri))
       end
     end
-  else
-    print("not", cursor_before_line)
   end
+
   return items
 end
 
