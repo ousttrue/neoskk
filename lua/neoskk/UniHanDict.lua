@@ -892,4 +892,54 @@ function UniHanDict:load_kyu(data, path)
   end
 end
 
+-- word = ":66661:",
+-- label = "噐 :66661:",
+-- insertText = "噐",
+-- filterText = ":66661:",
+---@class CmpItem
+---@field word string
+---@field label string
+---@field insertText string
+---@field filterText string
+
+-- TODO: okuri
+---@param cursor_before_line string
+---@return CmpItem[]
+function UniHanDict:get_cmp_entries(cursor_before_line)
+  local key = cursor_before_line:match [=[▽(.+)]=]
+  ---@type CmpItem[]
+  local items = {}
+  if key and #key > 0 then
+    print("key", key, #key)
+    do
+      local words = self:filter_jisyo(key, nil)
+      for _, word in ipairs(words) do
+        table.insert(items, {
+          word = word.word,
+          label = word.abbr,
+          -- insertText = word.word,
+          filterText = "▽" .. key,
+          documentation = word.info,
+        })
+      end
+    end
+
+    if key:match "い$" and #key > 3 then
+      local words = self:filter_jisyo(key:sub(1, #key - 3) .. "i", nil)
+      for _, word in ipairs(words) do
+        table.insert(items, {
+          word = word.word,
+          label = "<i>" .. word.abbr,
+          -- insertText = word.word,
+          filterText = "▽" .. key,
+          documentation = word.info,
+        })
+      end
+    end
+  else
+    print("not", cursor_before_line)
+  end
+  return items
+end
+
 return UniHanDict

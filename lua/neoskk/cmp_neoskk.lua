@@ -51,54 +51,13 @@ function source:complete(params, callback)
   --   { label = "November" },
   --   { label = "December" },
   -- }
-
-  local items = {}
   local neoskk = require "neoskk"
   local dict = neoskk.instance.dict
   if dict then
-    -- local key = params.context.cursor_line
-    local key = params.context.cursor_line:match [=[▽(.+)]=]
-    if key and #key > 0 then
-      print("key", key, #key)
-      do
-        local words = dict:filter_jisyo(key, nil)
-        for i, word in ipairs(words) do
-          --   word = ":66661:",
-          --   label = "噐 :66661:",
-          --   insertText = "噐",
-          --   filterText = ":66661:",
-          table.insert(items, {
-            word = word.word,
-            label = word.abbr,
-            -- insertText = word.word,
-            filterText = "▽" .. key,
-            documentation = word.info,
-          })
-        end
-      end
-
-      if key:match "い$" and #key > 3 then
-        local words = dict:filter_jisyo(key:sub(1, #key - 3) .. "i", nil)
-        for i, word in ipairs(words) do
-          --   word = ":66661:",
-          --   label = "噐 :66661:",
-          --   insertText = "噐",
-          --   filterText = ":66661:",
-          table.insert(items, {
-            word = word.word,
-            label = "<i>" .. word.abbr,
-            -- insertText = word.word,
-            filterText = "▽" .. key,
-            documentation = word.info,
-          })
-        end
-      end
-    else
-      print("not", params.context.cursor_line)
-    end
+    callback(dict:get_cmp_entries(params.context.cursor_before_line))
+  else
+    callback {}
   end
-  -- print(params.context.cursor_line, vim.inspect(items))
-  callback(items)
 end
 
 -- ---Resolve completion item (optional). This is called right before the completion is about to be displayed.
