@@ -60,19 +60,38 @@ function source:complete(params, callback)
     local key = params.context.cursor_line:match [=[▽(.+)]=]
     if key and #key > 0 then
       print("key", key, #key)
-      local words = dict:filter_jisyo(key, nil)
-      for i, word in ipairs(words) do
-        --   word = ":66661:",
-        --   label = "噐 :66661:",
-        --   insertText = "噐",
-        --   filterText = ":66661:",
-        table.insert(items, {
-          word = word.word,
-          label = word.abbr,
-          -- insertText = word.word,
-          filterText = "▽" .. key,
-          documentation = word.info,
-        })
+      do
+        local words = dict:filter_jisyo(key, nil)
+        for i, word in ipairs(words) do
+          --   word = ":66661:",
+          --   label = "噐 :66661:",
+          --   insertText = "噐",
+          --   filterText = ":66661:",
+          table.insert(items, {
+            word = word.word,
+            label = word.abbr,
+            -- insertText = word.word,
+            filterText = "▽" .. key,
+            documentation = word.info,
+          })
+        end
+      end
+
+      if key:match "い$" and #key > 3 then
+        local words = dict:filter_jisyo(key:sub(1, #key - 3) .. "i", nil)
+        for i, word in ipairs(words) do
+          --   word = ":66661:",
+          --   label = "噐 :66661:",
+          --   insertText = "噐",
+          --   filterText = ":66661:",
+          table.insert(items, {
+            word = word.word,
+            label = "<i>" .. word.abbr,
+            -- insertText = word.word,
+            filterText = "▽" .. key,
+            documentation = word.info,
+          })
+        end
       end
     else
       print("not", params.context.cursor_line)
