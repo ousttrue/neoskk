@@ -40,6 +40,7 @@ local STATE_MODE_ZHUYIN = "zhuyin"
 local M = {
   ---@type STATE_MODE
   state_mode = STATE_MODE_SKK,
+  marker = "▽",
 }
 
 ---@class NeoSkk
@@ -214,7 +215,7 @@ function M.NeoSkk:input(bufnr, lhs)
   self.bufnr = bufnr
 
   if lhs == ";" then
-    return "▽"
+    return M.marker
   end
 
   if lhs == "\b" then
@@ -228,9 +229,9 @@ function M.NeoSkk:input(bufnr, lhs)
   local out, preedit = self.state:input(lhs, kana_feed, vim.fn.pumvisible() == 1)
   if lhs:match "^[A-Z]$" then
     -- SHIFT
-    if util.get_current_line_cursor_left():match "▽" then
+    if util.get_current_line_cursor_left():match(M.marker) then
     else
-      out = "▽" .. out
+      out = M.marker .. out
     end
   end
 

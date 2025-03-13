@@ -6,7 +6,7 @@ neovim の skk(lua).
 
 を基点に実装しました.
 
-preedit を extmark で表示します.
+- preedit を extmark で表示します。buf に marker を直接表示する方式に戻した。
 
 ```lua
 -- lazy
