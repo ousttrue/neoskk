@@ -7,6 +7,7 @@ local pinyin = require "neoskk.pinyin"
 local yun = require "neoskk.yun"
 local GuangYun = require "neoskk.GuangYun"
 local NUM_BASE = tonumber("2460", 16) - 1
+local utf8 = require "neoskk.utf8"
 
 --- 読
 ---@class UniHanReading
@@ -966,6 +967,33 @@ function UniHanDict:get_cmp_entries(cursor_before_line)
   end
 
   return items
+end
+
+---@param params table LSP request params.
+---@param callback fun(err: lsp.ResponseError|nil, result: any)
+function UniHanDict:lsp_hover(params, callback)
+  local bufnr = vim.uri_to_bufnr(params.textDocument.uri)
+  local row = params.position.line
+  local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
+
+  local character = 0
+  for _, code in utf8.codes(line) do
+    if character == params.position.character then
+      local hover = self:hover(code)
+      if hover then
+        callback(nil, {
+          contents = util.join(hover, "\n"),
+        })
+        params._null_ls_handled = true
+      else
+        -- callback(nil, {
+        --   contents = ("no info for %s"):format(code),
+        -- })
+      end
+      return
+    end
+    character = character + 1
+  end
 end
 
 return UniHanDict

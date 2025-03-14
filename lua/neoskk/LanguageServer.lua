@@ -7,11 +7,33 @@ local function get_log_path()
   return u.path.join(vim.fn.stdpath "cache" --[[@as string]], "neoskk-ls.log")
 end
 
+---@alias Method fun(params: table?, callback: fun(err: lsp.ResponseError|nil, result: any)?)
+
 ---@class LanguageServer
 ---@field message_id integer
 ---@field stopped boolean
+---@field __notify_fmt fun(msg: string)
+---@field request_map table<string, Method>
 local LanguageServer = {}
 LanguageServer.__index = LanguageServer
+
+LanguageServer.capabilities = {
+  -- completionProvider = {
+  --   -- FIXME: How do we decide what trigger characters are?
+  --   triggerCharacters = { ".", ":", "-" },
+  --   allCommitCharacters = {},
+  --   resolveProvider = false,
+  --   completionItem = {
+  --     labelDetailsSupport = true,
+  --   },
+  -- },
+  -- textDocumentSync = {
+  --   change = 1, -- prompt LSP client to send full document text on didOpen and didChange
+  --   openClose = true,
+  --   save = { includeText = true },
+  -- },
+  hoverProvider = true,
+}
 
 ---@return LanguageServer
 function LanguageServer.new()
@@ -27,9 +49,13 @@ function LanguageServer.new()
       use_file = true,
       outfile = get_log_path(),
     },
+    request_map = {
+      [vim.lsp.protocol.Methods.textDocument_hover] = function(params, callback)
+        local neoskk = require "neoskk"
+        neoskk.instance.dict:lsp_hover(params, callback)
+      end,
+    },
   }, LanguageServer)
-
-  self:info "hello"
 
   return self
 end
@@ -44,6 +70,13 @@ end
 ---@param msg any
 ---@param level string [same as vim.log.log_levels]
 function LanguageServer:add_entry(msg, level)
+  local cfg = c.get()
+  if not self.__notify_fmt then
+    self.__notify_fmt = function(m)
+      return string.format(cfg.notify_format, m)
+    end
+  end
+
   local fmt_msg = self.logger[level]
   ---@cast fmt_msg fun(msg: string)
   fmt_msg(msg)
@@ -51,7 +84,7 @@ end
 
 ---Add a log entry at TRACE level
 ---@param msg any
-function LanguageServer:trace(msg)
+function LanguageServer:log_trace(msg)
   self:add_entry(msg, "trace")
 end
 
@@ -91,11 +124,9 @@ function LanguageServer:try_add()
 
   ---@param dispatchers vim.lsp.rpc.Dispatchers
   ---@return vim.lsp.rpc.PublicClient
-  local function start(dispatchers)
-    ---@param method vim.lsp.protocol.Method|string LSP method name.
+  local function start(dispatchers) ---@param method vim.lsp.protocol.Method|string LSP method name.
     ---@param params table? LSP request params.
     ---@param callback fun(err: lsp.ResponseError|nil, result: any)?
-    ---@param is_notify boolean?
     local function handle(method, params, callback, is_notify)
       params = params or {}
       callback = callback and vim.schedule_wrap(callback)
@@ -115,7 +146,7 @@ function LanguageServer:try_add()
       end
 
       if method == vim.lsp.protocol.Methods.initialize then
-        -- send { capabilities = capabilities }
+        send { capabilities = LanguageServer.capabilities }
       elseif method == vim.lsp.protocol.Methods.shutdown then
         self.stopped = true
         send()
@@ -124,20 +155,19 @@ function LanguageServer:try_add()
           dispatchers.on_exit(0, 0)
         end
       else
-        print(vim.inspect(params))
-        -- if is_notify then
-        --   require("null-ls.diagnostics").handler(params)
-        -- end
-        -- require("null-ls.code-actions").handler(method, params, send)
-        -- require("null-ls.formatting").handler(method, params, send)
-        -- require("null-ls.hover").handler(method, params, send)
-        -- require("null-ls.completion").handler(method, params, send)
-        -- if not params._null_ls_handled then
-        --   send()
-        -- end
-      end
+        -- unknown
+        local request_method = self.request_map[method]
+        if request_method then
+          request_method(params, callback)
+        end
 
-      return true, self.message_id
+        if is_notify then
+        else
+          if not params._null_ls_handled then
+            send()
+          end
+        end
+      end
     end
 
     ---@param method vim.lsp.protocol.Method|string LSP method name.
@@ -145,11 +175,11 @@ function LanguageServer:try_add()
     ---@param callback fun(err: lsp.ResponseError|nil, result: any)
     ---@param notify_callback fun(message_id: integer)?
     local function request(method, params, callback, notify_callback)
-      self:trace("received LSP request for method " .. method)
+      self:log_trace("received LSP request for method " .. method)
 
       -- clear pending requests from client object
-      local success = handle(method, params, callback)
-      if success and notify_callback then
+      handle(method, params, callback)
+      if notify_callback then
         -- copy before scheduling to make sure it hasn't changed
         local id_to_clear = self.message_id
         vim.schedule(function()
@@ -157,22 +187,16 @@ function LanguageServer:try_add()
         end)
       end
 
-      return success, self.message_id
+      return true, self.message_id
     end
 
     ---@param method string LSP method name.
     ---@param params table? LSP request params.
     local function notify(method, params)
-      if should_cache(method) then
-        set_cache(params)
-        return
+      if method == vim.lsp.protocol.Methods.textDocument_didClose then
       end
 
-      if method == methods.lsp.DID_CLOSE then
-        clear_cache(params)
-      end
-
-      log:trace("received LSP notification for method " .. method)
+      self:log_trace("received LSP notification for method " .. method)
       return handle(method, params, nil, true)
     end
 
@@ -191,12 +215,12 @@ function LanguageServer:try_add()
 
   -- local id = M.start_client(root_dir)
   local config = {
-    name = "null-ls",
+    name = "neoskk-ls",
     root_dir = root_dir,
     cmd = start, -- pass callback to create rpc client
   }
 
-  -- log:trace "starting null-ls client"
+  -- self:log_trace "starting null-ls client"
   local id = vim.lsp.start(config)
   if not id then
     -- log:error(string.format("failed to start null-ls client with config: %s", vim.inspect(config)))
