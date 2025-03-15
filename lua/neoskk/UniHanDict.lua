@@ -596,19 +596,14 @@ end
 --- - 學生字典
 --- - not 英単語
 ---@param key string
----@param okuri string?
 ---@return CompletionItem[]
-function UniHanDict:filter_jisyo(key, okuri)
+function UniHanDict:filter_jisyo(key)
   local items = {}
   -- 単語
   for k, v in pairs(self.jisyo) do
     if k == key then
       for _, item in ipairs(v) do
         local new_item = CompletionItem.copy(item)
-        if okuri then
-          new_item.word = new_item.word .. okuri
-          new_item.menu = "[送り]"
-        end
         table.insert(items, new_item)
       end
     end
@@ -622,10 +617,6 @@ function UniHanDict:filter_jisyo(key, okuri)
         for _, kana in ipairs(item.kana) do
           if kana_util.str_to_hirakana(kana) == key then
             local new_item = CompletionItem.from_word(k, item, self)
-            if okuri then
-              new_item.word = new_item.word .. okuri
-              new_item.menu = "[送り]"
-            end
 
             -- debug
             -- new_item.abbr = ("%d:").format(utf8.codepoint(new_item.word)) .. new_item.abbr
@@ -901,31 +892,42 @@ end
 ---@param key string
 ---@param item CompletionItem
 ---@param okuri string?
+---@param range lsp.Range?
 ---@return lsp.CompletionItem
-local function makeItem(key, item, okuri)
-  local item = {
-    word = item.word .. (okuri or ""),
+local function makeItem(key, item, okuri, range)
+  ---@type lsp.CompletionItem
+  local lsp_item = {
     label = (okuri and ("<%s>"):format(okuri) or "") .. item.abbr,
-    -- insertText = word.word,
-    filterText = "▽" .. key,
     documentation = item.info,
+    -- nvim-cmp/lua/cmp/entry.lua:443
+    --   commen out if accept then
+    filterText = "▽" .. key,
   }
-
+  local text = item.word
   if okuri then
     if okuri == "i" then
-      item.filterText = item.filterText .. "い"
+      text = text .. "い"
     else
-      item.filterText = item.filterText .. okuri
+      text = text .. (okuri and okuri or "")
     end
   end
 
-  return item
+  if range then
+    lsp_item.textEdit = {
+      newText = text,
+      range = range,
+    }
+  else
+    lsp_item.insertText = text
+  end
+
+  return lsp_item
 end
 
--- TODO: okuri
 ---@param cursor_before_line string
+---@param range lsp.Range?
 ---@return lsp.CompletionItem[]
-function UniHanDict:get_cmp_entries(cursor_before_line)
+function UniHanDict:get_cmp_entries(cursor_before_line, range)
   local _key = cursor_before_line:match [=[▽(.+)]=]
   -- print(cursor_before_line, _key)
   if not _key or #_key == 0 then
@@ -941,27 +943,27 @@ function UniHanDict:get_cmp_entries(cursor_before_line)
   else
     key = _key
   end
+
   if okuri and #okuri > 0 then
-    print("key,okuri", key, okuri)
-    local words = self:filter_jisyo(key .. okuri, nil)
+    local words = self:filter_jisyo(key .. okuri)
+    print("key,okuri", key, okuri, #words)
     for _, word in ipairs(words) do
-      table.insert(items, makeItem(key .. okuri, word, okuri))
+      table.insert(items, makeItem(key, word, okuri, range))
     end
   else
     do
-      local words = self:filter_jisyo(key, nil)
+      local words = self:filter_jisyo(key)
       for _, word in ipairs(words) do
-        table.insert(items, makeItem(key, word))
+        table.insert(items, makeItem(key, word, nil, range))
       end
     end
 
     if key:match "い$" and #key > 3 then
       key = key:sub(1, #key - 3)
       okuri = "i"
-      print("i", key, okuri)
-      local words = self:filter_jisyo(key .. okuri, nil)
+      local words = self:filter_jisyo(key .. okuri)
       for _, word in ipairs(words) do
-        table.insert(items, makeItem(key .. okuri, word, okuri))
+        table.insert(items, makeItem(key, word, okuri, range))
       end
     end
   end
@@ -993,6 +995,47 @@ function UniHanDict:lsp_hover(params, callback)
       return
     end
     character = character + 1
+  end
+end
+
+---@param params table LSP request params.
+---@param callback fun(err: lsp.ResponseError|nil, result: any)
+function UniHanDict:lsp_completion(params, callback)
+  local bufnr = vim.uri_to_bufnr(params.textDocument.uri)
+  local row = params.position.line
+  local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
+
+  local character = 0
+  local cursor_before_line = ""
+  local mark = -1
+  for _, code in utf8.codes(line) do
+    if character == params.position.character then
+      break
+    end
+    if code == "▽" then
+      mark = character
+    end
+    cursor_before_line = cursor_before_line .. code
+    character = character + 1
+  end
+  if mark >= 0 then
+    ---@type lsp.Range
+    local range = {
+      start = {
+        line = row,
+        character = mark,
+      },
+      ["end"] = {
+        line = row,
+        character = params.position.character,
+      },
+    }
+    local items = self:get_cmp_entries(cursor_before_line, range)
+    -- print(vim.inspect(params), ("[%s]"):format(cursor_before_line), vim.inspect(items))
+    if #items > 0 then
+      callback(nil, items)
+      params._null_ls_handled = true
+    end
   end
 end
 

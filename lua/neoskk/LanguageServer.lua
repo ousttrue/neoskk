@@ -17,16 +17,11 @@ end
 local LanguageServer = {}
 LanguageServer.__index = LanguageServer
 
+---@type lsp.ServerCapabilities
 LanguageServer.capabilities = {
-  -- completionProvider = {
-  --   -- FIXME: How do we decide what trigger characters are?
-  --   triggerCharacters = { ".", ":", "-" },
-  --   allCommitCharacters = {},
-  --   resolveProvider = false,
-  --   completionItem = {
-  --     labelDetailsSupport = true,
-  --   },
-  -- },
+  completionProvider = {
+    -- triggerCharacters = { "▽" },
+  },
   -- textDocumentSync = {
   --   change = 1, -- prompt LSP client to send full document text on didOpen and didChange
   --   openClose = true,
@@ -53,6 +48,10 @@ function LanguageServer.new()
       [vim.lsp.protocol.Methods.textDocument_hover] = function(params, callback)
         local neoskk = require "neoskk"
         neoskk.instance.dict:lsp_hover(params, callback)
+      end,
+      [vim.lsp.protocol.Methods.textDocument_completion] = function(params, callback)
+        local neoskk = require "neoskk"
+        neoskk.instance.dict:lsp_completion(params, callback)
       end,
     },
   }, LanguageServer)
@@ -155,17 +154,14 @@ function LanguageServer:try_add()
           dispatchers.on_exit(0, 0)
         end
       else
-        -- unknown
         local request_method = self.request_map[method]
         if request_method then
           request_method(params, callback)
         end
 
-        if is_notify then
-        else
-          if not params._null_ls_handled then
-            send()
-          end
+        if not is_notify and not params._null_ls_handled then
+          -- result for not processed request
+          send()
         end
       end
     end
