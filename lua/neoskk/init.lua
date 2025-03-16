@@ -51,7 +51,6 @@ local M = {
 ---@field dict UniHanDict
 ---@field indicator Indicator
 ---@field has_kana_feed boolean
----@field ls LanguageServer
 M.NeoSkk = {}
 M.NeoSkk.__index = M.NeoSkk
 
@@ -65,7 +64,6 @@ function M.NeoSkk.new(opts)
     dict = UniHanDict.new(),
     indicator = Indicator.new(),
     has_kana_feed = false,
-    ls = require("neoskk.LanguageServer").new(),
   }, M.NeoSkk)
   self:map()
 
@@ -122,7 +120,7 @@ function M.NeoSkk.new(opts)
   vim.api.nvim_create_autocmd("FileType", {
     group = group,
     callback = function()
-      self.ls:try_add()
+      require("neoskk.LanguageServer").launch "/"
     end,
   })
 
@@ -144,7 +142,7 @@ function M.NeoSkk.new(opts)
   -- command
   --
   vim.api.nvim_create_user_command("NeoSkkLsLog", function()
-    vim.cmd(string.format("edit %s", self.ls:get_log_path()))
+    vim.cmd(string.format("edit %s", require("neoskk.LanguageServer").get_log_path()))
   end, {})
 
   vim.api.nvim_create_user_command("NeoSkkReload", function()
