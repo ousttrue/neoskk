@@ -971,9 +971,10 @@ function UniHanDict:get_cmp_entries(cursor_before_line, range)
   return items
 end
 
----@param params table LSP request params.
----@param callback fun(err: lsp.ResponseError|nil, result: any)
-function UniHanDict:lsp_hover(params, callback)
+---@param params lsp.HoverParams request params.
+---@return lsp.ResponseError? err
+---@return lsp.Hover? result
+function UniHanDict:lsp_hover(params)
   local bufnr = vim.uri_to_bufnr(params.textDocument.uri)
   local row = params.position.line
   local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
@@ -983,24 +984,21 @@ function UniHanDict:lsp_hover(params, callback)
     if character == params.position.character then
       local hover = self:hover(code)
       if hover then
-        callback(nil, {
+        return nil, {
           contents = util.join(hover, "\n"),
-        })
-        params._null_ls_handled = true
+        }
       else
-        -- callback(nil, {
-        --   contents = ("no info for %s"):format(code),
-        -- })
+        return
       end
-      return
     end
     character = character + 1
   end
 end
 
----@param params table LSP request params.
----@param callback fun(err: lsp.ResponseError|nil, result: any)
-function UniHanDict:lsp_completion(params, callback)
+---@param params lsp.CompletionParams
+---@return lsp.ResponseError? err
+---@return lsp.CompletionItem[]? result
+function UniHanDict:lsp_completion(params)
   local bufnr = vim.uri_to_bufnr(params.textDocument.uri)
   local row = params.position.line
   local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
@@ -1033,8 +1031,7 @@ function UniHanDict:lsp_completion(params, callback)
     local items = self:get_cmp_entries(cursor_before_line, range)
     -- print(vim.inspect(params), ("[%s]"):format(cursor_before_line), vim.inspect(items))
     if #items > 0 then
-      callback(nil, items)
-      params._null_ls_handled = true
+      return nil, items
     end
   end
 end

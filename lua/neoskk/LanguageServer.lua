@@ -86,7 +86,7 @@ function LanguageServerLogger:error(msg)
   end)
 end
 
----@alias Method fun(params: table?, callback: fun(err: lsp.ResponseError|nil, result: any)?)
+---@alias Method fun(params: table?)[lsp.ResponseError?, any]
 
 ---@class LanguageServer
 ---@field logger LanguageServerLogger
@@ -107,23 +107,15 @@ end
 
 ---@param logger LanguageServerLogger
 ---@param dispatchers vim.lsp.rpc.Dispatchers
+---@params request_map table<string, Method>
 ---@return LanguageServer
-function LanguageServer.new(logger, dispatchers)
+function LanguageServer.new(logger, dispatchers, request_map)
   local self = setmetatable({
     logger = logger,
     dispatchers = dispatchers,
     message_id = 1,
     stopped = false,
-    request_map = {
-      [vim.lsp.protocol.Methods.textDocument_hover] = function(params, callback)
-        local neoskk = require "neoskk"
-        neoskk.instance.dict:lsp_hover(params, callback)
-      end,
-      [vim.lsp.protocol.Methods.textDocument_completion] = function(params, callback)
-        local neoskk = require "neoskk"
-        neoskk.instance.dict:lsp_completion(params, callback)
-      end,
-    },
+    request_map = request_map,
   }, LanguageServer)
   return self
 end
@@ -133,7 +125,8 @@ function LanguageServer:stop()
 end
 
 ---@param root_dir string
-function LanguageServer.launch(root_dir)
+---@param request_map table<string, Method>
+function LanguageServer.launch(root_dir, request_map)
   local logger = LanguageServerLogger.new()
   local config = {
     name = NAME,
@@ -141,7 +134,7 @@ function LanguageServer.launch(root_dir)
     ---@param dispatchers vim.lsp.rpc.Dispatchers
     ---@return vim.lsp.rpc.PublicClient
     cmd = function(dispatchers)
-      local server = LanguageServer.new(logger, dispatchers)
+      local server = LanguageServer.new(logger, dispatchers, request_map)
       return {
         request = function(...)
           server:request(...)
@@ -174,30 +167,15 @@ end
 
 ---@param method vim.lsp.protocol.Method|string LSP method name.
 ---@param params table? LSP request params.
----@param callback fun(err: lsp.ResponseError|nil, result: any)?
-function LanguageServer:_handle(method, params, callback, is_notify)
-  params = params or {}
-  callback = callback and vim.schedule_wrap(callback)
+---@return lsp.ResponseError? err
+---@return any? result
+function LanguageServer:_handle(method, params)
   self.message_id = self.message_id + 1
-
-  if type(params) ~= "table" then
-    params = { params }
-  end
-
-  params.method = method
-  params.client_id = require("null-ls.client").get_id()
-
-  local send = function(result)
-    if callback then
-      callback(nil, result)
-    end
-  end
-
   if method == vim.lsp.protocol.Methods.initialize then
-    send { capabilities = LanguageServer.capabilities }
+    return nil, { capabilities = LanguageServer.capabilities }
   elseif method == vim.lsp.protocol.Methods.shutdown then
     self.stopped = true
-    send()
+    return
   elseif method == vim.lsp.protocol.Methods.EXIT then
     if self.dispatchers.on_exit then
       self.dispatchers.on_exit(0, 0)
@@ -205,12 +183,7 @@ function LanguageServer:_handle(method, params, callback, is_notify)
   else
     local request_method = self.request_map[method]
     if request_method then
-      request_method(params, callback)
-    end
-
-    if not is_notify and not params._null_ls_handled then
-      -- result for not processed request
-      send()
+      return request_method(params)
     end
   end
 end
@@ -222,8 +195,9 @@ end
 function LanguageServer:request(method, params, callback, notify_callback)
   self.logger:trace("received LSP request for method " .. method)
 
-  -- clear pending requests from client object
-  self:_handle(method, params, callback)
+  local err, res = self:_handle(method, params)
+  vim.schedule_wrap(callback)(err, res)
+
   if notify_callback then
     -- copy before scheduling to make sure it hasn't changed
     local id_to_clear = self.message_id
@@ -238,11 +212,8 @@ end
 ---@param method string LSP method name.
 ---@param params table? LSP request params.
 function LanguageServer:notify(method, params)
-  if method == vim.lsp.protocol.Methods.textDocument_didClose then
-  end
-
   self.logger:trace("received LSP notification for method " .. method)
-  return self:_handle(method, params, nil, true)
+  self:_handle(method, params)
 end
 
 return LanguageServer

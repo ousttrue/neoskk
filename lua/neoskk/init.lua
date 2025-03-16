@@ -117,10 +117,22 @@ function M.NeoSkk.new(opts)
     end,
   })
 
+  local request_map = {
+    [vim.lsp.protocol.Methods.textDocument_hover] = function(params)
+      local instance = require("neoskk").instance
+      ---@cast instance NeoSkk
+      return instance.dict:lsp_hover(params)
+    end,
+    [vim.lsp.protocol.Methods.textDocument_completion] = function(params)
+      local instance = require("neoskk").instance
+      ---@cast instance NeoSkk
+      return instance.dict:lsp_completion(params)
+    end,
+  }
   vim.api.nvim_create_autocmd("FileType", {
     group = group,
     callback = function()
-      require("neoskk.LanguageServer").launch "/"
+      require("neoskk.LanguageServer").launch("/", request_map)
     end,
   })
 
