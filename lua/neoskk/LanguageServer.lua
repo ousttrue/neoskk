@@ -196,7 +196,8 @@ function LanguageServer:request(method, params, callback, notify_callback)
   self.logger:trace("received LSP request for method " .. method)
 
   local err, res = self:_handle(method, params)
-  vim.schedule_wrap(callback)(err, res)
+  -- vim.schedule_wrap(callback)(err, res)
+  callback(err, res)
 
   if notify_callback then
     -- copy before scheduling to make sure it hasn't changed
