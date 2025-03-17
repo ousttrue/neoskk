@@ -84,7 +84,16 @@ function M.NeoSkk.new(opts)
   })
 
   vim.api.nvim_create_autocmd({
-    -- "InsertLeave",
+    "InsertLeave",
+  }, {
+    group = group,
+    pattern = { "*" },
+    callback = function(ev)
+      self.indicator:close()
+    end,
+  })
+
+  vim.api.nvim_create_autocmd({
     "WinLeave",
   }, {
     group = group,
