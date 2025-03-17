@@ -83,7 +83,10 @@ function M.NeoSkk.new(opts)
     end,
   })
 
-  vim.api.nvim_create_autocmd({ "InsertLeave", "WinLeave" }, {
+  vim.api.nvim_create_autocmd({
+    -- "InsertLeave",
+    "WinLeave",
+  }, {
     group = group,
     pattern = { "*" },
     callback = function(ev)
@@ -190,7 +193,7 @@ function M.NeoSkk:flush()
   if self.bufnr ~= -1 then
     self.bufnr = -1
   end
-  self.state = nil
+  -- self.state = nil
 end
 
 function M.NeoSkk:delete()
@@ -525,6 +528,40 @@ function M.download_hanzi_chars()
     "hanzi-chars-main/data-charlist/日本《常用漢字表》（2010年）旧字体.txt",
     {}
   )
+end
+
+function M.kana_toggle()
+  -- https://minerva.mamansoft.net/Notes/%E3%83%93%E3%82%B8%E3%83%A5%E3%82%A2%E3%83%AB%E3%83%A2%E3%83%BC%E3%83%89%E3%81%A7%E9%81%B8%E6%8A%9E%E4%B8%AD%E3%81%AE%E3%83%86%E3%82%AD%E3%82%B9%E3%83%88%E5%8F%96%E5%BE%97+(Neovim)
+  local start_pos = vim.fn.getpos "v"
+  local end_pos = vim.fn.getpos "."
+  local lines = vim.api.nvim_buf_get_lines(start_pos[1], start_pos[2] - 1, end_pos[2], false)
+  local e
+  if #lines == 1 then
+    e = vim.str_utf_end(lines[1], end_pos[3])
+    lines[1] = lines[1]:sub(start_pos[3], end_pos[3] + e)
+  else
+    lines[1] = lines[1]:sub(start_pos[3])
+    e = vim.str_utf_end(lines[#lines], end_pos[3])
+    lines[#lines] = lines[#lines]:sub(1, end_pos[3] + e)
+  end
+  local line = table.concat(lines, "\n")
+  -- print(line)
+  local mod = require("neoskk.kana_util").str_toggle_kana(line)
+  -- print(mod)
+
+  vim.api.nvim_buf_set_text(
+    start_pos[1],
+    --
+    start_pos[2] - 1,
+    start_pos[3] - 1,
+    --
+    end_pos[2] - 1,
+    end_pos[3] + e,
+    { mod }
+  )
+
+  -- vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<esc>", true, false, true), "x", false)
+  vim.api.nvim_feedkeys("\027", "xt", false)
 end
 
 return M

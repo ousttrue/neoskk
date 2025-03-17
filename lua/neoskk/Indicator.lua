@@ -127,6 +127,9 @@ function Indicator.redraw(self)
   if not self.win then
     return
   end
+  if not vim.api.nvim_win_is_valid(self.win) then
+    return
+  end
 
   local hl = self.hl
   if not hl then

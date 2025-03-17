@@ -67,7 +67,7 @@ local HIRA = [[
 まみむめも
 やゆよ
 らりるれろ
-わをん
+わゐゑをん
 がぎぐげご
 ざじずぜぞ
 だぢづでど
@@ -82,7 +82,7 @@ for _, code in utf8.codes(HIRA) do
     table.insert(HIRA_LIST, code)
   end
 end
-assert(#HIRA_LIST == 46 + 25 + 9)
+assert(#HIRA_LIST == 48 + 25 + 9)
 
 local KATA = [[
 アイウエオ
@@ -94,7 +94,7 @@ local KATA = [[
 マミムメモ
 ヤユヨ
 ラリルレロ
-ワヲン
+ワヰヱヲン
 ガギグゲゴ
 ザジズゼゾ
 ダヂヅデド
