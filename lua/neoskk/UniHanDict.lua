@@ -978,6 +978,9 @@ function UniHanDict:lsp_hover(params)
   local bufnr = vim.uri_to_bufnr(params.textDocument.uri)
   local row = params.position.line
   local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
+  if not line or #line == 0 then
+    return
+  end
 
   local character = 0
   for _, code in utf8.codes(line) do
@@ -988,11 +991,17 @@ function UniHanDict:lsp_hover(params)
           contents = util.join(hover, "\n"),
         }
       else
-        return
+        return nil, {
+          contents = ("not found for [%s]"):format(code),
+        }
       end
     end
     character = character + 1
   end
+
+  return nil, {
+    contents = ("not found for row=%d, character=%d"):format(row, params.position.character),
+  }
 end
 
 ---@param params lsp.CompletionParams
