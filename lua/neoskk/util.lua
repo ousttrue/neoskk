@@ -178,6 +178,7 @@ end
 ---@param opts table? vim.iconv opts
 function M.writefile_sync(uv, path, data, from, to, opts)
   if from and to then
+    print(("writefile_sync: %s => %s"):format(from, to))
     data = assert(vim.iconv(data, from, to, opts))
   end
   local fd = assert(uv.fs_open(path, "w", tonumber("0666", 8)))

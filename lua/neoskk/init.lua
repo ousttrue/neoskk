@@ -487,7 +487,7 @@ local function download_if_not_exist(url, dir, downloaded, extracted, opts)
     if not downloaded:match "%.tar%.gz$" and downloaded:match "%.gz$" then
       local gz_job = vim.system({ "C:/Program Files/Git/usr/bin/gzip.exe", "-dc", dst_archive }, { cwd = dir }):wait()
       if opts.encoding then
-        util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout, opts.encodng, "utf-8")
+        util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout, opts.encoding, "utf-8")
       else
         util.writefile_sync(vim.uv, dst_extracted, gz_job.stdout)
       end
@@ -508,7 +508,14 @@ end
 
 function M.download_skkdict()
   local dir = ensure_make_cache_dir()
-  download_if_not_exist(SKK_L_URL, dir, "SKK-JISYO.L.gz", "SKK-JISYO.L", { encoding = "euc-jp" })
+  download_if_not_exist(
+    --
+    SKK_L_URL,
+    dir,
+    "SKK-JISYO.L.gz",
+    "SKK-JISYO.L",
+    { encoding = "euc-jp" }
+  )
   download_if_not_exist(
     SKK_china_taiwan_URL,
     dir,
