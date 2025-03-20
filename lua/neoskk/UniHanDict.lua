@@ -1008,9 +1008,13 @@ end
 ---@return lsp.ResponseError? err
 ---@return lsp.CompletionItem[]? result
 function UniHanDict:lsp_completion(params)
-  local bufnr = vim.uri_to_bufnr(params.textDocument.uri)
+  -- 常に0でいいかも。
+  local bufnr = params.textDocument.uri == "file://" and 0 or vim.uri_to_bufnr(params.textDocument.uri)
   local row = params.position.line
   local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
+  if not line then
+    return
+  end
 
   local character = 0
   local cursor_before_line = ""

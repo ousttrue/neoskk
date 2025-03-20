@@ -141,7 +141,7 @@ function M.NeoSkk.new(opts)
       return instance.dict:lsp_completion(params)
     end,
   }
-  vim.api.nvim_create_autocmd("FileType", {
+  vim.api.nvim_create_autocmd({ "FileType", "BufEnter" }, {
     group = group,
     callback = function()
       require("neoskk.LanguageServer").launch("/", request_map)
@@ -509,7 +509,7 @@ end
 function M.download_skkdict()
   local dir = ensure_make_cache_dir()
   download_if_not_exist(
-    --
+  --
     SKK_L_URL,
     dir,
     "SKK-JISYO.L.gz",
