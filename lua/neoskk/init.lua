@@ -561,9 +561,7 @@ function M.kana_toggle()
     lines[#lines] = lines[#lines]:sub(1, end_pos[3] + e)
   end
   local line = table.concat(lines, "\n")
-  -- print(line)
   local mod = require("neoskk.kana_util").str_toggle_kana(line)
-  -- print(mod)
 
   vim.api.nvim_buf_set_text(
     start_pos[1],
