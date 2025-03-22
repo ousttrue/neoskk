@@ -2,10 +2,10 @@ local CompletionItem = require "neoskk.CompletionItem"
 local util = require "neoskk.util"
 local kana_util = require "neoskk.kana_util"
 local pinyin = require "neoskk.pinyin"
-local yun = require "neoskk.yun"
 local GuangYun = require "neoskk.GuangYun"
 local NUM_BASE = tonumber("2460", 16) - 1
 local utf8 = require "neoskk.utf8"
+local ZhuyinMachine = require "neoskk.ZhuyinMachine"
 
 --- 読
 ---@class UniHanReading
@@ -1037,6 +1037,8 @@ function UniHanDict:lsp_completion(params)
   -- marker^    ^cursor
   local after_marker_before_cursor = ""
   local mark = -1
+  local zhuyin
+  local first_zh
   for _, code in utf8.codes(line) do
     if character == params.position.character then
       break
@@ -1049,8 +1051,24 @@ function UniHanDict:lsp_completion(params)
     else
       after_marker_before_cursor = after_marker_before_cursor .. code
     end
+
+    if first_zh then
+      if ZhuyinMachine.map[code] then
+        zhuyin = zhuyin .. code
+      else
+        first_zh = nil
+      end
+    else
+      if ZhuyinMachine.map[code] then
+        first_zh = character
+        zhuyin = code
+      end
+    end
+
     character = character + 1
   end
+  print(first_zh, zhuyin)
+
   if mark >= 0 then
     ---@type lsp.Range
     local range = {
@@ -1065,6 +1083,61 @@ function UniHanDict:lsp_completion(params)
     }
 
     local items = self:get_cmp_entries(after_marker_before_cursor, range)
+    -- print(vim.inspect(params), ("[%s]"):format(cursor_before_line), vim.inspect(items))
+    if #items > 0 then
+      return nil, items
+    end
+  elseif first_zh then
+    local range = {
+      start = {
+        line = row,
+        character = first_zh,
+      },
+      ["end"] = {
+        line = row,
+        character = params.position.character,
+      },
+    }
+
+    ---@type lsp.CompletionItem[]
+    local items = {}
+    for k, v in pairs(self.zhuyin_map) do
+      if k == zhuyin then
+        for _, ch in ipairs(v) do
+          local word = self:get_or_create(ch)
+          local item = CompletionItem.from_word(ch, word, self)
+          assert(item)
+          -- local new_item = CompletionItem.from_word(ch, item, dict)
+          -- new_item.word = zhuyin
+          -- new_item.dup = true
+          -- new_item.user_data = {
+          --   replace = ch,
+          -- }
+          -- if item.tiao then
+          --   new_item.word = new_item.word .. ("%d").format(item.tiao)
+          -- end
+          local lsp_item = {
+            label = ch,
+            documentation = item.info,
+            filterText = zhuyin,
+            textEdit = {
+              newText = ch,
+              range = range,
+            },
+          }
+          table.insert(items, lsp_item)
+        end
+      end
+    end
+
+    if #items == 0 then
+      table.insert(items, {
+        label = "[no entry]",
+        filterText = zhuyin,
+        text = "",
+      })
+    end
+
     -- print(vim.inspect(params), ("[%s]"):format(cursor_before_line), vim.inspect(items))
     if #items > 0 then
       return nil, items

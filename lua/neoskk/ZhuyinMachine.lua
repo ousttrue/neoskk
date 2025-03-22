@@ -55,17 +55,17 @@ local rules = {
 }
 
 ---@class ZhuyinMachine
----@field kana_feed string かな入力の未確定(ascii)
----@field conv_feed string 漢字変換の未確定(かな)
 local ZhuyinMachine = {}
 ZhuyinMachine.__index = ZhuyinMachine
 
+ZhuyinMachine.map = {}
+for k, v in pairs(rules) do
+  ZhuyinMachine.map[v] = k
+end
+
 ---@return ZhuyinMachine
 function ZhuyinMachine.new()
-  local self = setmetatable({
-    kana_feed = "",
-    conv_feed = "",
-  }, ZhuyinMachine)
+  local self = setmetatable({}, ZhuyinMachine)
   return self
 end
 
@@ -73,33 +73,16 @@ function ZhuyinMachine:mode_text()
   return "ㄅ"
 end
 
-function ZhuyinMachine:preedit()
-  return self.conv_feed .. self.kana_feed
-end
-
-function ZhuyinMachine:flush()
-  local out = self:preedit()
-  self.conv_feed = ""
-  self.kana_feed = ""
-  return out
-end
-
 ---@param lhs string
----@param dict UniHanDict
----@param is_pum boolean
 ---@return string out
 ---@return string preedit
 ---@return Completion?
-function ZhuyinMachine:input(lhs, dict, is_pum)
-  if is_pum and lhs:match "^%d$" then
-    return lhs, ""
-  end
-
+function ZhuyinMachine:input(lhs)
   local out_tmp, preedit, completion
   local out = ""
   for key in lhs:gmatch "." do
     -- 一文字ずつ
-    out_tmp, preedit, completion = self:_input(key, dict)
+    out_tmp, preedit, completion = self:_input(key)
     if out_tmp then
       out = out .. out_tmp
     end
@@ -143,52 +126,13 @@ local function filter_jisyo(dict, zhuyin)
 end
 
 ---@param lhs string
----@param dict UniHanDict?
 ---@return string out
----@return string preedit
----@return Completion?
-function ZhuyinMachine:_input(lhs, dict)
+function ZhuyinMachine:_input(lhs)
   if lhs == "\b" then
-    if #self.kana_feed > 0 then
-      self.kana_feed = self.kana_feed:sub(1, #self.kana_feed - 1)
-      return "", self.conv_feed .. self.kana_feed
-    elseif #self.conv_feed > 0 then
-      local pos
-      for i, c in utf8.codes(self.conv_feed) do
-        pos = i
-      end
-      self.conv_feed = self.conv_feed:sub(1, pos - 1)
-      return "", self.conv_feed .. self.kana_feed
-    else
-      return "<C-h>", ""
-    end
+    return "<C-h>"
   end
 
-  if lhs == "\n" then
-    local out = self:flush()
-    return #out > 0 and out or "\n", ""
-  end
-
-  -- conv
-  if lhs == " " then
-    if dict then
-      local conv_feed = self:clear_conv()
-      local items = filter_jisyo(dict, conv_feed)
-      return conv_feed, "", Completion.new(items, Completion.ZHUYIN_OPTS)
-    end
-  end
-
-  local out = self:input_char(lhs)
-  self.conv_feed = self.conv_feed .. out
-  local preedit = self.conv_feed .. self.kana_feed
-  return "", preedit
-end
-
----@return string
-function ZhuyinMachine.clear_conv(self)
-  local conv_feed = self.conv_feed
-  self.conv_feed = ""
-  return conv_feed
+  return self:input_char(lhs)
 end
 
 ---@param lhs string
