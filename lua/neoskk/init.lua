@@ -50,7 +50,6 @@ local M = {
 ---@field map_keys string[]
 ---@field dict UniHanDict
 ---@field indicator Indicator
----@field has_kana_feed boolean
 M.NeoSkk = {}
 M.NeoSkk.__index = M.NeoSkk
 
@@ -63,7 +62,6 @@ function M.NeoSkk.new(opts)
     map_keys = {},
     dict = UniHanDict.new(),
     indicator = Indicator.new(),
-    has_kana_feed = false,
   }, M.NeoSkk)
   self:map()
 
@@ -198,7 +196,6 @@ function M.NeoSkk.new(opts)
 end
 
 function M.NeoSkk:flush()
-  self.has_kana_feed = false
   if self.bufnr ~= -1 then
     self.bufnr = -1
   end
@@ -273,8 +270,6 @@ function M.NeoSkk:input(bufnr, lhs)
     end
   end
 
-  self.has_kana_feed = preedit and #preedit > 0
-
   local preedit_len = utf8.len(kana_feed)
   if preedit_len then
     local delete_preedit = string.rep("\b", preedit_len)
@@ -286,10 +281,6 @@ end
 
 ---@return string
 function M.NeoSkk:get_feed()
-  if not self.has_kana_feed then
-    return ""
-  end
-
   local line = util.get_current_line_cursor_left()
   local kana_feed = line:match "%a+$"
   return kana_feed or ""

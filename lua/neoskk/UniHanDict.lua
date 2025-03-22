@@ -947,7 +947,7 @@ function UniHanDict:get_cmp_entries(cursor_before_line, range)
 
   if okuri and #okuri > 0 then
     local words = self:filter_jisyo(key .. okuri)
-    print("key,okuri", key, okuri, #words)
+    -- print("key,okuri", key, okuri, #words)
     for _, word in ipairs(words) do
       table.insert(items, makeItem(key, word, okuri, range))
     end
