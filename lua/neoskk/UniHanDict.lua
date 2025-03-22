@@ -843,61 +843,14 @@ function UniHanDict:load_kyu(data, path)
   end
 end
 
--- word = ":66661:",
--- label = "噐 :66661:",
--- insertText = "噐",
--- filterText = ":66661:",
-
 ---@param key string
----@param item CompletionItem
----@param okuri string?
----@param range lsp.Range?
----@return lsp.CompletionItem
-local function makeItem(key, item, okuri, range)
-  ---@type lsp.CompletionItem
-  local lsp_item = {
-    label = (okuri and ("<%s>"):format(okuri) or "") .. item.abbr,
-    documentation = item.info,
-    -- nvim-cmp/lua/cmp/entry.lua:443
-    --   commen out if accept then
-    filterText = "▽" .. key,
-  }
-  local text = item.word
-  if okuri then
-    if okuri == "i" then
-      text = text .. "い"
-    else
-      text = text .. okuri
-      lsp_item.filterText = lsp_item.filterText .. okuri
-    end
-  end
-
-  if range then
-    lsp_item.textEdit = {
-      newText = text,
-      range = range,
-    }
-  else
-    lsp_item.insertText = text
-  end
-
-  return lsp_item
-end
-
----@param cursor_before_line string
 ---@param range lsp.Range?
 ---@return lsp.CompletionItem[]
-function UniHanDict:get_cmp_entries(cursor_before_line, range)
-  local _key = cursor_before_line:match [=[▽(.+)]=]
-  -- print(cursor_before_line, _key)
-  if not _key or #_key == 0 then
-    return {}
-  end
-
-  if _key:match "^(%d+)$" then
-    return self:_get_cmp_entries_goma(_key, range)
+function UniHanDict:get_cmp_entries(key, range)
+  if key:match "^(%d+)$" then
+    return self:_get_cmp_entries_goma(key, range)
   else
-    return self:_get_cmp_entries_kana(_key, range)
+    return self:_get_cmp_entries_kana(key, range)
   end
 end
 
@@ -924,49 +877,110 @@ function UniHanDict:_get_cmp_entries_goma(key, range)
     end
   end
 
-  table.sort(items, function(l, r)
-    return l.label < r.label
-  end)
+  if #items == 0 then
+    table.insert(items, {
+      label = "[no entry]",
+      filterText = "▽" .. key,
+      text = "",
+    })
+  else
+    table.sort(items, function(l, r)
+      return l.label < r.label
+    end)
+  end
 
   return items
+end
+
+local okuri_map = {
+  ["い"] = "i",
+  ["う"] = "i",
+  ["え"] = "i",
+  ["か"] = "k",
+  ["き"] = "k",
+  ["く"] = "k",
+  ["け"] = "k",
+  ["こ"] = "k",
+  ["げ"] = "g",
+  ["さ"] = "s",
+  ["し"] = "s",
+  ["す"] = "s",
+  ["せ"] = "s",
+  ["そ"] = "s",
+  ["た"] = "s",
+  ["ち"] = "s",
+  ["つ"] = "s",
+  ["て"] = "s",
+  ["と"] = "s",
+  ["な"] = "n",
+  ["に"] = "n",
+  ["ぬ"] = "n",
+  ["ね"] = "n",
+  ["の"] = "n",
+  ["べ"] = "b",
+}
+
+---@return string
+---@return string? okuri
+---@return string? alpha
+local function split_okuri(src)
+  local key = ""
+  local suffix
+  for _, ch in utf8.codes(src) do
+    if suffix then
+      suffix = suffix .. ch
+    else
+      if ch == "▽" then
+        suffix = ""
+      else
+        key = key .. ch
+      end
+    end
+  end
+
+  if not suffix then
+    return key
+  end
+
+  local hira = kana_util.kata_to_hira[suffix]
+  if hira then
+    suffix = hira
+  end
+
+  return key, suffix, okuri_map[suffix] or suffix
 end
 
 ---@param _key string
 ---@param range lsp.Range?
 ---@return lsp.CompletionItem[]
 function UniHanDict:_get_cmp_entries_kana(_key, range)
+  local key, suffix, okuri = split_okuri(_key)
+  local words = self:filter_jisyo(key .. (okuri and okuri or ""))
+
   ---@type lsp.CompletionItem[]
   local items = {}
-  local key, okuri
-  if _key:match "[a-z]$" then
-    key = _key:sub(1, #_key - 1)
-    okuri = _key:sub(#_key)
-  else
-    key = _key
-  end
+  for _, word in ipairs(words) do
+    ---@type lsp.CompletionItem
+    local lsp_item = {
+      label = word.abbr,
+      documentation = word.info,
+    }
 
-  if okuri and #okuri > 0 then
-    local words = self:filter_jisyo(key .. okuri)
-    -- print("key,okuri", key, okuri, #words)
-    for _, word in ipairs(words) do
-      table.insert(items, makeItem(key, word, okuri, range))
-    end
-  else
-    do
-      local words = self:filter_jisyo(key)
-      for _, word in ipairs(words) do
-        table.insert(items, makeItem(key, word, nil, range))
-      end
+    local text = word.word .. (suffix or "")
+    if range then
+      lsp_item.textEdit = {
+        newText = text,
+        range = range,
+      }
+    else
+      lsp_item.insertText = text
     end
 
-    if key:match "い$" and #key > 3 then
-      key = key:sub(1, #key - 3)
-      okuri = "i"
-      local words = self:filter_jisyo(key .. okuri)
-      for _, word in ipairs(words) do
-        table.insert(items, makeItem(key, word, okuri, range))
-      end
-    end
+    -- nvim-cmp/lua/cmp/entry.lua:443
+    -- acdept
+    -- textEdit と がうまく動かない
+    lsp_item.filterText = "▽" .. _key
+    table.insert(items, lsp_item)
   end
 
   return items
@@ -1019,16 +1033,22 @@ function UniHanDict:lsp_completion(params)
   end
 
   local character = 0
-  local cursor_before_line = ""
+  -- abcdef▽****Idef
+  -- marker^    ^cursor
+  local after_marker_before_cursor = ""
   local mark = -1
   for _, code in utf8.codes(line) do
     if character == params.position.character then
       break
     end
-    if code == "▽" then
-      mark = character
+    if mark == -1 then
+      -- user first mark
+      if code == "▽" then
+        mark = character
+      end
+    else
+      after_marker_before_cursor = after_marker_before_cursor .. code
     end
-    cursor_before_line = cursor_before_line .. code
     character = character + 1
   end
   if mark >= 0 then
@@ -1043,7 +1063,8 @@ function UniHanDict:lsp_completion(params)
         character = params.position.character,
       },
     }
-    local items = self:get_cmp_entries(cursor_before_line, range)
+
+    local items = self:get_cmp_entries(after_marker_before_cursor, range)
     -- print(vim.inspect(params), ("[%s]"):format(cursor_before_line), vim.inspect(items))
     if #items > 0 then
       return nil, items

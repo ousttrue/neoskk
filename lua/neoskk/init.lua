@@ -264,10 +264,10 @@ function M.NeoSkk:input(bufnr, lhs)
   local out, preedit = self.state:input(lhs, kana_feed, vim.fn.pumvisible() == 1)
   if lhs:match "^[A-Z]$" then
     -- SHIFT
-    if util.get_current_line_cursor_left():match(M.marker) then
-    else
+    -- if util.get_current_line_cursor_left():match(M.marker) then
+    -- else
       out = M.marker .. out
-    end
+    -- end
   end
 
   local preedit_len = utf8.len(kana_feed)
