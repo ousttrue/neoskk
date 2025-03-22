@@ -1,5 +1,3 @@
-local utf8 = require "neoskk.utf8"
-local Completion = require "neoskk.Completion"
 local CompletionItem = require "neoskk.CompletionItem"
 local util = require "neoskk.util"
 local kana_util = require "neoskk.kana_util"
@@ -552,45 +550,6 @@ function UniHanDict:load_unihan_othermappings(data)
   end
 end
 
----四角号碼
----@param a string 0-9 or * wild
----@param b string 0-9 or * wild
----@param c string 0-9 or * wild
----@param d string 0-9 or * wild
----@return Completion?
-function UniHanDict:filter_goma(a, b, c, d)
-  --@type CompletionItem[]
-  local items = {}
-
-  local pattern = ("^%s%s%s%s"):format(
-    a ~= "*" and a or ".",
-    b ~= "*" and b or ".",
-    c ~= "*" and c or ".",
-    d ~= "*" and d or "."
-  )
-
-  for ch, item in pairs(self.map) do
-    if item.goma and item.goma:match(pattern) then
-      local new_item = CompletionItem.from_word(ch, item, self)
-      new_item.word = "g" .. item.goma
-      new_item.user_data = {
-        replace = ch,
-      }
-      table.insert(items, new_item)
-    end
-  end
-
-  if #items == 0 then
-    return
-  end
-
-  table.sort(items, function(l, r)
-    return l.word < r.word
-  end)
-
-  return Completion.new(items, Completion.FUZZY_OPTS)
-end
-
 --- filter
 --- - 常用漢字
 --- - 學生字典
@@ -935,6 +894,47 @@ function UniHanDict:get_cmp_entries(cursor_before_line, range)
     return {}
   end
 
+  if _key:match "^(%d+)$" then
+    return self:_get_cmp_entries_goma(_key, range)
+  else
+    return self:_get_cmp_entries_kana(_key, range)
+  end
+end
+
+---四角号碼
+---@param key string
+---@param range lsp.Range?
+---@return lsp.CompletionItem[]
+function UniHanDict:_get_cmp_entries_goma(key, range)
+  ---@type lsp.CompletionItem[]
+  local items = {}
+
+  for ch, item in pairs(self.map) do
+    if item.goma and item.goma:match(key) then
+      local lsp_item = {
+        label = ch .. " " .. item.goma,
+        -- documentation = item.info,
+        filterText = "▽" .. key,
+        textEdit = {
+          newText = ch,
+          range = range,
+        },
+      }
+      table.insert(items, lsp_item)
+    end
+  end
+
+  table.sort(items, function(l, r)
+    return l.label < r.label
+  end)
+
+  return items
+end
+
+---@param _key string
+---@param range lsp.Range?
+---@return lsp.CompletionItem[]
+function UniHanDict:_get_cmp_entries_kana(_key, range)
   ---@type lsp.CompletionItem[]
   local items = {}
   local key, okuri
