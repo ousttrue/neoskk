@@ -908,7 +908,8 @@ local function makeItem(key, item, okuri, range)
     if okuri == "i" then
       text = text .. "い"
     else
-      text = text .. (okuri and okuri or "")
+      text = text .. okuri
+      lsp_item.filterText = lsp_item.filterText .. okuri
     end
   end
 
@@ -975,7 +976,8 @@ end
 ---@return lsp.ResponseError? err
 ---@return lsp.Hover? result
 function UniHanDict:lsp_hover(params)
-  local bufnr = vim.uri_to_bufnr(params.textDocument.uri)
+  -- 常に0でいいかも。
+  local bufnr = params.textDocument.uri == "file://" and 0 or vim.uri_to_bufnr(params.textDocument.uri)
   local row = params.position.line
   local line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, true)[1]
   if not line or #line == 0 then
