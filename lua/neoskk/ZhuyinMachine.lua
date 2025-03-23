@@ -1,7 +1,3 @@
-local Completion = require "neoskk.Completion"
-local CompletionItem = require "neoskk.CompletionItem"
-local utf8 = require "neoskk.utf8"
-
 -- 注音輸入法 https://ja.wikipedia.org/wiki/%E6%B3%A8%E9%9F%B3%E8%BC%B8%E5%85%A5%E6%B3%95
 
 local rules = {
@@ -75,54 +71,17 @@ end
 
 ---@param lhs string
 ---@return string out
----@return string preedit
----@return Completion?
 function ZhuyinMachine:input(lhs)
-  local out_tmp, preedit, completion
+  local out_tmp
   local out = ""
   for key in lhs:gmatch "." do
     -- 一文字ずつ
-    out_tmp, preedit, completion = self:_input(key)
+    out_tmp = self:_input(key)
     if out_tmp then
       out = out .. out_tmp
     end
   end
-  return out, preedit, completion
-end
-
----@return CompletionItem
-local function copy_item(src)
-  local dst = {}
-  for k, v in pairs(src) do
-    dst[k] = v
-  end
-  return dst
-end
-
----@param dict UniHanDict
----@param zhuyin string
----@return CompletionItem[]
-local function filter_jisyo(dict, zhuyin)
-  local items = {}
-  for k, v in pairs(dict.zhuyin_map) do
-    if k == zhuyin then
-      for _, ch in ipairs(v) do
-        local item = dict:get_or_create(ch)
-        assert(item)
-        local new_item = CompletionItem.from_word(ch, item, dict)
-        new_item.word = zhuyin
-        new_item.dup = true
-        new_item.user_data = {
-          replace = ch,
-        }
-        if item.tiao then
-          new_item.word = new_item.word .. ("%d").format(item.tiao)
-        end
-        table.insert(items, new_item)
-      end
-    end
-  end
-  return items
+  return out
 end
 
 ---@param lhs string
