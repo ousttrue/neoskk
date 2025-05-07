@@ -164,7 +164,13 @@ function M.str_toggle_kana(src)
     elseif hira then
       dst = dst .. hira
     else
-      dst = dst .. c
+      if c:find "[a-z]" then
+        dst = dst .. c:upper()
+      elseif c:find "[A-Z]" then
+        dst = dst .. c:lower()
+      else
+        dst = dst .. c
+      end
     end
   end
   return dst
